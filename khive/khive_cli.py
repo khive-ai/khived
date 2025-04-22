@@ -16,12 +16,12 @@ logic. Unknown flags after a sub-command are passed through untouched.
 """
 from __future__ import annotations
 
+import argparse
 import importlib
 import sys
 from pathlib import Path
-import argparse
 from types import ModuleType
-from typing import Dict, Callable
+from typing import Callable, Dict
 
 # Map sub-command → module path (relative import)
 # Resolve the package root dynamically so imports work both in-repo and when
@@ -75,17 +75,19 @@ def main(argv: list[str] | None = None) -> None:
         sys.argv = [f"khive {cmd}", *rest]
         entry()  # type: ignore[misc]
     else:
-        entry(rest)  # type: ignore[arg-type]
-
-    # done; no need for runpy fallback
+        entry(rest)  # type: ignore[arg-type] ne; no need for runpy fallback
         # Fallback: exec as script file via runpy (rarely needed)
-        import runpy, importlib.util
+        import importlib.util
+        import runpy
+
         spec = importlib.util.find_spec(COMMANDS[cmd])
         if spec and spec.origin:
             sys.argv = [spec.origin, *rest]
             runpy.run_module(COMMANDS[cmd], run_name="__main__")
         else:
-            raise SystemExit(f"cannot execute '{cmd}' - no main() and no module file found")
+            raise SystemExit(
+                f"cannot execute '{cmd}' - no main() and no module file found"
+            )
 
 
 def _root_help():

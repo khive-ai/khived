@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Union, Iterable, Tuple
-
+from typing import Iterable, Tuple, Union
 
 ANSI = {
     "G": "\033[32m" if sys.stdout.isatty() else "",
@@ -13,6 +12,7 @@ ANSI = {
 
 _DELIMS: Tuple[str, ...] = ("---", "+++")
 Encoding = str  # alias for readability
+
 
 def read_md_body(path: Union[str, Path], *, encoding: Encoding = "utf-8") -> str:
     """
@@ -35,7 +35,7 @@ def read_md_body(path: Union[str, Path], *, encoding: Encoding = "utf-8") -> str
     Notes
     -----
     • A valid block starts on the first line with a delimiter in `_DELIMS`
-      *and* is closed by the same delimiter on a later line.  
+      *and* is closed by the same delimiter on a later line.
     • Nested front-matter or malformed delimiters are left untouched to avoid
       accidental data loss.
     """

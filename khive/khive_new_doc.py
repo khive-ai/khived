@@ -24,16 +24,21 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
+
 from .utils import ANSI
+
 verbose = False
+
 
 def log(msg: str, colour: str = "B"):
     if verbose:
         print(f"{ANSI[colour]}•{ANSI['N']} {msg}")
 
+
 def die(msg: str):
     print(f"{ANSI['R']}✖ {msg}{ANSI['N']}", file=sys.stderr)
     sys.exit(1)
+
 
 # ────────── front-matter parsing (tiny) ──────────
 # Accept optional "---" noise before front-matter (some editors add it)
@@ -53,6 +58,7 @@ def parse_frontmatter(text: str) -> Tuple[Dict[str, str], str]:
         meta[k.strip()] = v.strip().strip('"')
     return meta, body
 
+
 # ────────── data class ──────────
 @dataclass
 class Template:
@@ -63,7 +69,9 @@ class Template:
     meta: Dict[str, str]
     body: str
 
+
 # ────────── discovery ──────────
+
 
 def discover(dirs: List[Path]) -> Dict[str, Template]:
     """Walk each candidate dir **recursively** for `*_template.md`."""
@@ -79,7 +87,8 @@ def discover(dirs: List[Path]) -> Dict[str, Template]:
                 except SystemExit:
                     continue  # skip bad template
             except Exception as e:
-                log(f"skip {p} ({e})", colour="R"); continue
+                log(f"skip {p} ({e})", colour="R")
+                continue
             # Derive missing keys when possible
             if "doc_type" not in meta:
                 # Try to extract acronyms inside parentheses of title
@@ -93,10 +102,14 @@ def discover(dirs: List[Path]) -> Dict[str, Template]:
                 log(f"skip {p.name}: missing doc_type/output_subdir", colour="Y")
                 continue
             dt = meta["doc_type"].upper()
-            mapping[dt] = Template(p, dt, meta["output_subdir"], meta.get("prefix", dt), meta, body)
+            mapping[dt] = Template(
+                p, dt, meta["output_subdir"], meta.get("prefix", dt), meta, body
+            )
     return mapping
 
+
 # ────────── placeholder swap ──────────
+
 
 def substitute(text: str, ident: str) -> str:
     today = dt.date.today().isoformat()
@@ -105,7 +118,9 @@ def substitute(text: str, ident: str) -> str:
         text = re.sub(pat, ident, text, flags=re.I)
     return text
 
+
 # ────────── main create fn ──────────
+
 
 def create(tpl: Template, ident: str, dest_base: Path) -> Path:
     out_dir = dest_base / tpl.out_subdir
@@ -116,20 +131,26 @@ def create(tpl: Template, ident: str, dest_base: Path) -> Path:
 
     content = substitute(tpl.body, ident)
     meta = {**tpl.meta, "date": dt.date.today().isoformat()}
-    front = "---\n" + "\n".join(f"{k}: \"{v}\"" for k, v in meta.items()) + "\n---\n"
+    front = "---\n" + "\n".join(f'{k}: "{v}"' for k, v in meta.items()) + "\n---\n"
     out_path.write_text(front + content, encoding="utf-8")
     print(f"{ANSI['G']}✔ created {out_path.relative_to(Path.cwd())}{ANSI['N']}")
     return out_path
 
+
 # ────────── cli ──────────
+
 
 def _cli():
     global verbose
     parser = argparse.ArgumentParser(description="create doc from template")
     parser.add_argument("type", help="doc type (abbr)")
     parser.add_argument("identifier", help="issue number / slug")
-    parser.add_argument("--dest", type=Path, default=Path("reports"), help="output base dir")
-    parser.add_argument("--template-dir", type=Path, help="override template dir (search root)")
+    parser.add_argument(
+        "--dest", type=Path, default=Path("reports"), help="output base dir"
+    )
+    parser.add_argument(
+        "--template-dir", type=Path, help="override template dir (search root)"
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     a = parser.parse_args()
     verbose = a.verbose
@@ -137,10 +158,10 @@ def _cli():
     # Resolve search dirs
     repo_root = Path(__file__).resolve().parents[1]
     dirs = [
-        a.template_dir,                                     # CLI flag
-        Path(os.getenv("KHIVE_TEMPLATE_DIR", "")) or None, # ENV
-        repo_root / "docs" / "templates",                  # default prod
-        repo_root / "dev" / "docs" / "templates",         # dev dir fallback
+        a.template_dir,  # CLI flag
+        Path(os.getenv("KHIVE_TEMPLATE_DIR", "")) or None,  # ENV
+        repo_root / "docs" / "templates",  # default prod
+        repo_root / "dev" / "docs" / "templates",  # dev dir fallback
     ]
     dirs = [d.resolve() for d in dirs if d]
 
@@ -157,6 +178,7 @@ def _cli():
         die("identifier must not be empty")
 
     create(tpls[key], ident, a.dest.resolve())
+
 
 if __name__ == "__main__":
     _cli()

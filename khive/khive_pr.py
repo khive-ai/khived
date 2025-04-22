@@ -23,50 +23,74 @@ import tempfile
 from pathlib import Path
 from typing import List
 
-ANSI = {k: (v if sys.stdout.isatty() else "") for k, v in {"G": "\033[32m", "R": "\033[31m", "B": "\033[34m", "N": "\033[0m"}.items()}
+ANSI = {
+    k: (v if sys.stdout.isatty() else "")
+    for k, v in {
+        "G": "\033[32m",
+        "R": "\033[31m",
+        "B": "\033[34m",
+        "N": "\033[0m",
+    }.items()
+}
 
 TYPES = "feat|fix|build|chore|ci|docs|perf|refactor|revert|style|test"
-PAT = re.compile(fr"^(?:{TYPES})(?:\([\w-]+\))?(?:!)?: (.+)")
+PAT = re.compile(rf"^(?:{TYPES})(?:\([\w-]+\))?(?:!)?: (.+)")
 verbose, DRY = False, False
 
 # ────────── utils ──────────
 
+
 def log(msg: str, colour: str = "B"):
     if verbose:
         print(f"{ANSI[colour]}•{ANSI['N']} {msg}")
+
 
 def die(msg: str):
     print(f"{ANSI['R']}✖ {msg}{ANSI['N']}", file=sys.stderr)
     sys.exit(1)
 
 
-def run(cmd: List[str] | str, *, capture=False, check=True) -> subprocess.CompletedProcess[str] | int:
+def run(
+    cmd: List[str] | str, *, capture=False, check=True
+) -> subprocess.CompletedProcess[str] | int:
     args = cmd.split() if isinstance(cmd, str) else cmd
     log("$ " + " ".join(args))
     if DRY:
         return 0
     return subprocess.run(args, text=True, capture_output=capture, check=check)
 
+
 # ────────── helper funcs ──────────
 
+
 def git(args: List[str] | str, **kw):
-    return run(["git", * (args.split() if isinstance(args, str) else args)], **kw)
+    return run(["git", *(args.split() if isinstance(args, str) else args)], **kw)
+
 
 def gh(args: List[str] | str, **kw):
-    return run(["gh", * (args.split() if isinstance(args, str) else args)], **kw)
+    return run(["gh", *(args.split() if isinstance(args, str) else args)], **kw)
 
 
 def repo_root() -> Path:
-    return Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+    return Path(
+        subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], text=True
+        ).strip()
+    )
 
 
 def current_branch() -> str:
-    return subprocess.check_output(["git", "branch", "--show-current"], text=True).strip() or "HEAD"
+    return (
+        subprocess.check_output(["git", "branch", "--show-current"], text=True).strip()
+        or "HEAD"
+    )
 
 
 def default_base() -> str:
     try:
-        out = gh("repo view --json defaultBranchRef -q .defaultBranchRef.name", capture=True)
+        out = gh(
+            "repo view --json defaultBranchRef -q .defaultBranchRef.name", capture=True
+        )
         if isinstance(out, subprocess.CompletedProcess):
             return out.stdout.strip() or "main"
     except Exception:
@@ -97,7 +121,9 @@ def temp_body(cli_body: str | None, commit_body: str | None) -> str:
         return commit_body
     return """## Description\n\n<replace>"""
 
+
 # ────────── main ──────────
+
 
 def main():
     global verbose, DRY
@@ -106,7 +132,9 @@ def main():
     p.add_argument("--title")
     p.add_argument("--body")
     p.add_argument("--draft", action="store_true")
-    p.add_argument("--web", action="store_true", help="open PR in browser even if exists")
+    p.add_argument(
+        "--web", action="store_true", help="open PR in browser even if exists"
+    )
     p.add_argument("--no-push", action="store_true")
     p.add_argument("--verbose", "-v", action="store_true")
     p.add_argument("--dry-run", "-n", action="store_true")
@@ -117,7 +145,8 @@ def main():
         if not shutil.which(tool):
             die(f"{tool} not found - install from {url}")
 
-    root = repo_root(); os.chdir(root)
+    root = repo_root()
+    os.chdir(root)
     br = current_branch()
     base = a.base or default_base()
     if br == base:
@@ -146,6 +175,7 @@ def main():
             cmd.append("--draft")
         gh(cmd)
         os.unlink(tf.name)
+
 
 if __name__ == "__main__":
     main()
