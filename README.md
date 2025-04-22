@@ -115,11 +115,11 @@ file minimal and override only what you need.
 ### `pyproject.toml` snippets
 
 ```toml
-[tool.khive-fmt]
+[tool.khive fmt]
 # enable/disable stacks globally
 enable = ["python", "rust", "docs", "deno"]
 
-[tool.khive-fmt.stacks.python]
+[tool.khive fmt.stacks.python]
 cmd = "ruff format {files}"   # custom formatter
 check_cmd = "ruff format --check {files}"
 include = ["*.py"]

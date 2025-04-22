@@ -30,32 +30,22 @@ other's styles.
 | **>80 pct test coverage**                     | 100 pct coverage perfectionism |
 | Conventional Commits                          | Exotic git workflows           |
 | Search-driven dev (cite results)              | Coding from memory             |
-| Local CLI (`khive-*`, `git`, `pnpm`, `cargo`) | Heavy bespoke shell wrappers   |
+| Local CLI (`khive *`, `git`, `pnpm`, `cargo`) | Heavy bespoke shell wrappers   |
 | Tauri security basics                         | Premature micro-optimisation   |
-
----
-
-## 3 · Folder layout (tl;dr)
-
-apps/khive-ui/ # React + TS + Tailwind (Vite) src-tauri/ # Rust backend (Tokio,
-Tauri) packages/shared-protocol/ # Rust↔TS generated types scripts/khive-* #
-helper CLI scripts dev/docs/templates/ # spec / plan / review templates
-
-_(If you add a new top-level folder, document it in `README.md`.)_
 
 ---
 
 ## 4 · Golden-path workflow
 
-1. **Search** - `khive-search` → paste IDs/links in docs.
+1. **Search** - `khive search` → paste IDs/links in docs.
 2. **Spec** - `khive new-doc` (architect)
 3. **Plan + Tests** - `khive new-doc` (implementer)
-4. **Code + Green tests** - local `pnpm test`, `cargo test`, `khive-fmt`
-5. **Commit** - `khive-commit 'feat: cool thing'` (includes mode trailer).
-6. **PR** - `khive-pr` (fills title/body, adds Mode/Version).
-7. **CI** - `khive-ci` (coverage & template lint).
+4. **Code + Green tests** - local `pnpm test`, `cargo test`, `khive fmt`
+5. **Commit** - `khive commit 'feat: cool thing'` (includes mode trailer).
+6. **PR** - `khive pr` (fills title/body, adds Mode/Version).
+7. **CI** - `khive ci` (coverage & template lint).
 8. **Review** - reviewer checks search citations + tests, then approves.
-9. **Merge & clean** - orchestrator merges; implementer runs `khive-clean`.
+9. **Merge & clean** - orchestrator merges; implementer runs `khive clean`.
 
 That's it - nine steps, every time.
 
@@ -85,10 +75,10 @@ That's it - nine steps, every time.
 | Stack    | Test cmd                  | Coverage file                                  | Notes              |
 | -------- | ------------------------- | ---------------------------------------------- | ------------------ |
 | Frontend | `pnpm test -- --coverage` | `apps/khive-ui/coverage/coverage-summary.json` | Vitest + RTL       |
-| Backend  | `cargo test`              | tarpaulin JSON                                 | Run via `khive-ci` |
+| Backend  | `cargo test`              | tarpaulin JSON                                 | Run via `khive ci` |
 
-Threshold lives in CI (`khive-ci --threshold 80`). Local devs just call
-`khive-ci` before pushing; fail-fast keeps PRs green.
+Threshold lives in CI (`khive ci --threshold 80`). Local devs just call
+`khive ci` before pushing; fail-fast keeps PRs green.
 
 ---
 
@@ -96,7 +86,7 @@ Threshold lives in CI (`khive-ci --threshold 80`). Local devs just call
 
 - One logical change per commit.
 - Conventional Commit format (`<type>(scope): subject`).
-- Commit with `khive-commit` so the **Mode** trailer (`Mode: implementer`, etc.)
+- Commit with `khive commit` so the **Mode** trailer (`Mode: implementer`, etc.)
   is added automatically.
 - Example:
 
@@ -113,12 +103,12 @@ Implements switch component & persists pref in localStorage (search: exa-xyz123
 | Script            | What it does                                                   |
 | ----------------- | -------------------------------------------------------------- |
 | **khive-init**    | Bootstrap deps, hooks, `.roomodes`. Run once per clone.        |
-| **khive-search**  | Validates + prints request JSON for Exa/Perplexity.            |
+| **khive search**  | Validates + prints request JSON for Exa/Perplexity.            |
 | **khive new-doc** | Copies a template → docs folder, fills dates/IDs.              |
-| **khive-commit**  | `git add -A`, set identity, conventional commit, add trailers. |
-| **khive-pr**      | Push branch & open PR with Mode/Version.                       |
-| **khive-clean**   | Switch to default branch, delete local+remote feature branch.  |
-| **khive-ci**      | Front+back coverage + template-lint (what CI runs).            |
+| **khive commit**  | `git add -A`, set identity, conventional commit, add trailers. |
+| **khive pr**      | Push branch & open PR with Mode/Version.                       |
+| **khive clean**   | Switch to default branch, delete local+remote feature branch.  |
+| **khive ci**      | Front+back coverage + template-lint (what CI runs).            |
 
 Each script prints its own `--help`.
 
