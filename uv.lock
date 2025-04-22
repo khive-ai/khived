@@ -1053,7 +1053,7 @@ wheels = [
 
 [[package]]
 name = "khive"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "lionagi", extra = ["tools"] },
@@ -1071,7 +1071,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "lionagi", extras = ["tools"], specifier = ">=0.10.6" },
+    { name = "lionagi", extras = ["tools"], specifier = ">=0.10.7" },
     { name = "ruff", specifier = ">=0.11.6" },
 ]
 
@@ -1107,7 +1107,7 @@ wheels = [
 
 [[package]]
 name = "lionagi"
-version = "0.10.6"
+version = "0.10.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiocache" },
@@ -1120,9 +1120,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "toml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f6/0e/4778d0eb0cfa14bf42af1de5d44f4fcce36ccabe79657a42200a75c365ce/lionagi-0.10.6.tar.gz", hash = "sha256:0f94259dd52f221bdc96ed8e735ed1c7ac7e894efc3bc81ab4f98c1158841d56", size = 502153 }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/0f/a94cdc4d64978e8063a1c624c1c8136e9147947ca75e3bbcb9279429675b/lionagi-0.10.7.tar.gz", hash = "sha256:46ff1188ff4547cd143b1a363a3ca78e753f7afa40421844593cfbfd75c20e61", size = 532305 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/82/7851acd558856cfdd6363a0fde1bc4b4aba8a966928a79740bcf856ee5b0/lionagi-0.10.6-py3-none-any.whl", hash = "sha256:e12a25f3cf5d3954dbe0e63771e9de4ecdd058fcf835040b233af4c98fbc4424", size = 309026 },
+    { url = "https://files.pythonhosted.org/packages/ce/69/a6d4a37208d9c9d2dbf1308d0bb0c046f6b89db15126776d8991b703d50a/lionagi-0.10.7-py3-none-any.whl", hash = "sha256:91bb277076ddeeb84c681cb6600fecd56dcf52ec908f2018bdb60c9bbe3ba568", size = 309012 },
 ]
 
 [package.optional-dependencies]

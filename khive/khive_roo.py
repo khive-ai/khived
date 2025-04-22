@@ -16,7 +16,10 @@ ROO_FOLDER = "docs/roo"
 INVOKCATION_PROMPT = "docs/prompts/invokation.md"
 
 GENERAL_GUIDANCE = "docs/guides/general_guidance.md"
-KHIVED_DOC = "README.md"
+khive_doc = Path(__file__).parent / "readme.txt"
+
+
+khive_doc = khive_doc.read_text()
 OUTPUT_JSON = ".roomodes"
 
 
@@ -39,14 +42,6 @@ def parse_markdown_file(filepath):
         return
     if not os.path.isfile(GENERAL_GUIDANCE):
         logging.error(f"CRITICAL: '{GENERAL_GUIDANCE}' is not a file.")
-        return
-    if not os.path.exists(KHIVED_DOC):
-        logging.error(
-            f"CRITICAL: Khived documentation file '{KHIVED_DOC}' does not exist."
-        )
-        return
-    if not os.path.isfile(KHIVED_DOC):
-        logging.error(f"CRITICAL: '{KHIVED_DOC}' is not a file.")
         return
 
     logging.debug(f"Attempting to parse: {filepath}")
@@ -104,15 +99,12 @@ def parse_markdown_file(filepath):
     fp = Path(GENERAL_GUIDANCE)
     general_guidance_text = read_md_body(fp)
 
-    fp2 = Path(KHIVED_DOC)
-    khived_doc_text = read_md_body(fp2)
-
     custom_instructions_text = (
         extract_section(remaining_md, "Custom Instructions")
         + "\n\n"
         + general_guidance_text
         + "\n\n"
-        + khived_doc_text
+        + khive_doc
     ).strip()
 
     # --- Assemble Final Data ---
