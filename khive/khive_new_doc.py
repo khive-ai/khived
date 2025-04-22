@@ -2,7 +2,7 @@
 """
 khive_new_doc.py - spawn a Markdown doc from a template.
 
-Patch 2025-04-22 ▸ **robust template resolution**
+Patch 2025-04-22 ▸ **robust template resolution**
 ------------------------------------------------
 * Fallback search chain:
   1. `--template-dir` flag (highest priority)
@@ -128,7 +128,7 @@ def _cli():
     parser = argparse.ArgumentParser(description="create doc from template")
     parser.add_argument("type", help="doc type (abbr)")
     parser.add_argument("identifier", help="issue number / slug")
-    parser.add_argument("--dest", type=Path, default=Path("docs"), help="output base dir")
+    parser.add_argument("--dest", type=Path, default=Path("reports"), help="output base dir")
     parser.add_argument("--template-dir", type=Path, help="override template dir (search root)")
     parser.add_argument("--verbose", "-v", action="store_true")
     a = parser.parse_args()

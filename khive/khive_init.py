@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 khive_init.py - zero-surprise bootstrap for the khive mono-repo.
-# … (header unchanged for brevity) …
+# … (header unchanged for brevity) …
 """
 from __future__ import annotations
 
