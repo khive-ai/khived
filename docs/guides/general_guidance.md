@@ -16,7 +16,7 @@ K.D KHIVE-DEV TEAM **MUST RETAIN FROM** EDITING THE FOLLOWING FOLDERS: 'docs/`
 
 ! WARNING: THIS DOCUMENT IS READ-ONLY
 
-# project: lionagi
+# project: khive.d
 
 - _GitHub Owner:_ **khive-ai**
 - _Repository:_ **khive.d**
