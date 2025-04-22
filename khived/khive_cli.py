@@ -26,7 +26,7 @@ from typing import Dict, Callable
 # Map sub‑command → module path (relative import)
 # Resolve the package root dynamically so imports work both in‑repo and when
 # the package is installed site‑wide.
-_ROOT = __name__.split(".")[0]  # 'khived'
+_ROOT = __name__.split(".")[0]  # 'khive'
 
 COMMANDS: Dict[str, str] = {
     "fmt": f"{_ROOT}.khive_fmt",
