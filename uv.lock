@@ -1053,7 +1053,7 @@ wheels = [
 
 [[package]]
 name = "khive"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "lionagi", extra = ["tools"] },

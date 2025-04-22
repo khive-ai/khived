@@ -4,6 +4,8 @@ by: "khive-orchestrator"
 created: "2025-04-12"
 updated: "2025-04-12"
 version: "1.1"
+doc_type: IP
+output_subdir: ips
 description: "Template for creating detailed implementation plans for khive components following TDD principles"
 ---
 

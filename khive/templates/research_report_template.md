@@ -4,6 +4,8 @@ by: "khive-researcher"
 created: "2025-04-12"
 updated: "2025-04-12"
 version: "1.1"
+doc_type: RR
+output_subdir: rrs
 description: "Template for creating comprehensive research reports on technologies and components for the khive project"
 ---
 
