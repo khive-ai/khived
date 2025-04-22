@@ -20,11 +20,11 @@ Usage::
   khive_fmt.py --check    # parallel read-only
   khive_fmt.py -v --check --stack python
 
-Add a console-script if you want `khive-fmt` on `$PATH`:
+Add a console-script if you want `khive fmt` on `$PATH`:
 
 ```toml
 [project.scripts]
-khive-fmt = "khive_fmt:main"
+khive fmt = "khive_fmt:main"
 ```
 """
 from __future__ import annotations
@@ -226,7 +226,7 @@ async def _main(argv: list[str] | None = None) -> None:
 
 
 def main() -> None:  # used by console_scripts
-    """Sync shim for entry-points (khive-fmt)."""
+    """Sync shim for entry-points (khive fmt)."""
     asyncio.run(_main())
 
 

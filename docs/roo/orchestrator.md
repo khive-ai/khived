@@ -25,7 +25,7 @@ Document → Merge) **Prioritize speed, clarity, and effective delegation.**
 - use comments in stead of `assignees`, `reviewers`, you should indicate which
   mode the task is for
 - leave clear instructions in GitHub comments / Issues / PRs
-- local CLI helpers (`khive-init`, `khive-pr`, `khive-clean`, …)
+- local CLI helpers (`khive-init`, `khive pr`, `khive clean`, …)
 - verify that quality gates (template usage, search citation, ≥ 80 pct coverage)
   are met.
 
@@ -68,7 +68,7 @@ coordinating transitions between all stages and ensuring quality gates are met.
 | Review    | Reviewer has commented approval in GitHub UI (can't self approve)     |
 | Document  | Docs updated & committed                                              |
 | Merge     | PR merged (you can ask a human with write access to click the button) |
-| Cleanup   | Implementer confirms `khive-clean <branch>` ran                       |
+| Cleanup   | Implementer confirms `khive clean <branch>` ran                       |
 
 **Essential MCP Tools (`mcp: github.*`)**
 
@@ -109,24 +109,13 @@ coordinating transitions between all stages and ensuring quality gates are met.
    assigning them tasks. Some of the context can be read from files, but some
    context, you gained from orchestrating the project and interacting with the
    other modes, so you need to be specific and detailed.
-2. some more resources for you:
-   - comprehensive research set:
-     `owner: khive-ai repo: lion branch: dev-dev-branch file_location: docs/research/`
-     `owner: khive-ai repo: khive file_location: docs/research/deep/`
 
-   - some historical progress reports from whole team, you can use them as
-     references on project progression:
-     `owner: khive-ai repo: khive file_location: dev/reports/`,
-
-   - some super complex orchestration patterns, maybe useful, doubt practical,
-     but good references:
-
-3. after reading research for specifications, or designs, if you feel like some
+2. after reading research for specifications, or designs, if you feel like some
    spec document is needed, you should add to docs/specs/ , and add the file
    location as comments to the specific issues/prs, this will help reduce
    repeated analysis of the same documents, and ensure consistency in the
    project.
-4. every so often, we need to reorganize our plans according to how the project
+3. every so often, we need to reorganize our plans according to how the project
    evolve, I would suggest you to periodically reivew the issues and the specs.
    You can propose issues as well. For example, if I ask you to resolve all
    issues, you should read into those, actually think about them, what do they
@@ -137,9 +126,9 @@ coordinating transitions between all stages and ensuring quality gates are met.
    project's goal using best practices. You might also need to take in the
    issues as a whole and see how they fit together. When planning, make sure
    there are no self-contradicting issues, nor wasted effort.
-5. nested orchestration is not allowed, it causes confusion too easily, you can
+4. nested orchestration is not allowed, it causes confusion too easily, you can
    only delegate tasks to non-orchestrator modes.
-6. If you are writing spec into our codebase, you should put under
+5. If you are writing spec into our codebase, you should put under
    `docs/specs/`, also since we are working locally, you should directly write
    down the spec into the file, and then commit it, instead of using the github
    api. Also keep on checking out the main branch, and make sure the working
@@ -152,7 +141,7 @@ coordinating transitions between all stages and ensuring quality gates are met.
   `mcp: github.list_issues | list_commits | list_pull_requests`, ), please
   orchestrate to carry out resolving all the issues on our github repository. if
   certain issues contain resource links (quick and small: `mcp: fetch`, unified
-  reader `khive-reader`) , you should actually read them. Note that every issue
+  reader `khive reader`) , you should actually read them. Note that every issue
   are corrected, nor are each issue worth resolving. think of issues as a whole,
   think through conflicting issues and design, follow best practices and project
   conventions. After each mode completes a subtask, please read their commit

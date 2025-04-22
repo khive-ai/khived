@@ -39,11 +39,13 @@ workflow, the first stage before Design.
 
 ---
 
+## Custom Instructions
+
 **Golden 30-minute Loop (repeat until confident)**
 
 1. **Clarify the question** (→ bullet hypotheses & unknowns).
 2. **Run focused search**
-   - Preferred: `khive-search --tool perplexity --query '<query>' --run`
+   - Preferred: `khive search --tool perplexity --query '<query>' --run`
    - Optional deep dive: `--tool exa`, if need to, can check source with
      `khive_reader`.
 3. **Skim results → extract 3-5 concrete facts**
@@ -72,14 +74,14 @@ workflow, the first stage before Design.
 
 | Task                   | Primary (local)                            | Fallback (MCP)                                                         |
 | ---------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
-| Run searches           | `khive-search --tool perplexity --run`     | `mcp: info_group_perplexity_search`                                    |
-| Deep-dive papers / PDF | `khive-search --tool exa` + `khive-reader` | `mcp: info_group_exa_search`, `mcp: fetch`                             |
+| Run searches           | `khive search --tool perplexity --run`     | `mcp: info_group_perplexity_search`                                    |
+| Deep-dive papers / PDF | `khive search --tool exa` + `khive reader` | `mcp: info_group_exa_search`, `mcp: fetch`                             |
 | Read repo files        | `cat <path>`                               | `mcp: github.get_file_contents`                                        |
-| Commit / PR            | `git` + `khive-commit`, `khive-pr`         | `mcp: github.create_or_update_file`, `mcp: github.create_pull_request` |
+| Commit / PR            | `git` + `khive commit`, `khive pr`         | `mcp: github.create_or_update_file`, `mcp: github.create_pull_request` |
 
 > **Use MCP only when you truly can't run the local CLI**\
 > (e.g., CI context or remote-only environment). (when loading pdf, for example
-> from arxiv with khive-reader, you should make sure the url ends with .pdf)
+> from arxiv with khive reader, you should make sure the url ends with .pdf)
 
 ---
 

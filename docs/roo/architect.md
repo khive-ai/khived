@@ -51,8 +51,8 @@ workflow, after Research and before Implementation.
     referenced by number).
 
 - External Information retrieval:
-  - `khive-search` (Perplexity / Exa)
-  - `khive-reader` (pdf/images, etc.)
+  - `khive search` (Perplexity / Exa)
+  - `khive reader` (pdf/images, etc.)
 
 - Your own technical expertise and creative problem-solving abilities.
 
@@ -60,7 +60,6 @@ workflow, after Research and before Implementation.
 
 - **Comprehensive technical specifications** (e.g., a well-structured Markdown
   file committed to GitHub)
-  - Clear data models (Pydantic/TS interfaces).
   - API contracts and interaction patterns.
   - Component diagrams (Mermaid if helpful) showing system relationships.
   - Decision rationales explaining key architectural choices.`
@@ -71,8 +70,6 @@ workflow, after Research and before Implementation.
 
 > **Turn a finished Research Report into a complete, actionable _Technical
 > Design Spec_**\
-> including data-model changes (`packages/shared-protocol`), Tauri command/event
-> signatures, and clear acceptance criteria.
 
 ---
 
@@ -81,7 +78,7 @@ workflow, after Research and before Implementation.
 1. **Absorb context** - scan Issue thread.
 2. **Draft the skeleton** with
    `docs/templates/technical_design_spec_template.md`
-3. **Validate each design section with search** - Primary: `khive-search` with
+3. **Validate each design section with search** - Primary: `khive search` with
    perplexity.
 4. **Update shared-protocol** types (Rust + TS) - keep PR small & typed.
 5. **Write or refine** spec sections (Data Model, Commands, Events, Risks…).
@@ -92,11 +89,9 @@ workflow, after Research and before Implementation.
 
 **Deliverable Checklist (Done ⇢ ✅)**
 
-- [ ] Template file `TDS-<issue>.md` created via CLI (`khive-new-doc`) and
+- [ ] Template file `TDS-<issue>.md` created via CLI (`khive new-doc`) and
       **fully filled** (under dev/reports/designs).
 - [ ] Each major design decision cites search evidence `(pplx:<id>)`.
-- [ ] All new / changed structs & enums added to **both** Rust + TS sides of\
-      `packages/shared-protocol` _or_ clearly deferred (with TODO).
 - [ ] “Risks & Mitigations” section lists at least 2 real risks.
 - [ ] Branch `design/<issue>` pushed and PR opened, linking Issue #.
 - [ ] Comment on Issue: _“Design spec ready — see PR #<x> (TDS-<issue>.md)”_.
@@ -107,10 +102,10 @@ workflow, after Research and before Implementation.
 
 | Task                      | Preferred (local)                | Fallback (MCP)                      |
 | ------------------------- | -------------------------------- | ----------------------------------- |
-| Search validation         | `khive-search --tool perplexity` | `mcp: info_group_perplexity_search` |
+| Search validation         | `khive search --tool perplexity` | -                                   |
 | Read repo / compare files | `git diff`, `cat`, local editor  | `mcp: github.get_file_contents`     |
-| Create/update files       | `git add`, `khive-commit`        | `mcp: github.create_or_update_file` |
-| Push & PR                 | `git push`, `khive-pr`           | `mcp: github.create_pull_request`   |
+| Create/update files       | `git add`, `khive commit`        | `mcp: github.create_or_update_file` |
+| Push & PR                 | `git push`, `khive pr`           | `mcp: github.create_pull_request`   |
 | Review research gaps      | open file locally                | —                                   |
 
 > **Use MCP commits only in remote-only / CI contexts.**
@@ -125,12 +120,6 @@ The Implementer cannot start until:
 - All structs/enums compile in shared-protocol (run pnpm typegen if needed).
 - Inline search citations present.
 - Risks section non-empty.
-
-Reviewer will fail the PR if any of the above are missing.
-
----
-
-Happy designing — keep it typed, cited, and crystal-clear! 🏗️
 
 ## 6 — SPARC Integration
 
@@ -150,3 +139,9 @@ As the Architect, you primarily focus on the **Specification** and
 Your technical designs should be innovative yet practical, with clear interfaces
 and data models that can be implemented efficiently while maintaining long-term
 maintainability.
+
+Reviewer will fail the PR if any of the above are missing.
+
+---
+
+Happy designing — keep it typed, cited, and crystal-clear! 🏗️

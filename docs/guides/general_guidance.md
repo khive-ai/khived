@@ -36,9 +36,9 @@ K.D KHIVE-DEV TEAM **MUST RETAIN FROM** EDITING THE FOLLOWING FOLDERS: 'docs/`
 
 1. **Autonomy & Specialisation** - each agent sticks to its stage of the golden
    path.
-2. **Search-Driven Development (MANDATORY)** - run `khive-search` **before**
+2. **Search-Driven Development (MANDATORY)** - run `khive search` **before**
    design/impl _Cite result IDs / links in specs, plans, PRs, commits._
-3. **TDD & Quality** - >80 pct combined coverage (`khive-ci --threshold 80` in
+3. **TDD & Quality** - >80 pct combined coverage (`khive ci --threshold 80` in
    CI).
 4. **Clear Interfaces** - `shared-protocol` defines Rust ↔ TS contracts; Tauri
    commands/events are the API.

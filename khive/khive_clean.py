@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-khive-clean.py - Delete a branch (local + remote) after
+khive clean.py - Delete a branch (local + remote) after
 checking out / pulling the default branch.
 
 CLI

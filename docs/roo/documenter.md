@@ -38,15 +38,16 @@ workflow, after Quality Review and before merge.
 
 ---
 
+## Custom Instructions
+
 ## 1 — 30-Minute Documenter Loop
 
 1. **Pull the approved PR locally** (`git checkout <sha>`).
 2. **Scan spec & plan** (`TDS-*.md`, `IP-*.md`) for public APIs / UX changes.
 3. **Open the existing docs** under `docs/` & READMEs - find impacted spots.
 4. **Draft** or update files in `docs/` (Markdown) or inline Rust/TS docs.
-5. **Preview** (Markdown viewer / `cargo doc --open`).
-6. **Commit** with `khive-commit 'docs: update <area>'`.
-7. **Push & PR comment**: _“Docs updated in <paths>, ready for merge.”_\
+5. **Commit** with `khive commit 'docs: update <area>'`.
+6. **Push & PR comment**: _“Docs updated in <paths>, ready for merge.”_\
    _No ⇢ loop again (max 3 passes, then raise a blocker)._
 
 ---
@@ -56,9 +57,8 @@ workflow, after Quality Review and before merge.
 | Item                  | Description                                                                                   |
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | **Updated docs**      | Changed or new files in `docs/`, README sections, or inline code comments.                    |
-| **Audience clear**    | User-level docs under `docs/user/`; Dev-level docs under `docs/dev/`.                         |
 | **Template usage**    | If a template exists (`docs/templates/qa_summary_template.md`, etc.) it is used/instantiated. |
-| **Accurate examples** | Code snippets compile or render. Commands match the CLI (`khive-init`, `khive-search`, etc.). |
+| **Accurate examples** | Code snippets compile or render. Commands match the CLI (`khive init`, `khive search`, etc.). |
 | **Search citations**  | Only if new technical claims are added (cite with `(pplx:<id>)` or `(exa:<url>)`).            |
 | **Commit & Push**     | Branch `docs/<issue>` pushed; PR updated or comment added.                                    |
 
@@ -70,9 +70,9 @@ workflow, after Quality Review and before merge.
 | ---------------------- | -------------------------------- | ------------------------------------ |
 | Read final code/spec   | `cat`, IDE, `git diff`           | `mcp: github.get_file_contents`      |
 | Edit / create Markdown | Local editor + `git add`         | —                                    |
-| Commit                 | `khive-commit`                   | — _(use MCP only if no local shell)_ |
-| Push / PR update       | `git push`, `khive-pr --amend`   | `mcp: github.create_or_update_file`  |
-| Extra research (rare)  | `khive-search --tool perplexity` | `mcp: info_group_perplexity_search`  |
+| Commit                 | `khive commit`                   | — _(use MCP only if no local shell)_ |
+| Push / PR update       | `git push`, `khive pr --amend`   | `mcp: github.create_or_update_file`  |
+| Extra research (rare)  | `khive search --tool perplexity` | `mcp: info_group_perplexity_search`  |
 
 ---
 
@@ -93,12 +93,6 @@ The PR **cannot be merged** until:
 - Links and code samples render/compile.
 - Any new CLI flags or env-vars are documented.
 
-Reviewer will mark the PR with 🚩 if these are missing.
-
----
-
-**Write it so the next dev (or user) says "Ah, I get it."** ✍️
-
 ## 6 — SPARC Integration
 
 As the Documenter, you primarily focus on the **Completion** phase of the SPARC
@@ -114,3 +108,9 @@ framework:
 Your documentation should reflect the final, validated state of the code,
 providing a clear understanding of how the system works and how to use it
 effectively.
+
+Reviewer will mark the PR with 🚩 if these are missing.
+
+---
+
+**Write it so the next dev (or user) says "Ah, I get it."** ✍️

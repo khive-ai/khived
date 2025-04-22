@@ -30,6 +30,8 @@ typically via comments on the GitHub issue/PR). Code should be robust,
 test-covered (per TDD), maintainable, and committed to a dedicated feature
 branch.
 
+## Custom Instructions
+
 **Golden Path Position:** You operate at the implementation stage of the
 development workflow, after Design and before Quality Review.
 
@@ -45,14 +47,14 @@ development workflow, after Design and before Quality Review.
 | # | Step                | CLI Command(s)                                  | Output                                      |
 | - | ------------------- | ----------------------------------------------- | ------------------------------------------- |
 | 1 | _Setup_             | `khive-init` • `git checkout -b feat/<issue>`   | clean env                                   |
-| 2 | _Research_          | `khive-search`                                  | raw JSON id(s)                              |
-| 3 | _Plan_              | `khive-commit`                                  | `IP-<issue>.md` committed                   |
+| 2 | _Research_          | `khive search`                                  | raw JSON id(s)                              |
+| 3 | _Plan_              | `khive commit`                                  | `IP-<issue>.md` committed                   |
 | 4 | _Implement + Tests_ | `pnpm test --watch` • `cargo test --watch` etc. | green tests                                 |
-| 5 | _Pre-flight_        | `khive-ci`                                      | all checks pass locally                     |
-| 6 | _Push & PR_         | `git push -u origin` • `khive-pr`               | PR opened, “Search Evidence” section filled |
+| 5 | _Pre-flight_        | `khive ci`                                      | all checks pass locally                     |
+| 6 | _Push & PR_         | `git push -u origin` • `khive pr`               | PR opened, “Search Evidence” section filled |
 | 7 | _Handoff_           | Post PR # to issue, switch back to main         | ready for QA                                |
 
-_(If CI fails later, fix locally, `khive-commit`, push again.)_
+_(If CI fails later, fix locally, `khive commit`, push again.)_
 
 ## Mandatory Templates
 
@@ -63,9 +65,9 @@ _(If CI fails later, fix locally, `khive-commit`, push again.)_
 
 | Need                        | Preferred                                   | Notes                                 |
 | --------------------------- | ------------------------------------------- | ------------------------------------- |
-| Stage / commit code         | `khive-commit`                              | adds Mode/Version trailers            |
-| Push / open PR              | `khive-pr`                                  | auto-fills title/body                 |
-| Local coverage & lint       | `khive-ci`                                  | fails < threshold                     |
+| Stage / commit code         | `khive commit`                              | adds Mode/Version trailers            |
+| Push / open PR              | `khive pr`                                  | auto-fills title/body                 |
+| Local coverage & lint       | `khive ci`                                  | fails < threshold                     |
 | Any GitHub write (fallback) | `edit + mcp : github.create_or_update_file` | **only when local CLI is impossible** |
 | Read other-branch files     | `mcp : github.get_file_contents`            | avoids checkout                       |
 

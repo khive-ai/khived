@@ -54,7 +54,7 @@ Then move onto answering the prompt.
 
 - **Search first, code second.**
 - Follow Conventional Commits.
-- Run `khive-ci` locally before pushing.
+- Run `khive ci` locally before pushing.
 - Keep templates up to date; replace all `{{PLACEHOLDER:…}}`.
 - Security, performance, and readability are non-negotiable.
 - Be kind - leave code better than you found it. 🚀
