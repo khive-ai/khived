@@ -156,16 +156,11 @@ def _cli():
     verbose = a.verbose
 
     # Resolve search dirs
-    repo_root = Path(__file__).resolve().parents[1]
-    dirs = [
-        a.template_dir,  # CLI flag
-        Path(os.getenv("KHIVE_TEMPLATE_DIR", "")) or None,  # ENV
-        repo_root / "docs" / "templates",  # default prod
-        repo_root / "dev" / "docs" / "templates",  # dev dir fallback
-    ]
+    dirs = [Path(__file__).parent / "templates"]
     dirs = [d.resolve() for d in dirs if d]
 
     tpls = discover(dirs)
+    
     if not tpls:
         die("no templates found in " + ", ".join(str(d) for d in dirs))
 
