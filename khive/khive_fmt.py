@@ -36,6 +36,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Coroutine, Dict, List
+
 from .utils import ANSI
 
 try:
@@ -48,9 +49,11 @@ ROOT = Path.cwd()
 
 verbose = False  # set from CLI
 
+
 def log(msg: str) -> None:
     if verbose:
         print(f"{ANSI['B']}▶{ANSI['N']} {msg}")
+
 
 # ────────── Models & Config ──────────
 @dataclass
@@ -60,9 +63,12 @@ class StackCfg:
     include: List[str] = field(default_factory=list)
     exclude: List[str] = field(default_factory=list)
 
+
 @dataclass
 class Cfg:
-    enable: List[str] = field(default_factory=lambda: ["python", "docs", "rust", "deno"])
+    enable: List[str] = field(
+        default_factory=lambda: ["python", "docs", "rust", "deno"]
+    )
     stacks: Dict[str, StackCfg] = field(default_factory=dict)
 
 
@@ -82,6 +88,7 @@ def load_cfg() -> Cfg:
             exclude=tbl.get("exclude", []),
         )
     return cfg
+
 
 # ────────── Helpers ──────────
 async def _run(cmd: List[str], *, cwd: Path) -> int:
@@ -104,13 +111,18 @@ def _select_files(include: List[str], exclude: List[str]) -> List[Path]:
                 selected.append(p)
     return selected
 
+
 # ────────── Stack implementations ──────────
 async def _banner(name: str, files: List[str], check: bool) -> None:
     action = "CHECK" if check else "FIX  "
     log(f"[{name.upper():6}] {action} → {len(files)} file(s)")
 
+
 async def python_stack(check: bool, cfg: StackCfg) -> int:
-    files = [str(p) for p in _select_files(cfg.include or ["**/*.py", "**/*.pyi"], cfg.exclude)]
+    files = [
+        str(p)
+        for p in _select_files(cfg.include or ["**/*.py", "**/*.pyi"], cfg.exclude)
+    ]
     if not files:
         return 0
     await _banner("python", files, check)
@@ -120,13 +132,18 @@ async def python_stack(check: bool, cfg: StackCfg) -> int:
     black_cmd = ["black"] + (["--check"] if check else []) + files
     return await _run(black_cmd, cwd=ROOT)
 
+
 async def docs_stack(check: bool, cfg: StackCfg) -> int:
-    files = [str(p) for p in _select_files(cfg.include or ["**/*.md", "**/*.mdx"], cfg.exclude)]
+    files = [
+        str(p)
+        for p in _select_files(cfg.include or ["**/*.md", "**/*.mdx"], cfg.exclude)
+    ]
     if not files:
         return 0
     await _banner("docs", files, check)
     cmd = ["deno", "fmt"] + (["--check"] if check else []) + files
     return await _run(cmd, cwd=ROOT)
+
 
 async def rust_stack(check: bool, _cfg: StackCfg) -> int:
     if not (ROOT / "Cargo.toml").exists():
@@ -135,13 +152,21 @@ async def rust_stack(check: bool, _cfg: StackCfg) -> int:
     cmd = ["cargo", "fmt"] + (["--", "--check"] if check else [])
     return await _run(cmd, cwd=ROOT)
 
+
 async def deno_stack(check: bool, cfg: StackCfg) -> int:
-    files = [str(p) for p in _select_files(cfg.include or ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"], cfg.exclude)]
+    files = [
+        str(p)
+        for p in _select_files(
+            cfg.include or ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"],
+            cfg.exclude,
+        )
+    ]
     if not files:
         return 0
     await _banner("deno", files, check)
     cmd = ["deno", "fmt"] + (["--check"] if check else []) + files
     return await _run(cmd, cwd=ROOT)
+
 
 # Map names → coroutine
 BUILTINS: Dict[str, Callable[[bool, StackCfg], Coroutine[None, None, int]]] = {
@@ -151,13 +176,16 @@ BUILTINS: Dict[str, Callable[[bool, StackCfg], Coroutine[None, None, int]]] = {
     "deno": deno_stack,
 }
 
+
 # ────────── Orchestrator ──────────
 async def _main(argv: list[str] | None = None) -> None:
     global verbose
     ap = argparse.ArgumentParser(description="Run khive formatters")
     ap.add_argument("--check", action="store_true", help="Validate only, no changes")
     ap.add_argument("--stack", action="append", help="Run specific stack(s)")
-    ap.add_argument("--verbose", "-v", action="store_true", help="Show commands and details")
+    ap.add_argument(
+        "--verbose", "-v", action="store_true", help="Show commands and details"
+    )
     args = ap.parse_args(argv)
 
     verbose = args.verbose or bool(os.environ.get("KHIVE_FMT_VERBOSE"))
@@ -168,7 +196,10 @@ async def _main(argv: list[str] | None = None) -> None:
     results: Dict[str, int] = {}
 
     if args.check:
-        coros = [BUILTINS.get(s, lambda *_: 0)(True, cfg.stacks.get(s, StackCfg())) for s in stacks]
+        coros = [
+            BUILTINS.get(s, lambda *_: 0)(True, cfg.stacks.get(s, StackCfg()))
+            for s in stacks
+        ]
         for name, coro in zip(stacks, asyncio.as_completed(coros)):
             results[name] = await coro
     else:
@@ -190,7 +221,9 @@ async def _main(argv: list[str] | None = None) -> None:
     if any(rc for rc in results.values()):
         sys.exit(1)
 
+
 # ────────── CLI entrypoint ──────────
+
 
 def main() -> None:  # used by console_scripts
     """Sync shim for entry-points (khive-fmt)."""

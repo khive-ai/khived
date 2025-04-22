@@ -27,18 +27,21 @@ ANSI = {
     "R": "\033[31m" if sys.stdout.isatty() else "",
     "Y": "\033[33m" if sys.stdout.isatty() else "",
     "B": "\033[34m" if sys.stdout.isatty() else "",
-    "N": "\033[0m"  if sys.stdout.isatty() else "",
+    "N": "\033[0m" if sys.stdout.isatty() else "",
 }
 verbose = False
 
 # ────────── logging helpers ──────────
 
+
 def log(msg: str, *, kind: str = "B") -> None:
     if verbose:
         print(f"{ANSI[kind]}▶{ANSI['N']} {msg}")
 
+
 def banner(name: str):
     print(f"\n{ANSI['B']}⚙ {name.upper()}{ANSI['N']}")
+
 
 # ────────── config dataclass ──────────
 @dataclass
@@ -48,9 +51,12 @@ class StepCfg:
     run_if: str | None = None
     cwd: str | None = None
 
+
 @dataclass
 class Config:
-    enable: List[str] = field(default_factory=lambda: ["tools", "npm", "python", "rust", "husky", "roomodes"])
+    enable: List[str] = field(
+        default_factory=lambda: ["tools", "npm", "python", "rust", "husky", "roomodes"]
+    )
     ignore_missing: bool = False
     custom: Dict[str, StepCfg] = field(default_factory=dict)
 
@@ -72,10 +78,15 @@ def load_cfg() -> Config:
         )
     return cfg
 
+
 # ────────── helpers ──────────
 async def sh(cmd: List[str] | str, *, cwd: Path) -> int:
     log("$ " + (cmd if isinstance(cmd, str) else " ".join(cmd)))
-    proc = await (asyncio.create_subprocess_shell(cmd, cwd=cwd) if isinstance(cmd, str) else asyncio.create_subprocess_exec(*cmd, cwd=cwd))
+    proc = await (
+        asyncio.create_subprocess_shell(cmd, cwd=cwd)
+        if isinstance(cmd, str)
+        else asyncio.create_subprocess_exec(*cmd, cwd=cwd)
+    )
     rc = await proc.wait()
     log(f"exit {rc}", kind="Y")
     return rc
@@ -91,7 +102,9 @@ def cond_ok(expr: str | None) -> bool:
         return shutil.which(val) is not None
     return False
 
+
 # ────────── built-in step implementations ──────────
+
 
 async def step_tools(_: bool, cfg: Config) -> bool:
     required = ["pnpm", "uv"]
@@ -105,12 +118,14 @@ async def step_tools(_: bool, cfg: Config) -> bool:
             ok = False
     return ok
 
+
 async def step_npm(check: bool, _: Config) -> bool:
     if not (ROOT / "package.json").exists() or not shutil.which("pnpm"):
         return True
     if check:
         return True
     return (await sh(["pnpm", "install", "--frozen-lockfile"], cwd=ROOT)) == 0
+
 
 async def step_python(check: bool, _: Config) -> bool:
     if not (ROOT / "pyproject.toml").exists() or not shutil.which("uv"):
@@ -119,10 +134,12 @@ async def step_python(check: bool, _: Config) -> bool:
         return True
     return (await sh(["uv", "sync"], cwd=ROOT)) == 0
 
+
 async def step_rust(_: bool, __: Config) -> bool:
     if not (ROOT / "Cargo.toml").exists() or not shutil.which("cargo"):
         return True
     return (await sh(["cargo", "check", "--workspace"], cwd=ROOT)) == 0
+
 
 # ⇩⇩⇩  **Adjusted logic: skip when no prepare script or pnpm error**  ⇩⇩⇩
 async def step_husky(check: bool, _: Config) -> bool:
@@ -153,6 +170,7 @@ async def step_husky(check: bool, _: Config) -> bool:
         return True  # treat ERR_PNPM_NO_SCRIPT or other issues as non-fatal
     return True
 
+
 async def step_roomodes(check: bool, _: Config) -> bool:
     script = ROOT / "scripts/generate-roomodes.sh"
     if not script.exists():
@@ -160,6 +178,7 @@ async def step_roomodes(check: bool, _: Config) -> bool:
     if check:
         return True
     return (await sh(["bash", str(script)], cwd=ROOT)) == 0
+
 
 BUILTIN: Dict[str, callable] = {
     "tools": step_tools,
@@ -169,6 +188,7 @@ BUILTIN: Dict[str, callable] = {
     "husky": step_husky,
     "roomodes": step_roomodes,
 }
+
 
 # ────────── orchestrator (unchanged) ──────────
 async def _run(cfg: Config, steps: List[str], check: bool) -> bool:
@@ -197,7 +217,9 @@ async def _run(cfg: Config, steps: List[str], check: bool) -> bool:
         all_ok &= ok
     return all_ok
 
+
 # ────────── CLI entrypoint (unchanged) ──────────
+
 
 def _cli() -> None:
     parser = argparse.ArgumentParser(description="khive repo bootstrap")
@@ -215,6 +237,7 @@ def _cli() -> None:
     success = asyncio.run(_run(cfg, target, args.check))
     if not success:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     _cli()

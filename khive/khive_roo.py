@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 import yaml  # Requires PyYAML: pip install PyYAML
+
 from .utils import read_md_body
 
 # Configure basic logging
@@ -96,8 +97,10 @@ def parse_markdown_file(filepath):
         return ""  # Return empty string if heading not found
 
     invokation_prompt_text = read_md_body(INVOKCATION_PROMPT)
-    role_def_text = invokation_prompt_text + extract_section(remaining_md, "Role Definition")
-    
+    role_def_text = invokation_prompt_text + extract_section(
+        remaining_md, "Role Definition"
+    )
+
     fp = Path(GENERAL_GUIDANCE)
     general_guidance_text = read_md_body(fp)
 
