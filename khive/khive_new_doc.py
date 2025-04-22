@@ -70,6 +70,95 @@ class Template:
     body: str
 
 
+def resolve_template(
+    doc_type: str,
+    template_dir_flag: Path | None = None,
+) -> Template:
+    """
+    Locate a built‑in Markdown template and return its parsed `Template` object.
+
+    Search precedence (first match wins)
+
+    1. `template_dir_flag`    – `--template-dir` CLI option
+    2. `$KHIVE_TEMPLATE_DIR`  – environment variable
+    3. `<repo>/docs/templates`
+    4. `<repo>/dev/docs/templates`
+
+    *The repo root is inferred from the location of this file, so the function
+    works whether the package is imported from source or from a wheel inside a
+    virtual‑env.*
+
+    Parameters
+    ----------
+    doc_type :
+        Case‑insensitive acronym declared in the template’s front‑matter
+        (`doc_type: CRR`, `IP`, etc.).
+    template_dir_flag :
+        Optional directory path supplied by the user via `--template-dir`.
+
+    Returns
+    -------
+    Template
+        Parsed template object ready for `create()`.
+
+    Raises
+    ------
+    SystemExit
+        If the template cannot be found or multiple templates collide.
+    """
+
+    # ── 1. build candidate directories (highest‑priority first) ──────────
+    def _candidate_dirs():
+        # 1. explicit CLI flag
+        if template_dir_flag:
+            yield template_dir_flag.expanduser()
+
+        # 2. environment variable
+        env_dir = os.getenv("KHIVE_TEMPLATE_DIR")
+        if env_dir:
+            yield Path(env_dir).expanduser()
+
+        # 3 & 4. fallbacks relative to repo root
+        here = Path(__file__).resolve()
+        # find repo root: parent that contains *this* package directory
+        # e.g. .../repo_root/khive/khive_new_doc.py  → repo_root
+        pkg_root = next(p for p in here.parents if (p / "khive_new_doc.py").exists())
+        repo_root = pkg_root.parent
+
+        yield Path(__file__).parent / "templates"  # package‑local fallback
+        yield repo_root / "docs" / "templates"
+        yield repo_root / "dev" / "docs" / "templates"
+
+    candidate_dirs = list(_candidate_dirs())
+
+    # ── 2. discover templates in priority order ─────────────────────────
+    template_map: Dict[str, Template] = {}
+    for dir_ in candidate_dirs:
+        found = discover([dir_])  # returns {DOC_TYPE → Template}
+        for key, tpl in found.items():
+            # only add if this doc_type hasn't been satisfied by higher‑priority dir
+            template_map.setdefault(key.upper(), tpl)
+
+    if verbose:
+        for d in candidate_dirs:
+            log(f"searched → {d}", "B")
+        for k, v in template_map.items():
+            log(f"resolved {k} → {v.path}", "G")
+
+    # ── 3. validate & return ────────────────────────────────────────────
+    key = doc_type.upper()
+    if key not in template_map:
+        attempted = "\n  • ".join(str(p) for p in candidate_dirs)
+        die(
+            f"Template for '{key}' not found.\n"
+            "Searched (in order):\n"
+            f"  • {attempted}\n"
+            "Available types: " + (", ".join(sorted(template_map.keys())) or "none")
+        )
+
+    return template_map[key]
+
+
 # ────────── discovery ──────────
 
 
@@ -155,24 +244,12 @@ def _cli():
     a = parser.parse_args()
     verbose = a.verbose
 
-    # Resolve search dirs
-    dirs = [Path(__file__).parent / "templates"]
-    dirs = [d.resolve() for d in dirs if d]
-
-    tpls = discover(dirs)
-    
-    if not tpls:
-        die("no templates found in " + ", ".join(str(d) for d in dirs))
-
-    key = a.type.upper()
-    if key not in tpls:
-        die("unknown type. choose from " + ", ".join(sorted(tpls)))
-
     ident = a.identifier.strip().replace(" ", "-")
     if not ident:
         die("identifier must not be empty")
 
-    create(tpls[key], ident, a.dest.resolve())
+    tpl = resolve_template(a.type, a.template_dir)
+    create(tpl, ident, a.dest.resolve())
 
 
 if __name__ == "__main__":
