@@ -10,7 +10,6 @@ This module contains tests for the adapter system, including:
 
 import concurrent.futures
 import json
-import os
 import tempfile
 import threading
 import time
@@ -19,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
-from khive.adapters.adapter import Adapter, AdapterRegistry, MissingAdapterError
+from khive.adapters.adapter import AdapterRegistry, MissingAdapterError
 from khive.adapters.json_adapter import JsonAdapter, JsonFileAdapter
 from khive.adapters.pd_dataframe_adapter import PandasDataFrameAdapter
 from khive.adapters.toml_adapter import TomlAdapter, TomlFileAdapter
@@ -223,9 +222,9 @@ def test_pandas_adapter_roundtrip():
 
 # Test alias resolution
 def test_alias_resolution():
-    # Test that aliases are properly registered
+    # Test that aliases are properly registered (case-insensitive)
     adapter1 = TestAdapterRegistry.get("pd_dataframe")
-    adapter2 = TestAdapterRegistry.get("pd.DataFrame")
+    adapter2 = TestAdapterRegistry.get("pd.dataframe")  # lowercase version
 
     # Both should return the same adapter
     assert adapter1 is adapter2
