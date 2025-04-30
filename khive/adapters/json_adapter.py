@@ -75,8 +75,14 @@ class JsonAdapter(Adapter):
         str
             The resulting JSON string.
         """
+        # Default to ensure_ascii=False for better UTF-8 handling
+        kwargs.setdefault("ensure_ascii", False)
+
         if many:
-            if hasattr(type(subj), "AsyncPileIterator"):
+            if isinstance(subj, list):
+                # Handle list of objects
+                data = [item.to_dict() for item in subj]
+            elif hasattr(type(subj), "AsyncPileIterator"):
                 data = [i.to_dict() for i in subj]
             else:
                 data = [subj.to_dict()]
@@ -158,9 +164,20 @@ class JsonFileAdapter(Adapter):
         -------
         None
         """
+        # Fail early on binary mode to prevent encoding issues
+        assert (
+            isinstance(mode, str) and "b" not in mode
+        ), "Binary mode not supported for JSON files"
+
+        # Default to ensure_ascii=False for better UTF-8 handling
+        kwargs.setdefault("ensure_ascii", False)
+
         with open(fp, mode, encoding="utf-8") as f:
             if many:
-                if hasattr(type(subj), "AsyncPileIterator"):
+                if isinstance(subj, list):
+                    # Handle list of objects
+                    json.dump([item.to_dict() for item in subj], f, **kwargs)
+                elif hasattr(type(subj), "AsyncPileIterator"):
                     json.dump([i.to_dict() for i in subj], f, **kwargs)
                 else:
                     json.dump([subj.to_dict()], f, **kwargs)

@@ -1,6 +1,13 @@
 from pathlib import Path
 
-import toml
+# Prefer std-lib parser for read paths in Python 3.11+
+try:
+    import tomllib as toml_reader  # 3.11+
+except ModuleNotFoundError:
+    import toml as toml_reader
+
+# Use third-party toml for writing
+import toml as toml_writer
 
 from .adapter import Adapter, T
 
@@ -39,16 +46,13 @@ class TomlAdapter(Adapter):
         **kwargs
             Extra arguments for toml.loads().
         """
-        result: dict = toml.loads(obj, **kwargs)
+        result: dict = toml_reader.loads(obj, **kwargs)
 
         if many:
-            # Check if there's a top-level array key that might hold multiple items
-            for value in result.values():
-                if isinstance(value, list) and all(
-                    isinstance(item, dict) for item in value
-                ):
-                    return value
-            # If no array of tables found, wrap the result in a list
+            # Use a reserved key 'items' for collections instead of guessing
+            if "items" in result and isinstance(result["items"], list):
+                return result["items"]
+            # Fallback to wrapping the result in a list
             return [result]
 
         return result
@@ -74,14 +78,17 @@ class TomlAdapter(Adapter):
             Extra arguments for toml.dumps().
         """
         if many:
-            if hasattr(type(subj), "AsyncPileIterator"):
+            if isinstance(subj, list):
+                # Handle list of objects
+                data = {"items": [item.to_dict() for item in subj]}
+            elif hasattr(type(subj), "AsyncPileIterator"):
                 # For multiple items, create a wrapper dict with an array of items
                 data = {"items": [i.to_dict() for i in subj]}
             else:
                 data = {"items": [subj.to_dict()]}
-            return toml.dumps(data, **kwargs)
+            return toml_writer.dumps(data, **kwargs)
 
-        return toml.dumps(subj.to_dict(), **kwargs)
+        return toml_writer.dumps(subj.to_dict(), **kwargs)
 
 
 class TomlFileAdapter(Adapter):
@@ -121,18 +128,16 @@ class TomlFileAdapter(Adapter):
         dict | list[dict]
             The loaded data from file.
         """
-        with open(obj, encoding="utf-8") as f:
-            result = toml.load(f, **kwargs)
+        # tomllib requires binary mode
+        with open(obj, "rb") as f:
+            result = toml_reader.load(f, **kwargs)
 
         # Handle array of tables in TOML for "many" case
         if many:
-            # Check if there's a top-level array key that might hold multiple items
-            for key, value in result.items():
-                if isinstance(value, list) and all(
-                    isinstance(item, dict) for item in value
-                ):
-                    return value
-            # If no array of tables found, wrap the result in a list
+            # Use a reserved key 'items' for collections instead of guessing
+            if "items" in result and isinstance(result["items"], list):
+                return result["items"]
+            # Fallback to wrapping the result in a list
             return [result]
 
         return result
@@ -168,16 +173,24 @@ class TomlFileAdapter(Adapter):
         -------
         None
         """
+        # Fail early on binary mode
+        assert (
+            isinstance(mode, str) and "b" not in mode
+        ), "Binary mode not supported for TOML writing"
+
         with open(fp, mode, encoding="utf-8") as f:
             if many:
-                if hasattr(type(subj), "AsyncPileIterator"):
+                if isinstance(subj, list):
+                    # Handle list of objects
+                    data = {"items": [item.to_dict() for item in subj]}
+                elif hasattr(type(subj), "AsyncPileIterator"):
                     # TOML requires arrays of tables to be in a table
                     data = {"items": [i.to_dict() for i in subj]}
                 else:
                     data = {"items": [subj.to_dict()]}
-                toml.dump(data, f, **kwargs)
+                toml_writer.dump(data, f, **kwargs)
             else:
-                toml.dump(subj.to_dict(), f, **kwargs)
+                toml_writer.dump(subj.to_dict(), f, **kwargs)
 
 
 # File: lionagi/protocols/adapters/toml_adapter.py
