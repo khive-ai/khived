@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 
 from pydantic import Field, field_validator
 
-from khive._class_registry import LION_CLASS_REGISTRY
+from khive._class_registry import KHIVE_CLASS_REGISTRY
 from khive.adapters.types import Adaptable, AdapterRegistry, NodeAdapterRegistry
 
 from .element import Element
@@ -34,7 +34,7 @@ class Node(Element, Adaptable):
     def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
         """Initialize and register subclasses in the global class registry."""
         super().__pydantic_init_subclass__(**kwargs)
-        LION_CLASS_REGISTRY[cls.class_name(full=True)] = cls
+        KHIVE_CLASS_REGISTRY[cls.class_name(full=True)] = cls
 
     @field_validator("embedding", mode="before")
     def _parse_embedding(cls, value: list[float] | str | None) -> list[float] | None:
