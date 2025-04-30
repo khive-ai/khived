@@ -33,6 +33,10 @@ class NodeEdgeMapping:
     def __init__(self):
         self.mapping = {}
 
+    def __contains__(self, key: Any) -> bool:
+        """Check if a node ID is in the mapping."""
+        return key in self.mapping
+
     def add_node(self, node: Node):
         self.mapping[node.id] = {"in": {}, "out": {}}
 
@@ -127,6 +131,9 @@ class Graph(Element):
             )
         try:
             self.internal_nodes.append(node)
+            self.node_edge_mapping.add_node(
+                node
+            )  # Update the mapping after successful append
         except ItemExistsError:
             raise ItemExistsError(
                 f"Failed to add node: Node with ID {node.id} already exists. If you need to update the node, use `graph.internal_nodes.update()` instead."
@@ -293,7 +300,7 @@ class Graph(Element):
                 pass
 
         # Custom DFS-based cycle detection
-        node_ids = self.internal_nodes.order[:]
+        node_ids = [node.id for node in self.internal_nodes]
         check_deque = deque(node_ids)
 
         # 0: unvisited, 1: visiting, 2: visited

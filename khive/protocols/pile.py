@@ -157,14 +157,16 @@ class Pile(Element, Adaptable, Generic[T]):
     def __getitem__(self, key: int | slice | UUID) -> list[T] | T:
         if isinstance(key, (int, slice)):
             try:
-                result_ids = self.order[key]
-                result_ids = (
-                    [result_ids] if not isinstance(result_ids, list) else result_ids
-                )
-                result = []
-                for i in result_ids:
-                    result.append(self.collections[i])
-                return result[0] if len(result) == 1 else result
+                # Get the UUID(s) at the specified index/slice
+                uuid_keys = self.order[key]
+
+                # Handle both single UUID and list of UUIDs
+                if isinstance(uuid_keys, list):
+                    result = [self.collections[uuid_key] for uuid_key in uuid_keys]
+                else:
+                    return self.collections[uuid_keys]
+
+                return result
             except Exception as e:
                 raise ItemNotFoundError(f"index {key}. Error: {e}")
 
@@ -197,7 +199,7 @@ class Pile(Element, Adaptable, Generic[T]):
             raise TypeError("The item in a pile must be an instance of Element")
         if item.id in self.collections:
             raise ItemExistsError(f"Item({str(item.id)[:5]}...) already")
-        self.order.insert(index, item)
+        self.order.insert(index, item.id)  # Store UUID in order, not the item itself
         self.collections[item.id] = item
 
     def append(self, item: T, /):

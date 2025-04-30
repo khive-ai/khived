@@ -38,7 +38,6 @@ class Edge(Element):
         title="Properties",
         description="Custom properties associated with this edge.",
     )
-    condition: EdgeCondition | None = Field(default=None, exclude=True)
 
     def __init__(
         self,
@@ -117,6 +116,14 @@ class Edge(Element):
             self.properties["label"] = value
             return
         raise ValueError("Label must be a string or a list of strings.")
+
+    @field_serializer("properties")
+    def _serialize_properties(self, properties: dict[str, Any]) -> dict[str, Any]:
+        """
+        Serialize the properties of the edge. Exclude the condition from serialization.
+        """
+        serialized = {k: v for k, v in properties.items() if k != "condition"}
+        return serialized
 
     async def check_condition(self, *args, **kwargs) -> bool:
         """

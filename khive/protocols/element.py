@@ -73,7 +73,7 @@ class Element(BaseModel):
         return validate_id(v)
 
     @property
-    def metadata(self):
+    def metaview(self):
         """Return an immutable view of metadata to prevent accidental side-effects."""
         return MappingProxyType(self.__dict__["metadata"])
 
@@ -110,7 +110,10 @@ class Element(BaseModel):
     def to_dict(self) -> dict:
         """Converts this Element to a dictionary. Add lion_class to metadata"""
         dict_ = self.model_dump()
-        dict_["metadata"].update({"lion_class": self.class_name(full=True)})
+        # Make a copy of the metadata to avoid modifying the original
+        metadata_copy = dict_.get("metadata", {}).copy()
+        metadata_copy["lion_class"] = self.class_name(full=True)
+        dict_["metadata"] = metadata_copy
         return dict_
 
     @classmethod
