@@ -1,21 +1,52 @@
 [project]
 name = "khive"
-version = "0.1.4"
-description = "khive mono-repo tooling"
+version = "0.2.0"
+description = "A sanity check dev toolset for agents"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "lionagi[tools]>=0.10.7",
-    "ruff>=0.11.6",
+    "pydantic-settings>=2.9.1",
+    "pydantic>=2.11.4",
+    "toml>=0.10.2",
+    "datamodel-code-generator>=0.30.1",
+    "aiohttp>=3.11.18",
+    "aiocache>=0.12.3",
+    "aiolimiter>=1.2.1",
+    "anyio>=4.9.0",
+    "openai>=1.76.2",
 ]
 
 [dependency-groups]
 dev = [
     "black[jupyter]>=25.1.0",
     "ipykernel>=6.29.5",
-    "ipywidgets>=8.1.6",
     "isort>=6.0.1",
-    "pytest>=8.3.5",
+]
+
+[project.optional-dependencies]
+tools = [
+    "docling",
+]
+ollama = [
+    "ollama",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+markers = [
+    "performance: marks tests as performance",
+    "slow: marks tests as slow",
 ]
 
 [build-system]
@@ -34,18 +65,5 @@ exclude = [
     "*.pyc",
     "__pycache__",
     "temp_logs/*",
-    "logs/*",
-    "verification",
-    "scripts",
+    "logs/*"
 ]
-
-[tool.black]
-line-length = 88
-target-version = ['py311']
-
-[tool.isort]
-profile = "black"
-line_length = 88
-
-[project.scripts]                # PEP 621 console-scripts table
-khive         = "khive.khive_cli:main"
