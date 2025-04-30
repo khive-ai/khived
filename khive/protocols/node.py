@@ -25,7 +25,10 @@ class Node(Element, Adaptable):
     _adapter_registry: ClassVar[AdapterRegistry] = NodeAdapterRegistry
 
     content: Any = None
-    embedding: list[float] | None = Field(default_factory=list)
+    embedding: list[float] | None = Field(
+        default_factory=list,
+        description="Optional numeric embedding vector. Empty list or None are both valid.",
+    )
 
     @classmethod
     def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
@@ -38,6 +41,8 @@ class Node(Element, Adaptable):
         if value is None:
             return None
         if isinstance(value, str):
+            if value == "":
+                return None  # Empty string is treated as None
             try:
                 loaded = json.loads(value)
                 if not isinstance(loaded, list):

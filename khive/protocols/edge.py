@@ -6,6 +6,7 @@ from pydantic import Field, field_serializer, field_validator
 
 from .element import ELEMENT_FIELDS, Element
 from .node import Node
+from .utils import serialize_id, validate_id
 
 __all__ = (
     "EdgeCondition",
@@ -37,6 +38,7 @@ class Edge(Element):
         title="Properties",
         description="Custom properties associated with this edge.",
     )
+    condition: EdgeCondition | None = Field(default=None, exclude=True)
 
     def __init__(
         self,
@@ -83,11 +85,11 @@ class Edge(Element):
 
     @field_serializer("head", "tail")
     def _serialize_head_tail(self, value: UUID) -> str:
-        return self._serialize_id(value)
+        return serialize_id(value)
 
     @field_validator("head", "tail", mode="before")
     def _validate_head_tail(cls, value: UUID) -> UUID:
-        return cls._validate_id(value)
+        return validate_id(value)
 
     @property
     def label(self) -> list[str] | None:
