@@ -165,9 +165,8 @@ class JsonFileAdapter(Adapter):
         None
         """
         # Fail early on binary mode to prevent encoding issues
-        assert (
-            isinstance(mode, str) and "b" not in mode
-        ), "Binary mode not supported for JSON files"
+        if "b" in mode:
+            raise ValueError("Binary mode not supported for JSON files")
 
         # Default to ensure_ascii=False for better UTF-8 handling
         kwargs.setdefault("ensure_ascii", False)

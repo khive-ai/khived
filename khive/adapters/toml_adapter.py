@@ -43,6 +43,7 @@ class TomlAdapter(Adapter):
         many : bool, optional
             If True, expects a TOML array of tables (returns list[dict]).
             Otherwise returns a single dict.
+            For many=True we expect collections under the reserved key 'items'.
         **kwargs
             Extra arguments for toml.loads().
         """
@@ -74,6 +75,7 @@ class TomlAdapter(Adapter):
             The object to serialize.
         many : bool, optional
             If True, convert multiple items to a TOML array of tables.
+            For many=True we store collections under the reserved key 'items'.
         **kwargs
             Extra arguments for toml.dumps().
         """
@@ -120,6 +122,7 @@ class TomlFileAdapter(Adapter):
             The TOML file path.
         many : bool
             If True, expects an array of tables. Otherwise single dict.
+            For many=True we expect collections under the reserved key 'items'.
         **kwargs
             Extra arguments for toml.load().
 
@@ -164,6 +167,7 @@ class TomlFileAdapter(Adapter):
             The file path to write.
         many : bool
             If True, write as a TOML array of tables of multiple items.
+            For many=True we store collections under the reserved key 'items'.
         mode : str
             File open mode, defaults to write ("w").
         **kwargs
@@ -174,9 +178,8 @@ class TomlFileAdapter(Adapter):
         None
         """
         # Fail early on binary mode
-        assert (
-            isinstance(mode, str) and "b" not in mode
-        ), "Binary mode not supported for TOML writing"
+        if "b" in mode:
+            raise ValueError("Binary mode not supported for TOML writing")
 
         with open(fp, mode, encoding="utf-8") as f:
             if many:

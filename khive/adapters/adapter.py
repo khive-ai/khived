@@ -2,6 +2,7 @@ import importlib
 import json
 import logging
 import os
+import sys
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -17,14 +18,9 @@ from typing import (
 
 from typing_extensions import get_protocol_members
 
+from khive._errors import MissingAdapterError
+
 from .validation import validate_data
-
-
-class MissingAdapterError(Exception):
-    """Raised when an adapter is not found for a given key."""
-
-    pass
-
 
 T = TypeVar("T")
 
@@ -224,6 +220,8 @@ class AdapterRegistry:
                 # Get, Cache, register the adapter
                 adapter_class = getattr(module, class_name)
                 cls._cached_modules[module_path] = adapter_class
+                # Hard-cache the module for faster future imports
+                sys.modules[module_path] = module
                 cls.register(adapter_class)
 
                 # Return the registered adapter
@@ -267,9 +265,9 @@ class AdapterRegistry:
             # Get adapter instance
             adapter_instance = adapter() if isinstance(adapter, type) else adapter
 
-            # Register the adapter under its primary key and all aliases
-            aliases = getattr(adapter_instance, "alias", ())
-            for key in (adapter_instance.obj_key, *aliases):
+            # Register the adapter under its primary key and all aliases (case-normalized)
+            aliases = [a.lower() for a in getattr(adapter_instance, "alias", ())]
+            for key in (adapter_instance.obj_key.lower(), *aliases):
                 cls._adapters[key] = adapter_instance
 
     @classmethod
@@ -283,27 +281,29 @@ class AdapterRegistry:
         Args:
             obj_key: The object key to get the adapter for
         """
+        # Fast path with minimal locking
         with cls._lock:
             if not cls._initialized:
                 cls._initialize()
 
-            try:
-                # First, check if the adapter is already registered
-                return cls._adapters[obj_key]
-            except KeyError:
-                # If not, try to import it from the pre-computed map
-                adapter = cls._import_adapter(obj_key)
-                if adapter is not None:
-                    return adapter
+            # Protected fast-path for already registered adapters
+            adapter = cls._adapters.get(obj_key)
+            if adapter:
+                return adapter
 
-                # If all else fails, raise MissingAdapterError
-                logging.debug(
-                    f"Error getting adapter for {obj_key}. Adapter not found."
-                )
-                raise MissingAdapterError(f"Adapter for key '{obj_key}' not found")
-            except Exception as e:
-                logging.debug(f"Error getting adapter for {obj_key}. Error: {e}")
-                raise
+        # Slow path for imports and error handling
+        try:
+            # Try to import it from the pre-computed map
+            adapter = cls._import_adapter(obj_key)
+            if adapter is not None:
+                return adapter
+
+            # If all else fails, raise MissingAdapterError
+            logging.debug(f"Error getting adapter for {obj_key}. Adapter not found.")
+            raise MissingAdapterError(f"Adapter for key '{obj_key}' not found")
+        except Exception as e:
+            logging.debug(f"Error getting adapter for {obj_key}. Error: {e}")
+            raise
 
     @classmethod
     def adapt_from(
@@ -336,9 +336,10 @@ class AdapterRegistry:
         **kwargs,
     ) -> Any:
         try:
-            # Validate before conversion if schema is provided
-            validated_subj = validate_data(subj, schema) if schema else subj
-            return cls.get(obj_key).to_obj(validated_subj, **kwargs)
+            # First serialize, then validate if needed (correct order)
+            adapter = cls.get(obj_key)
+            payload = adapter.to_obj(subj, **kwargs)
+            return validate_data(payload, schema) if schema else payload
         except MissingAdapterError:
             logging.debug(f"Error adapting data to {obj_key}. Adapter not found.")
             raise
