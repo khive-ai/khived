@@ -4,12 +4,12 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from khive.config import settings
-from khive.services.endpoint import Endpoint, EndpointConfig
+from khive.connections.endpoint import Endpoint, EndpointConfig
 
 __all__ = ("PerplexityChatEndpoint",)
 
 
-class PerplexityChatModel(str, Enum):
+class PerplexityModels(str, Enum):
     """
     Models available in Perplexity's API.
 
@@ -57,8 +57,8 @@ class PerplexityChatRequest(BaseModel):
     Endpoint: POST https://api.perplexity.ai/chat/completions
     """
 
-    model: PerplexityChatModel = Field(
-        PerplexityChatModel.SONAR,
+    model: PerplexityModels = Field(
+        PerplexityModels.SONAR,
         description="The model name, e.g. 'sonar', (the only model available at the "
         "time when this request model was updated, check doc for latest info).",
     )

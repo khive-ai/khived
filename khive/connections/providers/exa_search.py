@@ -36,7 +36,8 @@ class SearchTypeEnum(str, Enum):
 class ContentsText(BaseModel):
     includeHtmlTags: bool | None = Field(
         default=False,
-        description="Whether to include HTML tags in the text. Set to True if you want to retain HTML structure for the LLM to interpret.",
+        description="Whether to include HTML tags in the text. Set to True if you want "
+        "to retain HTML structure for the LLM to interpret.",
     )
     maxCharacters: int | None = Field(
         default=None,
@@ -78,7 +79,8 @@ class ContentsExtras(BaseModel):
 class Contents(BaseModel):
     text: None | ContentsText = Field(
         default=None,
-        description="Return full or partial text for each page, with optional HTML structure or size limit.",
+        description="Return full or partial text for each page, with optional HTML "
+        "structure or size limit.",
     )
     highlights: None | ContentsHighlights = Field(
         default=None, description="Return snippet highlights for each page."
@@ -154,15 +156,18 @@ class ExaSearchRequest(BaseModel):
     )
     includeText: None | list[str] = Field(
         default=None,
-        description="Strings that must appear in the webpage text. Only a single string up to 5 words is currently supported.",
+        description="Strings that must appear in the webpage text. Only a single string up to "
+        "5 words is currently supported.",
     )
     excludeText: None | list[str] = Field(
         default=None,
-        description="Strings that must NOT appear in the webpage text. Only a single string up to 5 words is currently supported.",
+        description="Strings that must NOT appear in the webpage text. Only a single string up to "
+        "5 words is currently supported.",
     )
     contents: None | Contents = Field(
         default=None,
-        description="Dict defining the different ways you want to retrieve webpage contents, including text, highlights, or summaries.",
+        description="Dict defining the different ways you want to retrieve webpage contents, "
+        "including text, highlights, or summaries.",
     )
 
 
