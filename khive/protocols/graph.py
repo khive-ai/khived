@@ -34,7 +34,16 @@ class NodeEdgeMapping:
         self.mapping = {}
 
     def __contains__(self, key: Any) -> bool:
-        """Check if a node ID is in the mapping."""
+        """Check if a node ID is in the mapping.
+
+        Args:
+            key: Either a UUID or a Node object
+
+        Returns:
+            bool: True if the node is in the mapping
+        """
+        if hasattr(key, "id"):  # Handle Node objects
+            return key.id in self.mapping
         return key in self.mapping
 
     def add_node(self, node: Node):
@@ -79,10 +88,11 @@ class NodeEdgeMapping:
         if direction not in {"both", "in", "out"}:
             raise ValueError("The direction should be 'both', 'in', or 'out'.")
 
-        if node not in self.mapping:
-            raise ItemNotFoundError(f"Node {node} not found in the graph nodes.")
+        # Convert Node to UUID if needed
+        _id = node.id if hasattr(node, "id") else node
 
-        _id = node.id if isinstance(node, Node) else node
+        if _id not in self.mapping:
+            raise ItemNotFoundError(f"Node {node} not found in the graph nodes.")
 
         found_edge_ids = []
         if direction in {"both", "in"}:

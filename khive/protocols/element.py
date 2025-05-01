@@ -107,6 +107,22 @@ class Element(BaseModel):
             return str(cls).split("'")[1]
         return cls.__name__
 
+    def __hash__(self) -> int:
+        """Make Element hashable based on its ID.
+
+        This allows Element objects to be used as dictionary keys and in sets.
+        """
+        return hash(self.id)
+
+    def __eq__(self, other) -> bool:
+        """Compare Elements based on their IDs.
+
+        Two Elements are considered equal if they have the same ID.
+        """
+        if not isinstance(other, Element):
+            return NotImplemented
+        return self.id == other.id
+
     def to_dict(self) -> dict:
         """Converts this Element to a dictionary. Add lion_class to metadata"""
         dict_ = self.model_dump()

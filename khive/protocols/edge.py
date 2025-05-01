@@ -36,7 +36,7 @@ class Edge(Element):
     properties: dict[str, Any] = Field(
         default_factory=dict,
         title="Properties",
-        description="Custom properties associated with this edge.",
+        description="Custom properties associated with this edge. Note that the 'condition' property is deliberately excluded from serialization because it may contain coroutine objects that break JSON serialization.",
     )
 
     def __init__(

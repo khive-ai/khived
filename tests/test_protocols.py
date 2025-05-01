@@ -5,6 +5,7 @@ from datetime import datetime
 from types import MappingProxyType
 
 import pytest
+import pytest_asyncio
 
 from khive._errors import ItemExistsError, ItemNotFoundError
 from khive.protocols.edge import Edge, EdgeCondition
@@ -90,15 +91,20 @@ class TestPile:
         # Test with slice
         assert pile[1:3] == nodes[1:3]
 
+    @pytest.mark.asyncio
     async def test_async_lock(self):
         """Test that async lock works correctly."""
         pile = Pile()
 
         # Verify we have only one lock
-        assert hasattr(pile, "_async_lock")
         lock1 = pile.async_lock
         lock2 = pile.async_lock
         assert lock1 is lock2
+
+        # Test that the lock works in async context
+        async with pile:
+            # We should be able to acquire the lock
+            assert pile.async_lock.locked()
 
     def test_extend_duplicate_detection(self):
         """Test that extend detects duplicates efficiently."""
@@ -208,3 +214,16 @@ class TestGraph:
 
         # Verify the edge was added
         assert edge.id in graph.internal_edges
+
+    def test_find_node_edge_with_node_object(self):
+        """Test that find_node_edge works with Node objects."""
+        graph = Graph()
+        node = Node()
+        graph.add_node(node)
+
+        # Should work with a Node object
+        graph.find_node_edge(node)
+
+        # Should fail with a Node that's not in the graph
+        with pytest.raises(ItemNotFoundError):
+            graph.find_node_edge(Node())

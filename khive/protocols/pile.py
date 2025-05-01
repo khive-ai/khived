@@ -33,10 +33,13 @@ class Pile(Element, Adaptable, Generic[T]):
         self.order.clear()
         self.collections.clear()
 
-    def __pydantic_private__(self) -> dict[str, FieldInfo]:
+    def __pydantic_extra__(self) -> dict[str, FieldInfo]:
         return {
             "_async_lock": Field(default_factory=asyncio.Lock),
         }
+
+    def __pydantic_private__(self) -> dict[str, FieldInfo]:
+        return self.__pydantic_extra__()
 
     @field_validator("collections", mode="before")
     def _validate_item(cls, data: dict):
@@ -49,9 +52,22 @@ class Pile(Element, Adaptable, Generic[T]):
     def _serialize_collections(self, data: dict[UUID, T]):
         return {str(k): v.to_dict() for k, v in data.items()}
 
+    def __getstate__(self):
+        """Prepare for pickling."""
+        state = self.__dict__.copy()
+        state["_async_lock"] = None
+        return state
+
+    def __setstate__(self, state):
+        """Restore after unpickling."""
+        self.__dict__.update(state)
+        self._async_lock = asyncio.Lock()
+
     @property
     def async_lock(self):
         """Async lock."""
+        if not hasattr(self, "_async_lock") or self._async_lock is None:
+            self._async_lock = asyncio.Lock()
         return self._async_lock
 
     async def __aenter__(self) -> Self:
@@ -191,6 +207,16 @@ class Pile(Element, Adaptable, Generic[T]):
         return [self.collections[id] for id in self.order]
 
     def insert(self, index: int, item: T, /):
+        """Insert an item at the specified index.
+
+        Args:
+            index: The position to insert the item
+            item: The Element to insert
+
+        Raises:
+            TypeError: If index is not an integer or item is not an Element
+            ItemExistsError: If the item already exists in the pile
+        """
         if not isinstance(index, int):
             raise TypeError(
                 "The index for inserting items into a pile must be an integer"
@@ -199,7 +225,9 @@ class Pile(Element, Adaptable, Generic[T]):
             raise TypeError("The item in a pile must be an instance of Element")
         if item.id in self.collections:
             raise ItemExistsError(f"Item({str(item.id)[:5]}...) already")
-        self.order.insert(index, item.id)  # Store UUID in order, not the item itself
+        # Store UUID in order list, not the item itself
+        # This prevents unhashable object issues and reduces memory usage
+        self.order.insert(index, item.id)
         self.collections[item.id] = item
 
     def append(self, item: T, /):
