@@ -19,14 +19,17 @@ class CacheConfig(BaseModel):
 
     def as_kwargs(self) -> dict[str, Any]:
         """Convert config to kwargs dict for @cached decorator.
-        
+
         Removes unserialisable callables that aiocache can't pickle.
         """
         raw = self.model_dump(exclude_none=True)
         # Remove all unserialisable callables
         unserialisable_keys = (
-            "key_builder", "skip_cache_func", "noself",
-            "serializer", "plugins"
+            "key_builder",
+            "skip_cache_func",
+            "noself",
+            "serializer",
+            "plugins",
         )
         for key in unserialisable_keys:
             raw.pop(key, None)

@@ -9,9 +9,7 @@ try:
         CreateResponse,
     )
 except ModuleNotFoundError:
-    raise RuntimeError(
-        "Generate OpenAI models first – see khive/third_party/README.md"
-    )
+    raise RuntimeError("Generate OpenAI models first – see khive/third_party/README.md")
 
 _HAS_OLLAMA = True
 try:
@@ -81,9 +79,6 @@ class OpenrouterChatEndpoint(Endpoint):
     def __init__(self, config=OPENROUTER_CHAT_ENDPOINT_CONFIG, **kwargs):
         super().__init__(config, **kwargs)
 
-
-# Ollama runs locally with no auth, but we need a placeholder key for the interface
-DUMMY_OLLAMA_API_KEY = "no_key_required"
 
 # Ollama runs locally with no auth, but we need a placeholder key for the interface
 DUMMY_OLLAMA_API_KEY = "no_key_required"
