@@ -304,3 +304,15 @@ def read_md_body(path: str | Path, *, encoding: Encoding = "utf-8") -> str:
 
     # No front-matter at all
     return "".join(lines)
+
+
+def calculate_text_tokens(s_: str = None) -> int | list[int]:
+    import tiktoken
+
+    if not s_:
+        return 0
+    try:
+        tokenizer = tiktoken.get_encoding("o200k_base").encode
+        return len(tokenizer(s_))
+    except Exception:
+        return 0
