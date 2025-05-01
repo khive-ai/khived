@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -8,29 +8,20 @@ from khive.config import settings
 
 from ..endpoint import Endpoint, EndpointConfig
 
+SearchCategory = Literal[
+    "company",
+    "research paper",
+    "news",
+    "pdf",
+    "github",
+    "tweet",
+    "personal site",
+    "linkedin profile",
+    "financial report",
+]
 
-class CategoryEnum(str, Enum):
-    company = "company"
-    research_paper = "research paper"
-    news = "news"
-    pdf = "pdf"
-    github = "github"
-    tweet = "tweet"
-    personal_site = "personal site"
-    linkedin_profile = "linkedin profile"
-    financial_report = "financial report"
-
-
-class LivecrawlEnum(str, Enum):
-    never = "never"
-    fallback = "fallback"
-    always = "always"
-
-
-class SearchTypeEnum(str, Enum):
-    keyword = "keyword"
-    neural = "neural"
-    auto = "auto"
+LivecrawlType = Literal["never", "fallback", "always"]
+SearchType = Literal["keyword", "neural", "auto"]
 
 
 class ContentsText(BaseModel):
@@ -88,8 +79,8 @@ class Contents(BaseModel):
     summary: None | ContentsSummary = Field(
         default=None, description="Return a short summary of each page."
     )
-    livecrawl: None | LivecrawlEnum = Field(
-        default=LivecrawlEnum.never,
+    livecrawl: None | LivecrawlType = Field(
+        default=LivecrawlType.NEVER,
         description="Livecrawling setting for each page. Options: never, fallback, always.",
     )
     livecrawlTimeout: int | None = Field(
@@ -115,11 +106,11 @@ class ExaSearchRequest(BaseModel):
         ...,
         description="The main query string describing what you're looking for.",
     )
-    category: None | CategoryEnum = Field(
+    category: None | SearchCategory = Field(
         default=None,
         description="A data category to focus on, such as 'company', 'research paper', 'news', etc.",
     )
-    type: None | SearchTypeEnum = Field(
+    type: None | SearchType = Field(
         default=None,
         description="The type of search to run. Can be 'auto', 'keyword', or 'neural'.",
     )
