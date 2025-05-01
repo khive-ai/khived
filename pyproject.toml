@@ -5,15 +5,16 @@ description = "khive mono-repo tooling"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "aiocache>=0.12.3",
-    "aiohttp>=3.11.18",
-    "aiolimiter>=1.2.1",
-    "backoff>=2.2.1",
+    "aiocache>=0.12.0",
+    "aiohttp>=3.11.0",
+    "aiolimiter>=1.2.0",
+    "backoff>=2.2.0",
     "datamodel-code-generator[http]>=0.30.1",
     "openai>=1.76.2,<2",
-    "prance>=25.4.8.0",
-    "pydantic>=2.11.3",
-    "pydantic-settings>=2.9.1",
+    "prance>=25.0.0.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.8.0",
+    "tiktoken>=0.9.0",
 ]
 
 [dependency-groups]
@@ -29,6 +30,14 @@ dev = [
     "pandas>=2.2.3",
     "pre-commit>=4.2.0",
     "ruff>=0.11.7",
+]
+
+[project.optional-dependencies]
+reader = [
+    "docling>=2.31.0",
+]
+mcp = [
+    "mcp>=1.6.0",
 ]
 
 [build-system]
