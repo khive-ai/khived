@@ -73,10 +73,10 @@ class ReaderRequest(BaseModel):
         for k, v in values.items():
             if v == {}:
                 values[k] = None
-            if k in ["start_offset", "end_offset"]:
+            if k in ["start_offset", "end_offset"] and v is not None:
                 try:
                     values[k] = int(v)
-                except ValueError:
+                except (ValueError, TypeError):
                     values[k] = None
         return values
 

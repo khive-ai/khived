@@ -71,7 +71,6 @@ class ServiceConfig(BaseModel):
 
 
 class ServiceGroup:
-
     def __init__(self, config: dict[str, Any] = None):
         self.group_config = config or {}
 
@@ -123,7 +122,7 @@ def load_config(path: Path) -> ServiceConfig | GroupConfig:
         # Differentiate based on structure (presence of 'groups' dictionary)
         if "groups" in data and isinstance(data.get("groups"), dict):
             print(
-                f"[Config Loader] Detected ServiceConfig structure. Validating...",
+                "[Config Loader] Detected ServiceConfig structure. Validating...",
                 file=sys.stderr,
             )
             config_obj = ServiceConfig(**data)
@@ -132,22 +131,21 @@ def load_config(path: Path) -> ServiceConfig | GroupConfig:
                 file=sys.stderr,
             )
             return config_obj
-        else:
-            print(
-                f"[Config Loader] Assuming GroupConfig structure. Validating...",
-                file=sys.stderr,
+        print(
+            "[Config Loader] Assuming GroupConfig structure. Validating...",
+            file=sys.stderr,
+        )
+        # GroupConfig requires 'class_path'
+        if "class_path" not in data:
+            raise ValueError(
+                "Configuration appears to be GroupConfig but is missing the required 'class_path' field."
             )
-            # GroupConfig requires 'class_path'
-            if "class_path" not in data:
-                raise ValueError(
-                    "Configuration appears to be GroupConfig but is missing the required 'class_path' field."
-                )
-            config_obj = GroupConfig(**data)
-            print(
-                f"[Config Loader] GroupConfig '{config_obj.name}' validated successfully.",
-                file=sys.stderr,
-            )
-            return config_obj
+        config_obj = GroupConfig(**data)
+        print(
+            f"[Config Loader] GroupConfig '{config_obj.name}' validated successfully.",
+            file=sys.stderr,
+        )
+        return config_obj
 
     except (json.JSONDecodeError, yaml.YAMLError) as e:
         raise ValueError(f"Invalid file format in '{path.name}': {e}")
