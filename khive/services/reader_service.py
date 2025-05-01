@@ -1,14 +1,7 @@
-#!/usr/bin/env python3
-# Copyright (c) 2023 - 2025, HaiyangLi <quantocean.li at gmail dot com>
-#
-# SPDX-License-Identifier: Apache-2.0
-
 import tempfile
 from enum import Enum
 from pathlib import Path
 
-from lionagi.service.endpoints.token_calculator import TokenCalculator
-from lionagi.utils import to_num
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -16,13 +9,12 @@ class ReaderAction(str, Enum):
     """
     This enumeration indicates the *type* of action the LLM wants to perform.
     - 'open': Convert a file/URL to text and store it internally for partial reads
-    - 'read': Return a partial slice of the already-opened doc
-    - 'list_dir': List all files in a directory and store it internally for partial reads
+    - 'read': Return a partial slice of the already-opened doc, a doc contains content,
+        length in chars, and **ESTIMATED** number of tokens
     """
 
-    open = "open"
-    read = "read"
-    list_dir = "list_dir"
+    OPEN = "open"
+    READ = "read"
 
 
 class ReaderRequest(BaseModel):
@@ -40,7 +32,6 @@ class ReaderRequest(BaseModel):
             "Action to perform. Must be one of: "
             "- 'open': Convert a file/URL to text and store it internally for partial reads. "
             "- 'read': Return a partial slice of the already-opened doc."
-            "- 'list_dir': List all files in a directory."
         ),
     )
 
@@ -77,22 +68,6 @@ class ReaderRequest(BaseModel):
         ),
     )
 
-    recursive: bool = Field(
-        False,
-        description=(
-            "Whether to recursively list files in subdirectories. Defaults to False."
-            "Only used if action='list_dir'."
-        ),
-    )
-
-    file_types: list[str] | None = Field(
-        None,
-        description=(
-            "List files with specific extensions. "
-            "If omitted or None, list all files. Only used if action='list_dir'."
-        ),
-    )
-
     @model_validator(mode="before")
     def _validate_request(cls, values):
         for k, v in values.items():
@@ -100,7 +75,7 @@ class ReaderRequest(BaseModel):
                 values[k] = None
             if k in ["start_offset", "end_offset"]:
                 try:
-                    values[k] = to_num(v, num_type=int)
+                    values[k] = int(v)
                 except ValueError:
                     values[k] = None
         return values
@@ -193,7 +168,7 @@ class ReaderService:
         from docling.document_converter import DocumentConverter
 
         self.converter: DocumentConverter = DocumentConverter()
-        self.documents = {}  # doc_id -> (temp_file_path, doc_length)
+        self.documents = {}  # doc_id -> (temp_file_path, doc_length, num_tokens)
 
     def handle_request(self, request: ReaderRequest) -> ReaderResponse:
         """
@@ -226,12 +201,14 @@ class ReaderService:
         # store info
         self.documents[doc_id] = (temp_file.name, doc_len)
 
+        from khive.utils import calculate_text_tokens
+
         return ReaderResponse(
             success=True,
             doc_info=DocumentInfo(
                 doc_id=doc_id,
                 length=doc_len,
-                num_tokens=TokenCalculator.tokenize(text),
+                num_tokens=calculate_text_tokens(text),
             ),
         )
 
@@ -283,16 +260,3 @@ class ReaderService:
             success=True,
             chunk=PartialChunk(start_offset=s, end_offset=e, content=content),
         )
-
-    def _list_dir(
-        self,
-        directory: str,
-        recursive: bool = False,
-        file_types: list[str] | None = None,
-    ):
-        from lionagi.libs.file.process import dir_to_files
-
-        files = dir_to_files(directory, recursive=recursive, file_types=file_types)
-        files = "\n".join([str(f) for f in files])
-        doc_id = f"DIR_{abs(hash(directory))}"
-        return self._save_to_temp(files, doc_id)

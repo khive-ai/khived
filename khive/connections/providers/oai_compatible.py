@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from khive.config import settings
-from khive.services.endpoint import Endpoint, EndpointConfig
+from khive.connections.endpoint import Endpoint, EndpointConfig
 
 try:
     from khive.third_party.openai_models import (  # type: ignore[import]
