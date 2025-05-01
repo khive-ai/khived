@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.services.providers.oai_compatible import OpenaiChatEndpoint
+from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.providers.oai_compatible import OpenaiChatEndpoint
 
 
 @pytest.mark.asyncio
@@ -67,7 +67,7 @@ async def test_aiohttp_session_reuse():
 async def test_openai_client_lifecycle():
     """Test that the OpenAI client is properly initialized and doesn't need explicit closing."""
     # Skip if openai package is not installed
-    pytest.importorskip("openai")
+    pytest.importorskip("openai", reason="openai package not installed")
 
     # Create a mock AsyncOpenAI client
     mock_client = MagicMock()

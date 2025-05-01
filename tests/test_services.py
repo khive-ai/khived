@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
-from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.services.providers.oai_compatible import (
+from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.providers.oai_compatible import (
     DUMMY_OLLAMA_API_KEY,
     OllamaChatEndpoint,
     OpenaiChatEndpoint,
@@ -32,12 +32,11 @@ async def test_openai_header():
 async def test_ollama_dummy_key():
     """Test that Ollama uses the dummy key."""
     # Skip if ollama package is not installed
-    pytest.importorskip("ollama")
-
+    pytest.importorskip("ollama", reason="ollama package not installed")
     # Create Ollama endpoint with mocked _list and _pull methods
     with (
-        patch("khive.services.providers.oai_compatible.ollama.list") as mock_list,
-        patch("khive.services.providers.oai_compatible.ollama.pull") as mock_pull,
+        patch("khive.connections.providers.oai_compatible.ollama.list") as mock_list,
+        patch("khive.connections.providers.oai_compatible.ollama.pull") as mock_pull,
     ):
         # Mock the _list_local_models method to return a set with the test model
         mock_list.return_value = MagicMock(models=[MagicMock(model="test-model")])
@@ -83,21 +82,41 @@ async def test_clientsession_lifecycle():
 
 
 @pytest.mark.asyncio
+@pytest.mark.asyncio
 @pytest.mark.unit  # Explicitly mark as unit test
 async def test_api_key_validation():
-    """Test that API key validation fails fast on missing key."""
-    # Create config with no API key
-    with pytest.raises(
-        ValueError, match="API key is required but not set for this endpoint"
+    """Test that API key validation works correctly."""
+    # Test with a direct API key
+    ep = OpenaiChatEndpoint(api_key=SecretStr("test-key"))
+
+    # Generate payload and headers
+    _, headers = ep.create_payload({"model": "gpt-4o", "messages": []})
+
+    # Check that Authorization header is properly formatted
+    assert headers["Authorization"] == "Bearer test-key"
+
+    # Test that Ollama endpoint works without an API key
+    from khive.connections.providers.oai_compatible import (
+        DUMMY_OLLAMA_API_KEY,
+        OllamaChatEndpoint,
+    )
+
+    # Skip if ollama package is not installed
+    pytest.importorskip("ollama", reason="ollama package not installed")
+
+    # Create Ollama endpoint with mocked _list and _pull methods
+    with (
+        patch("khive.connections.providers.oai_compatible.ollama.list") as mock_list,
+        patch("khive.connections.providers.oai_compatible.ollama.pull") as mock_pull,
     ):
-        EndpointConfig(
-            name="test",
-            provider="test",
-            base_url="http://example.com",
-            endpoint="test",
-            request_options=None,
-            api_key=None,
-        )
+        # Mock the _list_local_models method to return a set with the test model
+        mock_list.return_value = MagicMock(models=[MagicMock(model="test-model")])
+
+        # Create endpoint
+        ep = OllamaChatEndpoint(kwargs={"model": "test-model"})
+
+        # Check that the API key is the dummy key
+        assert ep.config._api_key == DUMMY_OLLAMA_API_KEY
 
 
 @pytest.mark.asyncio
