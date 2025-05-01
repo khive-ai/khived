@@ -35,6 +35,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["khive"]
+only-include  = ["khive", "tests"]
+include-package-data = true
 
 [tool.hatch.build]
 exclude = [

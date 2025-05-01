@@ -1,0 +1,12 @@
+# Include generated OpenAI models in the wheel
+include khive/third_party/openai_models.py
+
+# Include all template files
+include khive/templates/*.md
+
+# Include README and LICENSE
+include README.md
+include LICENSE
+
+# Exclude tests from the wheel
+exclude tests/
