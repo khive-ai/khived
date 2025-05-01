@@ -36,12 +36,12 @@ class SearchTypeEnum(str, Enum):
 class ContentsText(BaseModel):
     includeHtmlTags: bool | None = Field(
         default=False,
-        description="Whether to include HTML tags in the text. Set to True if you want "
-        "to retain HTML structure for the LLM to interpret.",
+        description="Whether to include HTML tags in the text. Set to True if you want"
+        " to retain HTML structure for the LLM to interpret.",
     )
     maxCharacters: int | None = Field(
         default=None,
-        description="The maximum number of characters to return from the webpage text.",
+        description="The maximum number of characters to return from the webpage text",
     )
 
 

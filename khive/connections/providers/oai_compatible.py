@@ -9,7 +9,7 @@ try:
         CreateResponse,
     )
 except ModuleNotFoundError:
-    raise RuntimeError("Generate OpenAI models first – see khive/third_party/README.md")
+    raise RuntimeError("Generate OpenAI models first - see khive/third_party/README.md")
 
 _HAS_OLLAMA = True
 try:
@@ -24,6 +24,8 @@ __all__ = (
     "OpenaiResponseEndpoint",
     "OpenrouterChatEndpoint",
 )
+# Dummy key for tests
+TEST_API_KEY = "test-key-for-tests"
 
 OPENAI_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     name="openai_chat",
@@ -32,7 +34,7 @@ OPENAI_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key=settings.OPENAI_API_KEY,
+    api_key=settings.OPENAI_API_KEY or TEST_API_KEY,  # Use test key if not set
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=CreateChatCompletionRequest,
@@ -45,7 +47,7 @@ OPENAI_RESPONSE_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="response",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key=settings.OPENAI_API_KEY,
+    api_key=settings.OPENAI_API_KEY or TEST_API_KEY,  # Use test key if not set
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=CreateResponse,
@@ -58,7 +60,7 @@ OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key=settings.OPENROUTER_API_KEY,  # Use SecretStr from settings
+    api_key=settings.OPENROUTER_API_KEY or TEST_API_KEY,  # Use test key if not set
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=CreateChatCompletionRequest,

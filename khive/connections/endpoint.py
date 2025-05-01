@@ -430,7 +430,10 @@ class iModel:
     ):
         if isinstance(endpoint, Endpoint):
             self.endpoint = endpoint
-            self.endpoint.config.update(**kwargs)
+            # Create a new config with the updated values
+            config_dict = endpoint.config.model_dump()
+            config_dict.update(kwargs)
+            self.endpoint.config = EndpointConfig(**config_dict)
         elif isinstance(endpoint, (EndpointConfig, dict)):
             self.endpoint = Endpoint(endpoint, **kwargs)
 

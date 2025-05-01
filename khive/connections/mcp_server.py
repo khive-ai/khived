@@ -15,6 +15,15 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 _KHIVEMCP_OP_META = "__khivemcp_op_meta__"
 
 
+__all__ = (
+    "GroupConfig",
+    "ServiceConfig",
+    "ServiceGroup",
+    "load_config",
+    "operation",
+)
+
+
 class GroupConfig(BaseModel):
     """Configuration for a single service group instance."""
 
