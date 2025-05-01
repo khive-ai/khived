@@ -24,19 +24,22 @@ from types import ModuleType
 # Map sub-command → module path (relative import)
 # Resolve the package root dynamically so imports work both in-repo and when
 # the package is installed site-wide.
-_ROOT = __name__.split(".")[0]  # 'khive'
+# Ensure we get the correct root package name
+_ROOT = __name__.split(".")[0]
+if _ROOT == "__main__":
+    _ROOT = "khive"
 
 COMMANDS: dict[str, str] = {
-    "fmt": f"{_ROOT}.khive_fmt",
-    "commit": f"{_ROOT}.khive_commit",
-    "pr": f"{_ROOT}.khive_pr",
-    "ci": f"{_ROOT}.khive_ci",
-    "init": f"{_ROOT}.khive_init",
-    "new-doc": f"{_ROOT}.khive_new_doc",
-    "clean": f"{_ROOT}.khive_clean",
-    "reader": f"{_ROOT}.khive_reader",
-    "search": f"{_ROOT}.khive_search",
-    "roo": f"{_ROOT}.khive_roo",
+    "fmt": f"{_ROOT}.cli.khive_fmt",
+    "commit": f"{_ROOT}.cli.khive_commit",
+    "pr": f"{_ROOT}.cli.khive_pr",
+    "ci": f"{_ROOT}.cli.khive_ci",
+    "init": f"{_ROOT}.cli.khive_init",
+    "new-doc": f"{_ROOT}.cli.khive_new_doc",
+    "clean": f"{_ROOT}.cli.khive_clean",
+    "reader": f"{_ROOT}.cli.khive_reader",
+    "search": f"{_ROOT}.cli.khive_search",
+    "roo": f"{_ROOT}.cli.khive_roo",
 }
 
 
