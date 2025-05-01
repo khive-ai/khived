@@ -250,7 +250,11 @@ def ci(threshold: int, check_only: bool = False) -> int:
 | |
 | |
 | |
+| |
+| |
 | Backend   | {be_cov.pct:6.2f}% | {be_cov.covered:^7} | {be_cov.total:^5} | {"✅" if be_rc == 0 else "❌"} |
+| |
+| |
 | |
 | |
 | |

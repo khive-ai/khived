@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
-from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.services.providers.oai_compatible import (
+from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.providers.oai_compatible import (
     DUMMY_OLLAMA_API_KEY,
     OllamaChatEndpoint,
     OpenaiChatEndpoint,

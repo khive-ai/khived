@@ -2,8 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.services.providers.oai_compatible import OpenaiChatEndpoint
+from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.providers.oai_compatible import OpenaiChatEndpoint
 
 
 @pytest.mark.asyncio

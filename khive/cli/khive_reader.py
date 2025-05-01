@@ -32,7 +32,7 @@ from pydantic import ValidationError
 # khive reader                                                                #
 # --------------------------------------------------------------------------- #
 try:
-    from ..tools.reader_tool import ReaderRequest, ReaderService
+    from ..services.reader_service import ReaderRequest, ReaderService
 except ModuleNotFoundError:
     sys.stderr.write(
         "❌ reader_tool.py not found - make sure it's in the same directory\n"
