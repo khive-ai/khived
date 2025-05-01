@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
@@ -9,26 +9,39 @@ from khive.services.endpoint import Endpoint, EndpointConfig
 __all__ = ("PerplexityChatEndpoint",)
 
 
-class PerplexityRole(str, Enum):
-    """Roles allowed in Perplexity's messages."""
+class PerplexityChatModel(str, Enum):
+    """
+    Models available in Perplexity's API.
 
-    system = "system"
-    user = "user"
-    assistant = "assistant"
+    sonar: Lightweight, cost-effective search model designed for quick, grounded answers
+    sonar-pro: Advanced search model optimized for complex queries and deeper content understanding.
+    sonar-reasoning: Quick problem-solving and reasoning model, ideal for evaluating complex queries.
+    sonar-deep-research: Best suited for exhaustive research, generating detailed reports and in-depth insights.
+    """
+
+    SONAR = "sonar"
+    SONAR_PRO = "sonar-pro"
+    SONAR_REASONING = "sonar-reasoning"
+    SONAR_DEEP_RESEARCH = "sonar-deep-research"
 
 
 class PerplexityMessage(BaseModel):
-    """
-    A single message in the conversation.
-    `role` can be 'system', 'user', or 'assistant'.
-    `content` is the text for that conversation turn.
-    """
+    """A single message in the conversation."""
 
-    role: PerplexityRole = Field(
+    role: Literal["system", "user", "assistant"] = Field(
         ...,
         description="The role of the speaker. Must be system, user, or assistant.",
     )
-    content: str = Field(..., description="The text content of this message.")
+    content: str = Field(
+        ..., description="The contents of the message in this turn of conversation"
+    )
+
+
+class WebSearchOptions(BaseModel):
+    search_context_size: Literal["low", "medium", "high"] = Field(
+        default="low",
+        description="Determines how much search context is retrieved for the model. Options are: low (minimizes context for cost savings but less comprehensive answers), medium (balanced approach suitable for most queries), and high (maximizes context for comprehensive answers but at higher cost).",
+    )
 
 
 class PerplexityChatRequest(BaseModel):
@@ -37,8 +50,8 @@ class PerplexityChatRequest(BaseModel):
     Endpoint: POST https://api.perplexity.ai/chat/completions
     """
 
-    model: str = Field(
-        "sonar",
+    model: PerplexityChatModel = Field(
+        PerplexityChatModel.SONAR,
         description="The model name, e.g. 'sonar', (the only model available at the time when this request model was updated, check doc for latest info).",
     )
     messages: list[PerplexityMessage] = Field(
@@ -47,43 +60,35 @@ class PerplexityChatRequest(BaseModel):
 
     # Optional parameters
     frequency_penalty: float | None = Field(
-        default=None,
-        gt=0,
+        default=1,
+        ge=0,
+        le=2.0,
         description=(
-            "Multiplicative penalty > 0. Values > 1.0 penalize repeated tokens more strongly. "
-            "Value=1.0 means no penalty. Incompatible with presence_penalty."
+            "Decreases likelihood of repetition based on prior frequency. Applies a penalty to tokens based on how frequently they've appeared in the text so far. Values typically range from 0 (no penalty) to 2.0 (strong penalty). Higher values (e.g., 1.5) reduce repetition of the same words and phrases. Useful for preventing the model from getting stuck in loops."
         ),
     )
     presence_penalty: float | None = Field(
         default=None,
-        ge=-2.0,
+        ge=0,
         le=2.0,
         description=(
-            "Penalizes tokens that have appeared so far (range -2 to 2). "
-            "Positive values encourage talking about new topics. Incompatible with frequency_penalty."
+            "Positive values increase the likelihood of discussing new topics. Applies a penalty to tokens that have already appeared in the text, encouraging the model to talk about new concepts. Values typically range from 0 (no penalty) to 2.0 (strong penalty). Higher values reduce repetition but may lead to more off-topic text."
         ),
     )
     max_tokens: int | None = Field(
         default=None,
         description=(
-            "Maximum number of completion tokens. If omitted, model generates tokens until it "
-            "hits stop or context limit."
+            "The maximum number of completion tokens returned by the API. Controls the length of the model's response. If the response would exceed this limit, it will be truncated. "
         ),
     )
-    return_images: bool | None = Field(
-        default=None,
-        description="If True, attempt to return images (closed beta feature).",
-    )
     return_related_questions: bool | None = Field(
-        default=None,
-        description="If True, attempt to return related questions (closed beta feature).",
+        default=False,
+        description="Determines whether related questions should be returned.",
     )
     search_domain_filter: list[Any] | None = Field(
         default=None,
-        description=(
-            "List of domains to limit or exclude in the online search. Example: ['example.com', '-twitter.com']. "
-            "Supports up to 3 entries. (Closed beta feature.)"
-        ),
+        description="A list of domains to limit search results to. Currently limited to 10 domains for Allowlisting and Denylisting. For Denylisting, add a - at the beginning of the domain string. for more info, see: https://docs.perplexity.ai/guides/search-domain-filters",
+        examples=["nasa.gov", "wikipedia.org", "-example.com", "-facebook.com"],
     )
     search_recency_filter: str | None = Field(
         default=None,
@@ -91,19 +96,12 @@ class PerplexityChatRequest(BaseModel):
             "Returns search results within a specified time interval: 'month', 'week', 'day', or 'hour'."
         ),
     )
-    stream: bool | None = Field(
-        default=None,
-        description=(
-            "If True, response is returned incrementally via Server-Sent Events (SSE)."
-        ),
-    )
     temperature: float | None = Field(
         default=None,
         ge=0.0,
         lt=2.0,
         description=(
-            "Controls randomness of sampling, range [0, 2). Higher => more random. "
-            "Defaults to 0.2."
+            "The amount of randomness in the response, valued between 0 and 2. Lower values (e.g., 0.1) make the output more focused, deterministic, and less creative. Higher values (e.g., 1.5) make the output more random and creative. Use lower values for factual/information retrieval tasks and higher values for creative applications."
         ),
     )
     top_k: int | None = Field(
@@ -120,29 +118,9 @@ class PerplexityChatRequest(BaseModel):
         ge=0.0,
         le=1.0,
         description=(
-            "Nucleus sampling threshold. We recommend altering either top_k or top_p, but not both."
+            "The nucleus sampling threshold, valued between 0 and 1. Controls the diversity of generated text by considering only the tokens whose cumulative probability exceeds the top_p value. Lower values (e.g., 0.5) make the output more focused and deterministic, while higher values (e.g., 0.95) allow for more diverse outputs. Often used as an alternative to temperature."
         ),
     )
-
-    @model_validator(mode="before")
-    def validate_penalties(cls, values):
-        """
-        Disallow using both frequency_penalty != 1.0 and presence_penalty != 0.0 at once,
-        since the docs say they're incompatible.
-        """
-        freq_pen = values.get("frequency_penalty", 1.0)
-        pres_pen = values.get("presence_penalty", 0.0)
-
-        # The doc states frequency_penalty is incompatible with presence_penalty.
-        # We'll enforce that if presence_penalty != 0, frequency_penalty must be 1.0
-        # or vice versa. Adjust logic as needed.
-        if pres_pen != 0.0 and freq_pen != 1.0:
-            raise ValueError(
-                "presence_penalty is incompatible with frequency_penalty. "
-                "Please use only one: either presence_penalty=0 with freq_pen !=1, "
-                "or presence_penalty!=0 with freq_pen=1."
-            )
-        return values
 
 
 ENDPOINT_CONFIG = EndpointConfig(
@@ -152,7 +130,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     method="POST",
     kwargs={"model": "sonar"},
-    api_key=settings.PERPLEXITY_API_KEY or "PERPLEXITY_API_KEY",
+    api_key=settings.PERPLEXITY_API_KEY,  # Use SecretStr from settings
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=PerplexityChatRequest,
