@@ -11,6 +11,7 @@ from pydantic import (
     BaseModel,
     Field,
     PrivateAttr,
+    SecretStr,
     field_serializer,
     field_validator,
     model_validator,
@@ -37,7 +38,7 @@ class EndpointConfig(BaseModel):
     endpoint_params: list[str] | None = None
     method: Literal["GET", "POST", "PUT", "DELETE"] = "POST"
     request_options: B
-    api_key: str | None = None
+    api_key: str | SecretStr | None = None
     timeout: int = 600
     max_retries: int = 3
     default_headers: dict[str, str] = {"content-type": "application/json"}
@@ -66,7 +67,10 @@ class EndpointConfig(BaseModel):
         if self.api_key is None and self.openai_compatible:
             raise ValueError("API key is required for OpenAI compatible endpoints")
         if self.api_key is not None:
-            self._api_key = getenv(self.api_key, self.api_key)
+            if isinstance(self.api_key, SecretStr):
+                self._api_key = self.api_key.get_secret_value()
+            else:
+                self._api_key = getenv(self.api_key, self.api_key)
         return self
 
     @property
@@ -195,7 +199,7 @@ class Endpoint:
         if not cache_control:
             return await _call(payload, headers, **kwargs)
 
-        @cached(**settings.CACHED_CONFIG)
+        @cached(**settings.ASYNC_CACHED_CONFIG)
         async def _cached_call(payload: dict, headers: dict, **kwargs):
             return await _call(payload=payload, headers=headers, **kwargs)
 

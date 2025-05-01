@@ -3,6 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
+from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
 
 __all__ = ("PerplexityChatEndpoint",)
@@ -151,7 +152,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     method="POST",
     kwargs={"model": "sonar"},
-    api_key="PERPLEXITY_API_KEY",
+    api_key=settings.PERPLEXITY_API_KEY or "PERPLEXITY_API_KEY",
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=PerplexityChatRequest,

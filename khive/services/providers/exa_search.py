@@ -4,6 +4,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from khive.config import settings
+
 from ..endpoint import Endpoint, EndpointConfig
 
 
@@ -171,7 +173,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="search",
     method="POST",
     request_options=ExaSearchRequest,
-    api_key="EXA_API_KEY",
+    api_key=settings.EXA_API_KEY or "EXA_API_KEY",
     timeout=120,
     max_retries=3,
     auth_template={"x-api-key": "$API_KEY"},

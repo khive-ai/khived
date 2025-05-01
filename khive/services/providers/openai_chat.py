@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, RootModel
 
+from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
 
 __all__ = (
@@ -230,7 +231,7 @@ OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key="ollama_key",
+    api_key=settings.OPENAI_API_KEY or "OPENAI_API_KEY",
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=ChatCompletionRequest,
