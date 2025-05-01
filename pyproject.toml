@@ -14,6 +14,7 @@ dependencies = [
     "prance>=25.4.8.0",
     "pydantic>=2.11.3",
     "pydantic-settings>=2.9.1",
+    "toml>=0.10.2",
 ]
 
 [dependency-groups]
@@ -38,6 +39,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["khive"]
 include-package-data = true
+include = ["khive/third_party/openai_models.py"]
 
 [tool.hatch.build]
 exclude = [
@@ -68,7 +70,7 @@ profile = "black"
 line_length = 88
 
 [project.scripts]                # PEP 621 console-scripts table
-khive         = "khive.khive_cli:main"
+khive         = "khive.cli.khive_cli:main"
 
 
 [tool.ruff.lint]
