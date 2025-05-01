@@ -2,7 +2,10 @@ from pydantic import BaseModel
 
 from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.third_party.openai_models import CreateChatCompletionRequest, CreateResponse # type: ignore
+from khive.third_party.openai_models import (  # type: ignore
+    CreateChatCompletionRequest,
+    CreateResponse,
+)
 
 _HAS_OLLAMA = True
 try:

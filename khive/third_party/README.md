@@ -12,6 +12,9 @@ committed to the repository. It is generated during the build process.
 To generate the OpenAI models, use the following command:
 
 ```bash
+# Use exact version to guarantee byte-for-byte generation
+python -m pip install 'datamodel-code-generator[http]==0.30.1'
+
 python -m datamodel-codegen \
   --url https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml \
   --output khive/third_party/openai_models.py \
@@ -37,6 +40,18 @@ from pydantic import Field
 bytes_aliased = Annotated[bytes, Field(alias="bytes")]
 float_aliased = Annotated[float, Field(alias="float")]
 ```
+
+### Avoiding Pydantic Alias Warnings
+
+After generation, add the following line at the top of the file to avoid
+Pydantic alias warnings:
+
+```python
+from __future__ import annotations  # noqa: D401,F401
+```
+
+This prevents warnings about "alias must be outermost" that can appear if the
+generated OpenAI models are imported before Pydantic's patched typing fix.
 
 ### Why Not Committed
 

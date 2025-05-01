@@ -18,8 +18,15 @@ class CacheConfig(BaseModel):
     noself: Any = lambda _: False
 
     def as_kwargs(self) -> dict[str, Any]:
-        """Convert config to kwargs dict for @cached decorator."""
-        return self.model_dump(exclude_none=True)
+        """Convert config to kwargs dict for @cached decorator.
+
+        Removes unserialisable callables that aiocache can't pickle.
+        """
+        raw = self.model_dump(exclude_none=True)
+        # Remove unserialisable callables
+        for key in ("key_builder", "skip_cache_func", "noself"):
+            raw.pop(key, None)
+        return raw
 
 
 class AppSettings(BaseSettings, frozen=True):
