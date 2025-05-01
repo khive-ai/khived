@@ -290,6 +290,39 @@ class Endpoint:
         return await _cached_call(payload, headers, **kwargs)
 
     async def _call_aiohttp(self, payload: dict, headers: dict, **kwargs):
+        session = self.client  # ClientSession already initialized
+
+        async def _make_request_with_backoff():
+            response = None
+            try:
+                # Don't use context manager to have more control over response lifecycle
+                response = await session.request(
+                    method=self.config.method,
+                    url=self.config.full_url,
+                    headers=headers,
+                    json=payload,
+                    **kwargs,
+                )
+
+                # Check for rate limit or server errors that should be retried
+                if response.status == 429 or response.status >= 500:
+                    response.raise_for_status()  # This will be caught by backoff
+                elif response.status != 200:
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=f"Request failed with status {response.status}",
+                        headers=response.headers,
+                    )
+
+                result = await response.json()
+                return result
+            finally:
+                # Ensure response is properly released if coroutine is cancelled between retries
+                if response is not None and not response.closed:
+                    await response.release()
+
         # Define a giveup function for backoff
         def giveup_on_client_error(e):
             # Don't retry on 4xx errors except 429 (rate limit)
@@ -298,42 +331,17 @@ class Endpoint:
             return False
 
         # Use backoff for retries with exponential backoff and jitter
-        @backoff.on_exception(
+        # Moved inside the method to reference runtime config
+        backoff_handler = backoff.on_exception(
             backoff.expo,
             (aiohttp.ClientError, asyncio.TimeoutError),
             max_tries=self.config.max_retries,
             giveup=giveup_on_client_error,
             jitter=backoff.full_jitter,
         )
-        async def _make_request():
-            session = self.client  # ClientSession already initialized
-            response = None
-            try:
-                async with session.request(
-                    method=self.config.method,
-                    url=self.config.full_url,
-                    headers=headers,
-                    json=payload,
-                    **kwargs,
-                ) as response:
-                    # Check for rate limit or server errors that should be retried
-                    if response.status == 429 or response.status >= 500:
-                        response.raise_for_status()  # This will be caught by backoff
-                    elif response.status != 200:
-                        raise aiohttp.ClientResponseError(
-                            request_info=response.request_info,
-                            history=response.history,
-                            status=response.status,
-                            message=f"Request failed with status {response.status}",
-                            headers=response.headers,
-                        )
-                    return await response.json()
-            finally:
-                # Ensure response is properly released if coroutine is cancelled between retries
-                if response is not None and not response.closed:
-                    await response.release()
 
-        return await _make_request()
+        # Apply the decorator at runtime
+        return await backoff_handler(_make_request_with_backoff)()
 
     async def _call_openai(self, payload: dict, headers: dict, **kwargs):
         payload = {**payload, **self.config.kwargs, **kwargs}
@@ -341,21 +349,42 @@ class Endpoint:
         if headers:
             payload["extra_headers"] = headers
 
-        if "chat" in self.config.endpoint:
-            if "response_format" in payload:
-                return await self.client.beta.chat.completions.parse(**payload)
-            payload.pop("response_format", None)
-            return await self.client.chat.completions.create(**payload)
+        async def _make_request_with_backoff():
+            if "chat" in self.config.endpoint:
+                if "response_format" in payload:
+                    return await self.client.beta.chat.completions.parse(**payload)
+                payload.pop("response_format", None)
+                return await self.client.chat.completions.create(**payload)
 
-        if "responses" in self.config.endpoint:
-            if "response_format" in payload:
-                return await self.client.responses.parse(**payload)
-            payload.pop("response_format", None)
-            return await self.client.responses.create(**payload)
+            if "responses" in self.config.endpoint:
+                if "response_format" in payload:
+                    return await self.client.responses.parse(**payload)
+                payload.pop("response_format", None)
+                return await self.client.responses.create(**payload)
 
-        if "embed" in self.config.endpoint:
-            return await self.client.embeddings.create(**payload)
-        raise ValueError(f"Invalid endpoint: {self.config.endpoint}")
+            if "embed" in self.config.endpoint:
+                return await self.client.embeddings.create(**payload)
+
+            raise ValueError(f"Invalid endpoint: {self.config.endpoint}")
+
+        # Define a giveup function for backoff
+        def giveup_on_client_error(e):
+            # Don't retry on 4xx errors except 429 (rate limit)
+            if hasattr(e, "status") and isinstance(e.status, int):
+                return 400 <= e.status < 500 and e.status != 429
+            return False
+
+        # Use backoff for retries with exponential backoff and jitter
+        backoff_handler = backoff.on_exception(
+            backoff.expo,
+            Exception,  # OpenAI client can raise various exceptions
+            max_tries=self.config.max_retries,
+            giveup=giveup_on_client_error,
+            jitter=backoff.full_jitter,
+        )
+
+        # Apply the decorator at runtime
+        return await backoff_handler(_make_request_with_backoff)()
 
 
 class iModel:
