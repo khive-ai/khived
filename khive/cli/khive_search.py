@@ -16,10 +16,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import sys
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from pydantic_core import PydanticCustomError
@@ -55,59 +54,59 @@ class SearchTypeEnum(str, Enum):
 
 class ContentsText(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    includeHtmlTags: Optional[bool] = False
-    maxCharacters: Optional[int] = Field(None, ge=1)
+    includeHtmlTags: bool | None = False
+    maxCharacters: int | None = Field(None, ge=1)
 
 
 class ContentsHighlights(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    highlightsPerUrl: Optional[int] = Field(1, ge=1)
-    numSentences: Optional[int] = Field(5, ge=1)
-    query: Optional[str] = None
+    highlightsPerUrl: int | None = Field(1, ge=1)
+    numSentences: int | None = Field(5, ge=1)
+    query: str | None = None
 
 
 class ContentsSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    query: Optional[str] = None
+    query: str | None = None
 
 
 class ContentsExtras(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    links: Optional[int] = Field(None, ge=1)
-    imageLinks: Optional[int] = Field(None, ge=1)
+    links: int | None = Field(None, ge=1)
+    imageLinks: int | None = Field(None, ge=1)
 
 
 class Contents(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    text: Optional[ContentsText] = None
-    highlights: Optional[ContentsHighlights] = None
-    summary: Optional[ContentsSummary] = None
-    livecrawl: Optional[LivecrawlEnum] = LivecrawlEnum.never
-    livecrawlTimeout: Optional[int] = Field(10_000, ge=1_000)
-    subpages: Optional[int] = Field(None, ge=1)
-    subpageTarget: Optional[str | List[str]] = None
-    extras: Optional[ContentsExtras] = None
+    text: ContentsText | None = None
+    highlights: ContentsHighlights | None = None
+    summary: ContentsSummary | None = None
+    livecrawl: LivecrawlEnum | None = LivecrawlEnum.never
+    livecrawlTimeout: int | None = Field(10_000, ge=1_000)
+    subpages: int | None = Field(None, ge=1)
+    subpageTarget: str | list[str] | None = None
+    extras: ContentsExtras | None = None
 
 
 class ExaSearchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     query: str = Field(..., min_length=1)
-    category: Optional[CategoryEnum] = None
-    type: Optional[SearchTypeEnum] = SearchTypeEnum.auto
-    useAutoprompt: Optional[bool] = False
-    numResults: Optional[int] = Field(10, ge=1, le=25)
-    includeDomains: Optional[List[str]] = None
-    excludeDomains: Optional[List[str]] = None
-    startCrawlDate: Optional[str] = None
-    endCrawlDate: Optional[str] = None
-    startPublishedDate: Optional[str] = None
-    endPublishedDate: Optional[str] = None
-    includeText: Optional[str] = None
-    excludeText: Optional[str] = None
-    contents: Optional[Contents] = None
+    category: CategoryEnum | None = None
+    type: SearchTypeEnum | None = SearchTypeEnum.auto
+    useAutoprompt: bool | None = False
+    numResults: int | None = Field(10, ge=1, le=25)
+    includeDomains: list[str] | None = None
+    excludeDomains: list[str] | None = None
+    startCrawlDate: str | None = None
+    endCrawlDate: str | None = None
+    startPublishedDate: str | None = None
+    endPublishedDate: str | None = None
+    includeText: str | None = None
+    excludeText: str | None = None
+    contents: Contents | None = None
 
     @field_validator("includeText", "excludeText", mode="before")
-    def _limit_words(cls, v: Optional[str]) -> Optional[str]:
+    def _limit_words(cls, v: str | None) -> str | None:
         if v and len(v.split()) > 5:
             raise PydanticCustomError(
                 "value_error", "Text filter exceeds 5-word limit", {"value": v}
@@ -130,14 +129,14 @@ class PerplexityMessage(BaseModel):
 class PerplexityChatCompletionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     model: str = "sonar"
-    messages: List[PerplexityMessage]
-    frequency_penalty: Optional[float] = Field(None, gt=0)
-    presence_penalty: Optional[float] = Field(None, ge=-2.0, le=2.0)
-    max_tokens: Optional[int] = Field(None, ge=1)
-    stream: Optional[bool] = None
-    temperature: Optional[float] = Field(None, ge=0.0, lt=2.0)
-    top_k: Optional[int] = Field(None, ge=0, le=2048)
-    top_p: Optional[float] = Field(None, ge=0.0, le=1.0)
+    messages: list[PerplexityMessage]
+    frequency_penalty: float | None = Field(None, gt=0)
+    presence_penalty: float | None = Field(None, ge=-2.0, le=2.0)
+    max_tokens: int | None = Field(None, ge=1)
+    stream: bool | None = None
+    temperature: float | None = Field(None, ge=0.0, lt=2.0)
+    top_k: int | None = Field(None, ge=0, le=2048)
+    top_p: float | None = Field(None, ge=0.0, le=1.0)
 
     def to_dict(self):
         return self.model_dump(exclude_none=True)
@@ -148,8 +147,8 @@ class PerplexityChatCompletionRequest(BaseModel):
 # --------------------------------------------------------------------------- #
 
 
-def _parse_key_vals(kvs: List[str]) -> Dict[str, Any]:
-    out: Dict[str, Any] = {}
+def _parse_key_vals(kvs: list[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
     for kv in kvs:
         if kv == "--run":  # handled elsewhere
             continue

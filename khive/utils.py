@@ -3,8 +3,9 @@ import json
 import string
 import sys
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, Tuple, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from datamodel_code_generator import (
     DataModelType,
@@ -45,19 +46,18 @@ def import_module(
             if len(import_name) == 1:
                 return getattr(a, import_name[0])
             return [getattr(a, name) for name in import_name]
-        else:
-            return __import__(full_import_path)
+        return __import__(full_import_path)
 
     except ImportError as e:
         raise ImportError(f"Failed to import module {full_import_path}: {e}") from e
 
 
 def load_pydantic_model_from_schema(
-    schema: Union[str, Dict[str, Any]],
+    schema: str | dict[str, Any],
     model_name: str = "DynamicModel",
     pydantic_version: DataModelType = DataModelType.PydanticV2BaseModel,
     python_version: PythonVersion = PythonVersion.PY_310,
-) -> Type[BaseModel]:
+) -> type[BaseModel]:
     """
     Generates a Pydantic model class dynamically from a JSON schema string or dict,
     and ensures it's fully resolved using model_rebuild() with the correct namespace.
@@ -80,7 +80,7 @@ def load_pydantic_model_from_schema(
         Exception: For other potential errors.
     """
     schema_input_data: str
-    schema_dict: Dict[str, Any]
+    schema_dict: dict[str, Any]
     resolved_model_name = model_name  # Keep track of the potentially updated name
 
     # --- 1. Prepare Schema Input ---
@@ -170,7 +170,7 @@ def load_pydantic_model_from_schema(
             raise RuntimeError(f"Failed to load generated module ({output_file}): {e}")
 
         # --- 4. Find the Model Class ---
-        model_class: Type[BaseModel]
+        model_class: type[BaseModel]
         try:
             # Use the name potentially derived from the schema title
             model_class = getattr(generated_module, resolved_model_name)
@@ -184,9 +184,7 @@ def load_pydantic_model_from_schema(
         except AttributeError:
             # Fallback attempt (less likely now with title extraction)
             try:
-                model_class = getattr(
-                    generated_module, "Model"
-                )  # Default fallback name
+                model_class = generated_module.Model  # Default fallback name
                 if not isinstance(model_class, type) or not issubclass(
                     model_class, BaseModel
                 ):
@@ -253,11 +251,11 @@ ANSI = {
     "N": "\033[0m" if sys.stdout.isatty() else "",
 }
 
-_DELIMS: Tuple[str, ...] = ("---", "+++")
+_DELIMS: tuple[str, ...] = ("---", "+++")
 Encoding = str  # alias for readability
 
 
-def read_md_body(path: Union[str, Path], *, encoding: Encoding = "utf-8") -> str:
+def read_md_body(path: str | Path, *, encoding: Encoding = "utf-8") -> str:
     """
     Return the Markdown body of *path*, stripping a leading front-matter block
     that is delimited by '---' or '+++' lines.

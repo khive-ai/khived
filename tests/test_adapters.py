@@ -14,7 +14,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -32,7 +32,7 @@ except ImportError:
     HAS_PANDAS = False
 
 try:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel
 
     HAS_PYDANTIC = True
 except ImportError:
@@ -49,11 +49,11 @@ TEST_DATA_MANY = [
 
 # Mock subject class for testing
 class MockSubject:
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: dict[str, Any]):
         self.data = data
         self.created_at = time.time()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {**self.data, "created_at": self.created_at}
 
 
@@ -68,8 +68,8 @@ if HAS_PYDANTIC:
     class TestModel(BaseModel):
         name: str
         value: int
-        tags: List[str]
-        created_at: Optional[float] = None
+        tags: list[str]
+        created_at: float | None = None
 
 
 # Register test adapters

@@ -9,13 +9,12 @@ from .node import Node
 from .utils import serialize_id, validate_id
 
 __all__ = (
-    "EdgeCondition",
     "Edge",
+    "EdgeCondition",
 )
 
 
 class EdgeCondition:
-
     def __init__(self, source: Any = None):
         self.source = source
 

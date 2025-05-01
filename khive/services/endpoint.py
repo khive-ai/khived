@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from os import getenv
-from typing import Any, Dict, Literal, TypeVar
+from typing import Any, Literal, TypeVar
 
 import aiohttp
 import backoff
@@ -26,11 +26,10 @@ B = TypeVar("B", bound=type[BaseModel])
 logger = logging.getLogger(__name__)
 
 
-__all__ = ("Endpoint", "EndpointConfig", "APICalling", "iModel")
+__all__ = ("APICalling", "Endpoint", "EndpointConfig", "iModel")
 
 
 class EndpointConfig(BaseModel):
-
     name: str
     provider: str
     base_url: str | None = None
@@ -53,7 +52,6 @@ class EndpointConfig(BaseModel):
 
     @model_validator(mode="before")
     def _validate_kwargs(cls, data: dict):
-
         kwargs = data.pop("kwargs", {})
         field_keys = list(cls.model_json_schema().get("properties", {}).keys())
         for k in list(data.keys()):
@@ -152,7 +150,7 @@ class EndpointConfig(BaseModel):
             else:
                 raise ValueError(f"Invalid key: {key}")
 
-    def validate_payload(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_payload(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate payload data against the request_options model.
 
         Args:
@@ -388,7 +386,6 @@ class Endpoint:
 
 
 class iModel:
-
     def __init__(
         self,
         endpoint: Endpoint | EndpointConfig | dict,

@@ -7,29 +7,28 @@ from typing_extensions import Self
 
 from khive._errors import ItemExistsError, ItemNotFoundError
 
-_HAS_NETWORKX = True
-try:
-    import networkx as nx  # type: ignore
-except ImportError:
-    _HAS_NETWORKX = False
-
-_HAS_MATPLOTLIB = True
-try:
-    import matplotlib.pyplot as plt  # type: ignore
-except ImportError:
-    _HAS_MATPLOTLIB = False
-
-
 from .edge import Edge
 from .element import Element
 from .node import Node
 from .pile import Pile
 
+_HAS_NETWORKX = True
+try:
+    import networkx as _  # type: ignore[import]
+except ImportError:
+    _HAS_NETWORKX = False
+
+_HAS_MATPLOTLIB = True
+try:
+    import matplotlib.pyplot as _  # type: ignore[import]
+except ImportError:
+    _HAS_MATPLOTLIB = False
+
+
 __all__ = ("Graph",)
 
 
 class NodeEdgeMapping:
-
     def __init__(self):
         self.mapping = {}
 
@@ -121,7 +120,6 @@ class NodeEdgeMapping:
 
 
 class Graph(Element):
-
     internal_nodes: Pile[Node] = Field(default_factory=Pile)
     internal_edges: Pile[Edge] = Field(default_factory=Pile)
     node_edge_mapping: NodeEdgeMapping = Field(default_factory=NodeEdgeMapping)
@@ -184,9 +182,7 @@ class Graph(Element):
     def pop_node(self, node: Node | UUID, /) -> Node:
         """Remove a node from the graph, and all connected edges from the graph."""
         if node not in self.internal_nodes:
-            raise ItemNotFoundError(
-                f"Node {str(node.id)} not found in the graph nodes."
-            )
+            raise ItemNotFoundError(f"Node {node.id!s} not found in the graph nodes.")
 
         edges_to_remove = self.node_edge_mapping.remove_node(node)
         for edge_id in edges_to_remove:
@@ -198,9 +194,7 @@ class Graph(Element):
         Remove an edge from the graph.
         """
         if edge not in self.internal_edges:
-            raise ItemNotFoundError(
-                f"Edge {str(edge.id)} not found in the graph edges."
-            )
+            raise ItemNotFoundError(f"Edge {edge.id!s} not found in the graph edges.")
 
         edge = self.internal_edges[edge]
         self.node_edge_mapping.remove_edge(edge)
@@ -351,12 +345,12 @@ class Graph(Element):
         check_deque = deque(node_ids)
 
         # 0: unvisited, 1: visiting, 2: visited
-        check_dict = {nid: 0 for nid in node_ids}
+        check_dict = dict.fromkeys(node_ids, 0)
 
         def visit(nid):
             if check_dict[nid] == 2:
                 return True
-            elif check_dict[nid] == 1:
+            if check_dict[nid] == 1:
                 return False
 
             check_dict[nid] = 1

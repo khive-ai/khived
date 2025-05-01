@@ -5,12 +5,12 @@ This module provides validation functions that can be used by adapters
 to validate data against schemas.
 """
 
-from typing import Any, Optional, Type, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 T = TypeVar("T")
 
 
-def _validate(data: Any, schema: Type[T]) -> T:
+def _validate(data: Any, schema: type[T]) -> T:
     """
     Validate data against a schema using Pydantic.
 
@@ -41,7 +41,7 @@ def _validate(data: Any, schema: Type[T]) -> T:
         )
 
     # Convert to dict if the object has a to_dict method
-    if hasattr(data, "to_dict") and callable(getattr(data, "to_dict")):
+    if hasattr(data, "to_dict") and callable(data.to_dict):
         data = data.to_dict()
 
     # Use TypeAdapter for efficient validation
@@ -49,7 +49,7 @@ def _validate(data: Any, schema: Type[T]) -> T:
     return cast(T, adapter.validate_python(data))
 
 
-def validate_data(data: Any, schema: Optional[Type[T]] = None) -> Any:
+def validate_data(data: Any, schema: type[T] | None = None) -> Any:
     """
     Validate data against a schema if provided.
 

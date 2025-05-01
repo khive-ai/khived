@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime
 from types import MappingProxyType
@@ -25,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = (
+    "ELEMENT_FIELDS",
     "Element",
     "Log",
-    "ELEMENT_FIELDS",
 )
 
 
@@ -87,8 +88,14 @@ class Element(BaseModel):
         """
         if not val:
             return {}
+        if isinstance(val, str):
+            try:
+                val = json.loads(val)
+            except json.JSONDecodeError:
+                pass
         if not isinstance(val, dict):
-            val = to_dict(val, recursive=True, suppress=True)
+            raise ValueError("Invalid metadata.")
+
         if "lion_class" in val and val["lion_class"] != cls.class_name(full=True):
             raise ValueError("Metadata class mismatch.")
         # Check if lion_class key already exists and warn if it will be overwritten
@@ -197,7 +204,7 @@ class Log(Element):
         elif hasattr(content, "model_dump"):
             content = content.model_dump()
 
-        if content is {}:
+        if content == {}:
             logger.warning(
                 "No content to log, or original data was of invalid type. Making an empty log..."
             )

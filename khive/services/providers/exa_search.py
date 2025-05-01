@@ -183,6 +183,5 @@ ENDPOINT_CONFIG = EndpointConfig(
 
 
 class ExaSearchEndpoint(Endpoint):
-
     def __init__(self, config=ENDPOINT_CONFIG, **kwargs):
         super().__init__(config=config, **kwargs)

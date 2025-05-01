@@ -21,6 +21,7 @@ khive_commit.py "fix: missing null-check" --patch --no-push
 khive_commit.py "chore!: bump API to v2" --amend -v
 ```
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,7 +31,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 ROOT = Path.cwd()
 ANSI = {
@@ -61,7 +61,7 @@ def die(msg: str) -> None:
 
 
 def git(
-    cmd: List[str] | str, *, capture: bool = False, check: bool = True
+    cmd: list[str] | str, *, capture: bool = False, check: bool = True
 ) -> subprocess.CompletedProcess[str] | int:
     if isinstance(cmd, str):
         args = cmd.split()
@@ -101,21 +101,15 @@ def ensure_identity():
 
 def working_tree_dirty() -> bool:
     rc = git(["diff", "--quiet"], check=False)
-    return (
-        isinstance(rc, int)
-        and rc == 1
-        or isinstance(rc, subprocess.CompletedProcess)
-        and rc.returncode == 1
+    return (isinstance(rc, int) and rc == 1) or (
+        isinstance(rc, subprocess.CompletedProcess) and rc.returncode == 1
     )
 
 
 def staged_nothing() -> bool:
     rc = git(["diff", "--cached", "--quiet"], check=False)
-    return (
-        isinstance(rc, int)
-        and rc == 0
-        or isinstance(rc, subprocess.CompletedProcess)
-        and rc.returncode == 0
+    return (isinstance(rc, int) and rc == 0) or (
+        isinstance(rc, subprocess.CompletedProcess) and rc.returncode == 0
     )
 
 

@@ -3,7 +3,6 @@ import uuid
 import pytest
 
 from khive._errors import ItemNotFoundError
-from khive.protocols.edge import Edge
 from khive.protocols.graph import Graph, NodeEdgeMapping
 from khive.protocols.node import Node
 

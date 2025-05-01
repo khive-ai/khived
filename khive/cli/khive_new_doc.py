@@ -14,6 +14,7 @@ Patch 2025-04-22 ▸ **robust template resolution**
 
 (Bulk of logic unchanged; see bottom for CLI synopsis.)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,7 +24,6 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from ..utils import ANSI
 
@@ -42,15 +42,15 @@ def die(msg: str):
 
 # ────────── front-matter parsing (tiny) ──────────
 # Accept optional "---" noise before front-matter (some editors add it)
-_FM_RE = re.compile(r"^---(?:---)?(.*?)---(.*)$", re.S)
+_FM_RE = re.compile(r"^---(?:---)?(.*?)---(.*)$", re.DOTALL)
 
 
-def parse_frontmatter(text: str) -> Tuple[Dict[str, str], str]:
+def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
     m = _FM_RE.match(text)
     if not m:
         die("template missing front-matter block")
     raw, body = m.groups()
-    meta: Dict[str, str] = {}
+    meta: dict[str, str] = {}
     for line in raw.splitlines():
         if ":" not in line:
             continue
@@ -66,7 +66,7 @@ class Template:
     doc_type: str
     out_subdir: str
     prefix: str
-    meta: Dict[str, str]
+    meta: dict[str, str]
     body: str
 
 
@@ -132,7 +132,7 @@ def resolve_template(
     candidate_dirs = list(_candidate_dirs())
 
     # ── 2. discover templates in priority order ─────────────────────────
-    template_map: Dict[str, Template] = {}
+    template_map: dict[str, Template] = {}
     for dir_ in candidate_dirs:
         found = discover([dir_])  # returns {DOC_TYPE → Template}
         for key, tpl in found.items():
@@ -162,9 +162,9 @@ def resolve_template(
 # ────────── discovery ──────────
 
 
-def discover(dirs: List[Path]) -> Dict[str, Template]:
+def discover(dirs: list[Path]) -> dict[str, Template]:
     """Walk each candidate dir **recursively** for `*_template.md`."""
-    mapping: Dict[str, Template] = {}
+    mapping: dict[str, Template] = {}
     for dir_ in dirs:
         if not dir_.is_dir():
             continue
@@ -204,7 +204,7 @@ def substitute(text: str, ident: str) -> str:
     today = dt.date.today().isoformat()
     text = text.replace("{{DATE}}", today).replace("{{IDENTIFIER}}", ident)
     for pat in ["<issue>", "<issue_id>", "<identifier>"]:
-        text = re.sub(pat, ident, text, flags=re.I)
+        text = re.sub(pat, ident, text, flags=re.IGNORECASE)
     return text
 
 

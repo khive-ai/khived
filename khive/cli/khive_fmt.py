@@ -19,23 +19,17 @@ Usage::
   khive_fmt.py            # fix-in-place serial
   khive_fmt.py --check    # parallel read-only
   khive_fmt.py -v --check --stack python
-
-Add a console-script if you want `khive fmt` on `$PATH`:
-
-```toml
-[project.scripts]
-khive fmt = "khive_fmt:main"
-```
 """
+
 from __future__ import annotations
 
 import argparse
 import asyncio
 import os
 import sys
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Coroutine, Dict, List
 
 from ..utils import ANSI
 
@@ -60,16 +54,16 @@ def log(msg: str) -> None:
 class StackCfg:
     cmd: str | None = None
     check_cmd: str | None = None
-    include: List[str] = field(default_factory=list)
-    exclude: List[str] = field(default_factory=list)
+    include: list[str] = field(default_factory=list)
+    exclude: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Cfg:
-    enable: List[str] = field(
+    enable: list[str] = field(
         default_factory=lambda: ["python", "docs", "rust", "deno"]
     )
-    stacks: Dict[str, StackCfg] = field(default_factory=dict)
+    stacks: dict[str, StackCfg] = field(default_factory=dict)
 
 
 def load_cfg() -> Cfg:
@@ -91,7 +85,7 @@ def load_cfg() -> Cfg:
 
 
 # ────────── Helpers ──────────
-async def _run(cmd: List[str], *, cwd: Path) -> int:
+async def _run(cmd: list[str], *, cwd: Path) -> int:
     log("$ " + " ".join(cmd))
     proc = await asyncio.create_subprocess_exec(*[c for c in cmd if c], cwd=cwd)
     rc = await proc.wait()
@@ -99,12 +93,12 @@ async def _run(cmd: List[str], *, cwd: Path) -> int:
     return rc or 0
 
 
-def _match(path: Path, patterns: List[str]) -> bool:
+def _match(path: Path, patterns: list[str]) -> bool:
     return any(path.match(p) for p in patterns) if patterns else True
 
 
-def _select_files(include: List[str], exclude: List[str]) -> List[Path]:
-    selected: List[Path] = []
+def _select_files(include: list[str], exclude: list[str]) -> list[Path]:
+    selected: list[Path] = []
     for pat in include or ["**/*"]:
         for p in ROOT.glob(pat):
             if p.is_file() and _match(p, include) and not _match(p, exclude):
@@ -113,7 +107,7 @@ def _select_files(include: List[str], exclude: List[str]) -> List[Path]:
 
 
 # ────────── Stack implementations ──────────
-async def _banner(name: str, files: List[str], check: bool) -> None:
+async def _banner(name: str, files: list[str], check: bool) -> None:
     action = "CHECK" if check else "FIX  "
     log(f"[{name.upper():6}] {action} → {len(files)} file(s)")
 
@@ -169,7 +163,7 @@ async def deno_stack(check: bool, cfg: StackCfg) -> int:
 
 
 # Map names → coroutine
-BUILTINS: Dict[str, Callable[[bool, StackCfg], Coroutine[None, None, int]]] = {
+BUILTINS: dict[str, Callable[[bool, StackCfg], Coroutine[None, None, int]]] = {
     "python": python_stack,
     "docs": docs_stack,
     "rust": rust_stack,
@@ -193,14 +187,14 @@ async def _main(argv: list[str] | None = None) -> None:
     cfg = load_cfg()
     stacks = args.stack or cfg.enable
 
-    results: Dict[str, int] = {}
+    results: dict[str, int] = {}
 
     if args.check:
         coros = [
             BUILTINS.get(s, lambda *_: 0)(True, cfg.stacks.get(s, StackCfg()))
             for s in stacks
         ]
-        for name, coro in zip(stacks, asyncio.as_completed(coros)):
+        for name, coro in zip(stacks, asyncio.as_completed(coros), strict=False):
             results[name] = await coro
     else:
         for s in stacks:

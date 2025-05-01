@@ -4,7 +4,7 @@ from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
 
 try:
-    from khive.third_party.openai_models import (  # type: ignore
+    from khive.third_party.openai_models import (  # type: ignore[import]
         CreateChatCompletionRequest,
         CreateResponse,
     )
@@ -19,10 +19,10 @@ except ImportError:
 
 
 __all__ = (
-    "OpenaiChatEndpoint",
-    "OpenrouterChatEndpoint",
     "OllamaChatEndpoint",
+    "OpenaiChatEndpoint",
     "OpenaiResponseEndpoint",
+    "OpenrouterChatEndpoint",
 )
 
 OPENAI_CHAT_ENDPOINT_CONFIG = EndpointConfig(

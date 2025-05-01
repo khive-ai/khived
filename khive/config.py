@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,7 +12,7 @@ class CacheConfig(BaseModel):
     namespace: str | None = None
     key_builder: Any = None
     skip_cache_func: Any = lambda _: False
-    serializer: Dict[str, Any] | None = None
+    serializer: dict[str, Any] | None = None
     plugins: Any = None
     alias: str | None = None
     noself: Any = lambda _: False

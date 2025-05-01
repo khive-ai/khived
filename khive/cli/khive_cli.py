@@ -14,21 +14,19 @@ Install editable (+entry-point) and you can run e.g.:
 The CLI merely dispatches to the underlying modules so there’s no duplicate
 logic. Unknown flags after a sub-command are passed through untouched.
 """
+
 from __future__ import annotations
 
-import argparse
 import importlib
 import sys
-from pathlib import Path
 from types import ModuleType
-from typing import Callable, Dict
 
 # Map sub-command → module path (relative import)
 # Resolve the package root dynamically so imports work both in-repo and when
 # the package is installed site-wide.
 _ROOT = __name__.split(".")[0]  # 'khive'
 
-COMMANDS: Dict[str, str] = {
+COMMANDS: dict[str, str] = {
     "fmt": f"{_ROOT}.khive_fmt",
     "commit": f"{_ROOT}.khive_commit",
     "pr": f"{_ROOT}.khive_pr",

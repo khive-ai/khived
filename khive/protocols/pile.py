@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, AsyncIterator, ClassVar, Generic, Iterator, TypeVar
+from collections.abc import AsyncIterator, Iterator
+from typing import Any, ClassVar, Generic, TypeVar
 from uuid import UUID
 
 from pydantic import Field, field_serializer, field_validator
@@ -250,7 +251,7 @@ class Pile(Element, Adaptable, Generic[T]):
         dup_ids = set(item_ids) & set(self.collections.keys())
         if dup_ids:
             raise ItemExistsError(
-                f"Item(s) {', '.join(str(id)[:5]+'...' for id in dup_ids)}) already exist"
+                f"Item(s) {', '.join(str(id)[:5] + '...' for id in dup_ids)}) already exist"
             )
 
         to_add = {i.id: i for i in items}
@@ -303,7 +304,6 @@ class Pile(Element, Adaptable, Generic[T]):
         return iter(self.collections[id] for id in self.order)
 
     def pop(self, key: int | UUID | T, default=..., /):
-
         try:
             item = self[key] if isinstance(key, int) else self.get(key)
         except Exception as e:

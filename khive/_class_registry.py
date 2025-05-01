@@ -14,8 +14,8 @@ pattern_list = [
 ]
 
 __all__ = (
-    "get_class",
     "KHIVE_CLASS_REGISTRY",
+    "get_class",
 )
 
 
@@ -88,4 +88,4 @@ def get_class(class_name: str) -> type:
         )
     except Exception as e:
         # Re-raise with more context
-        raise ClassNotFoundError(f"Error loading class '{class_name}': {str(e)}") from e
+        raise ClassNotFoundError(f"Error loading class '{class_name}': {e!s}") from e

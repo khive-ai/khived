@@ -42,7 +42,7 @@ def c(col: str, txt: str) -> str:  # colour helper
 
 
 def log(msg: str) -> None:
-    print(f"\n{c('BLUE',  msg)}")
+    print(f"\n{c('BLUE', msg)}")
 
 
 def info(msg: str) -> None:
@@ -166,7 +166,9 @@ def backend_cov() -> tuple[Coverage, int]:
 
 
 # ─────────────────────  Template lint  ──────────────────────
-PLACEHOLDER_RE = re.compile(r"(\{\{PLACEHOLDER:[^}]+\}\})|\[Component[^]]+\]", re.I)
+PLACEHOLDER_RE = re.compile(
+    r"(\{\{PLACEHOLDER:[^}]+\}\})|\[Component[^]]+\]", re.IGNORECASE
+)
 FORBIDDEN = [r"search_group_", r"idp-", r"roo-"]
 
 
@@ -183,7 +185,7 @@ def lint_templates() -> int:
         if PLACEHOLDER_RE.search(txt):
             bad.append(f"{md.relative_to(TEMPLATE_DIR)}: unreplaced placeholder")
         for pat in FORBIDDEN:
-            if re.search(pat, txt, re.I):
+            if re.search(pat, txt, re.IGNORECASE):
                 bad.append(f"{md.relative_to(TEMPLATE_DIR)}: forbidden pattern “{pat}”")
     if bad:
         err("template-lint failed:")
@@ -228,8 +230,46 @@ def ci(threshold: int, check_only: bool = False) -> int:
         tbl = f"""
 | Stack     | % Lines | Covered | Total | Status |
 |-----------|:------:|:-------:|:-----:|:------:|
-| Frontend  | {fe_cov.pct:6.2f}% | {fe_cov.covered:^7} | {fe_cov.total:^5} | {"✅" if fe_rc==0 else "❌"} |
-| Backend   | {be_cov.pct:6.2f}% | {be_cov.covered:^7} | {be_cov.total:^5} | {"✅" if be_rc==0 else "❌"} |
+| Frontend  | {fe_cov.pct:6.2f}% | {fe_cov.covered:^7} | {fe_cov.total:^5} | {"✅" if fe_rc == 0 else "❌"} |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| Backend   | {be_cov.pct:6.2f}% | {be_cov.covered:^7} | {be_cov.total:^5} | {"✅" if be_rc == 0 else "❌"} |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
+| |
 | **All**   | **{total.pct:6.2f}%** | **{total.covered:^7}** | **{total.total:^5}** | — |"""
         print(textwrap.dedent(tbl))
 

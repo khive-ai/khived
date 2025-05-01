@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import aiohttp
 import pytest
 
 from khive.services.endpoint import Endpoint, EndpointConfig

@@ -10,6 +10,7 @@ Highlights
 * `--draft`, `--no-push`, `--dry-run`, `-v` verbose.
 * 100 % std-lib; relies only on `git` & `gh` executables.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,7 +22,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List
 
 ANSI = {
     k: (v if sys.stdout.isatty() else "")
@@ -51,7 +51,7 @@ def die(msg: str):
 
 
 def run(
-    cmd: List[str] | str, *, capture=False, check=True
+    cmd: list[str] | str, *, capture=False, check=True
 ) -> subprocess.CompletedProcess[str] | int:
     args = cmd.split() if isinstance(cmd, str) else cmd
     log("$ " + " ".join(args))
@@ -63,11 +63,11 @@ def run(
 # ────────── helper funcs ──────────
 
 
-def git(args: List[str] | str, **kw):
+def git(args: list[str] | str, **kw):
     return run(["git", *(args.split() if isinstance(args, str) else args)], **kw)
 
 
-def gh(args: List[str] | str, **kw):
+def gh(args: list[str] | str, **kw):
     return run(["gh", *(args.split() if isinstance(args, str) else args)], **kw)
 
 

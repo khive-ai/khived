@@ -6,15 +6,7 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import (
-    Any,
-    ClassVar,
-    Optional,
-    Protocol,
-    Type,
-    TypeVar,
-    runtime_checkable,
-)
+from typing import Any, ClassVar, Protocol, TypeVar, runtime_checkable
 
 from typing_extensions import get_protocol_members
 
@@ -25,8 +17,8 @@ from .validation import validate_data
 T = TypeVar("T")
 
 __all__ = (
-    "Adapter",
     "ADAPTER_MEMBERS",
+    "Adapter",
     "AdapterRegistry",
 )
 
@@ -67,7 +59,7 @@ class Adapter(Protocol):
         /,
         *,
         many: bool,
-        schema: Optional[Type[Any]] = None,
+        schema: type[Any] | None = None,
         **kwargs,
     ) -> dict | list[dict]:
         """
@@ -99,7 +91,7 @@ class Adapter(Protocol):
         /,
         *,
         many: bool,
-        schema: Optional[Type[Any]] = None,
+        schema: type[Any] | None = None,
         **kwargs,
     ) -> Any:
         """
@@ -177,7 +169,7 @@ class AdapterRegistry:
 
         if os.path.exists(adapter_map_path):
             try:
-                with open(adapter_map_path, "r", encoding="utf-8") as f:
+                with open(adapter_map_path, encoding="utf-8") as f:
                     cls._adapter_map = json.load(f)
                 logging.debug(
                     f"Loaded adapter map from {adapter_map_path} with {len(cls._adapter_map)} entries"
@@ -312,7 +304,7 @@ class AdapterRegistry:
         obj: Any,
         obj_key: type | str,
         *,
-        schema: Optional[Type[Any]] = None,
+        schema: type[Any] | None = None,
         **kwargs,
     ) -> dict | list[dict]:
         try:
@@ -332,7 +324,7 @@ class AdapterRegistry:
         subj: T,
         obj_key: type | str,
         *,
-        schema: Optional[Type[Any]] = None,
+        schema: type[Any] | None = None,
         **kwargs,
     ) -> Any:
         try:
@@ -349,7 +341,6 @@ class AdapterRegistry:
 
 
 class Adaptable(ABC):
-
     _adapter_registry: ClassVar[AdapterRegistry]
 
     @classmethod

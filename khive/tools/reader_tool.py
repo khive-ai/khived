@@ -3,7 +3,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import os
 import tempfile
 from enum import Enum
 from pathlib import Path
@@ -214,8 +213,7 @@ class ReaderService:
             return self._list_dir(
                 request.path_or_url, request.recursive, request.file_types
             )
-        else:
-            return ReaderResponse(success=False, error="Unknown action type")
+        return ReaderResponse(success=False, error="Unknown action type")
 
     def _save_to_temp(self, text, doc_id):
         temp_file = tempfile.NamedTemporaryFile(
@@ -260,7 +258,7 @@ class ReaderService:
             result = self.converter.convert(source)
             text = result.document.export_to_markdown()
         except Exception as e:
-            return ReaderResponse(success=False, error=f"Conversion error: {str(e)}")
+            return ReaderResponse(success=False, error=f"Conversion error: {e!s}")
 
         doc_id = f"DOC_{abs(hash(source))}"
         return self._save_to_temp(text, doc_id)
@@ -279,7 +277,7 @@ class ReaderService:
                 f.seek(s)
                 content = f.read(e - s)
         except Exception as ex:
-            return ReaderResponse(success=False, error=f"Read error: {str(ex)}")
+            return ReaderResponse(success=False, error=f"Read error: {ex!s}")
 
         return ReaderResponse(
             success=True,

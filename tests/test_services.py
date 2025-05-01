@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
-from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
 from khive.services.providers.oai_compatible import (
     DUMMY_OLLAMA_API_KEY,
@@ -16,13 +15,12 @@ from khive.services.providers.oai_compatible import (
 @pytest.mark.unit  # This is a unit test as it doesn't make real API calls
 async def test_openai_header():
     """Test that OpenAI header is properly formatted with API key."""
-    from khive.services.providers.oai_compatible import OpenaiChatEndpoint
 
     # Create endpoint with a test API key
     ep = OpenaiChatEndpoint(api_key=SecretStr("test-key"))
 
     # Generate payload and headers
-    payload, headers = ep.create_payload({"model": "gpt-4o", "messages": []})
+    _, headers = ep.create_payload({"model": "gpt-4o", "messages": []})
 
     # Check that Authorization header is properly formatted
     assert headers["Authorization"] == "Bearer test-key"
@@ -41,7 +39,6 @@ async def test_ollama_dummy_key():
         patch("khive.services.providers.oai_compatible.ollama.list") as mock_list,
         patch("khive.services.providers.oai_compatible.ollama.pull") as mock_pull,
     ):
-
         # Mock the _list_local_models method to return a set with the test model
         mock_list.return_value = MagicMock(models=[MagicMock(model="test-model")])
 

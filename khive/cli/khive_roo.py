@@ -39,18 +39,18 @@ def parse_markdown_file(filepath):
         logging.error(
             f"CRITICAL: General guidance file '{GENERAL_GUIDANCE}' does not exist."
         )
-        return
+        return None
     if not os.path.isfile(GENERAL_GUIDANCE):
         logging.error(f"CRITICAL: '{GENERAL_GUIDANCE}' is not a file.")
-        return
+        return None
 
     logging.debug(f"Attempting to parse: {filepath}")
     try:
         # Read the file explicitly with UTF-8 encoding
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
-        raise IOError(f"Error reading file {filepath}: {e}")
+        raise OSError(f"Error reading file {filepath}: {e}")
 
     # --- Extract YAML front matter ---
     # More robust pattern supporting potential leading/trailing spaces and ensuring full match
@@ -139,8 +139,10 @@ def main():
     try:
         import yaml
     except ImportError:
-        logging.error("CRITICAL: PyYAML library not found. Please install it using:")
-        logging.error("  pip install PyYAML")
+        logging.exception(
+            "CRITICAL: PyYAML library not found. Please install it using:"
+        )
+        logging.exception("  pip install PyYAML")
         exit(1)  # Exit if critical dependency is missing
 
     if not os.path.exists(ROO_FOLDER):
@@ -166,8 +168,8 @@ def main():
                 mode_data = parse_markdown_file(filepath)
                 custom_modes.append(mode_data)
                 logging.info(f"  -> Parsed successfully (slug='{mode_data['slug']}')")
-            except (ValueError, IOError, yaml.YAMLError) as e:
-                logging.error(
+            except (ValueError, OSError, yaml.YAMLError) as e:
+                logging.exception(
                     f"  -> Failed to parse {filename}: {e}"
                 )  # Log error and continue
 
@@ -189,7 +191,9 @@ def main():
             f"\nSuccessfully wrote {len(custom_modes)} modes to '{OUTPUT_JSON}'"
         )
     except Exception as e:
-        logging.error(f"\nCRITICAL: Error writing JSON output to '{OUTPUT_JSON}': {e}")
+        logging.exception(
+            f"\nCRITICAL: Error writing JSON output to '{OUTPUT_JSON}': {e}"
+        )
 
 
 if __name__ == "__main__":

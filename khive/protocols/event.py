@@ -7,9 +7,8 @@ from pydantic import BaseModel, Field, field_serializer, field_validator
 from .element import Element
 
 __all__ = (
-    "EventStatus",
-    "Execution",
     "Event",
+    "EventStatus",
 )
 
 

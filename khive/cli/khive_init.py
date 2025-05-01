@@ -3,18 +3,16 @@
 khive_init.py - zero-surprise bootstrap for the khive mono-repo.
 # … (header unchanged for brevity) …
 """
+
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
-import os
 import shutil
-import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 try:
     import tomllib  # py311+
@@ -54,11 +52,11 @@ class StepCfg:
 
 @dataclass
 class Config:
-    enable: List[str] = field(
+    enable: list[str] = field(
         default_factory=lambda: ["tools", "npm", "python", "rust", "husky", "roomodes"]
     )
     ignore_missing: bool = False
-    custom: Dict[str, StepCfg] = field(default_factory=dict)
+    custom: dict[str, StepCfg] = field(default_factory=dict)
 
 
 def load_cfg() -> Config:
@@ -80,7 +78,7 @@ def load_cfg() -> Config:
 
 
 # ────────── helpers ──────────
-async def sh(cmd: List[str] | str, *, cwd: Path) -> int:
+async def sh(cmd: list[str] | str, *, cwd: Path) -> int:
     log("$ " + (cmd if isinstance(cmd, str) else " ".join(cmd)))
     proc = await (
         asyncio.create_subprocess_shell(cmd, cwd=cwd)
@@ -180,7 +178,7 @@ async def step_roomodes(check: bool, _: Config) -> bool:
     return (await sh(["bash", str(script)], cwd=ROOT)) == 0
 
 
-BUILTIN: Dict[str, callable] = {
+BUILTIN: dict[str, callable] = {
     "tools": step_tools,
     "npm": step_npm,
     "python": step_python,
@@ -191,7 +189,7 @@ BUILTIN: Dict[str, callable] = {
 
 
 # ────────── orchestrator (unchanged) ──────────
-async def _run(cfg: Config, steps: List[str], check: bool) -> bool:
+async def _run(cfg: Config, steps: list[str], check: bool) -> bool:
     all_ok = True
     for name in steps:
         banner(name)

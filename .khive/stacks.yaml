@@ -1,0 +1,10 @@
+stacks:
+  python:
+    enable: true
+    hooks: [isort, black-py, black-ipynb, ruff]
+  docs:
+    enable: true
+    hooks: [deno-fmt-md]
+  rust:
+    enable: false # turn off in this repo
+    hooks: [cargo-fmt]

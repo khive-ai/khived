@@ -17,7 +17,7 @@ def validate_id(value: str | UUID) -> UUID:
         return value
     try:
         return UUID(str(value))
-    except:
+    except Exception:
         raise ValueError(
             "Input value for field <id> should be a `uuid.UUID` object or a valid `uuid` representation"
         )
@@ -35,7 +35,7 @@ def validate_created_at(value: str | datetime) -> datetime:
     if isinstance(value, str):
         try:
             return datetime.fromisoformat(value)
-        except:
+        except Exception:
             pass
 
     raise ValueError(
