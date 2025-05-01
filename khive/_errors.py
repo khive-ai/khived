@@ -1,6 +1,4 @@
-"""
-Error classes for the khive library.
-"""
+"""Error classes for the khive library."""
 
 
 class ItemExistsError(Exception):

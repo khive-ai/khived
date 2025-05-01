@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from .adapter import Adapter, T
 
 _HAS_PANDAS = True
@@ -17,10 +15,19 @@ class PandasDataFrameAdapter(Adapter):
     """
 
     obj_key = "pd_dataframe"
-    alias = ("pandas_dataframe", "pd.DataFrame", "pd_dataframe")
+    alias = ("pandas_dataframe", "pd.DataFrame", "pd_dataframe", "pandas")
 
     @classmethod
-    def from_obj(cls, subj_cls: type[T], obj, /, **kwargs) -> list[dict]:
+    def from_obj(
+        cls,
+        subj_cls: type[T],
+        obj,
+        /,
+        *,
+        many: bool = False,
+        orient: str = "records",
+        **kwargs,
+    ) -> list[dict]:
         """
         Convert an existing DataFrame into a list of dicts.
 
@@ -30,18 +37,24 @@ class PandasDataFrameAdapter(Adapter):
             The internal class to which we might parse.
         obj : pd.DataFrame
             The DataFrame to convert.
+        many : bool, optional
+            Not used for DataFrame conversion, included for API consistency.
+        orient : str, optional
+            Orientation for DataFrame.to_dict, defaults to "records".
         **kwargs
-            Additional args for DataFrame.to_dict (like `orient`).
+            Additional args for DataFrame.to_dict.
 
         Returns
         -------
         list[dict]
             Each row as a dictionary.
         """
-        return obj.to_dict(orient="records", **kwargs)
+        return obj.to_dict(orient=orient, **kwargs)
 
     @classmethod
-    def to_obj(cls, subj: list[T], /, **kwargs):
+    def to_obj(
+        cls, subj: list[T], /, *, many: bool = True, orient: str = "records", **kwargs
+    ):
         """
         Convert multiple items into a DataFrame, adjusting `created_at` to datetime.
 
@@ -62,18 +75,14 @@ class PandasDataFrameAdapter(Adapter):
                 "Package `pandas` is needed to adapt to pandas dataframe, please install via `pip install pandas`"
             )
 
-        out_ = []
-        for i in subj:
-            _dict = i.to_dict()
-            # Attempt to parse timestamps
-            if "created_at" in _dict:
-                try:
-                    _dict["created_at"] = datetime.fromtimestamp(_dict["created_at"])
-                except Exception:
-                    pass
-            out_.append(_dict)
-        df = pd.DataFrame(out_, **kwargs)
-        # Convert created_at to datetime if present
+        # Vectorized timestamp fix: convert before frame creation
+        rows = [dict(item.to_dict(), created_at=item.created_at) for item in subj]
+        df = pd.DataFrame(rows, **kwargs)
+
+        # Convert created_at to datetime using vectorized operation with caching
         if "created_at" in df.columns:
-            df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
+            df["created_at"] = pd.to_datetime(
+                df["created_at"], errors="coerce", cache=True
+            )
+
         return df

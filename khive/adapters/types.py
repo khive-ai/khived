@@ -2,6 +2,7 @@ from .adapter import Adaptable, Adapter, AdapterRegistry
 from .json_adapter import JsonAdapter, JsonFileAdapter
 from .pd_dataframe_adapter import PandasDataFrameAdapter
 from .toml_adapter import TomlAdapter, TomlFileAdapter
+from .validation import validate_data
 
 
 class PileAdapterRegistry(AdapterRegistry):
@@ -46,4 +47,5 @@ __all__ = (
     "Adaptable",
     "PileAdapterRegistry",
     "NodeAdapterRegistry",
+    "validate_data",
 )
