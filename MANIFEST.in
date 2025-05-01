@@ -1,8 +1,6 @@
 # Include generated OpenAI models in the wheel
+# Note: File is not version-controlled but is included in wheels
 include khive/third_party/openai_models.py
-
-# Include all template files
-include khive/templates/*.md
 
 # Include README and LICENSE
 include README.md

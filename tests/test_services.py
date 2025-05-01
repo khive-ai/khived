@@ -13,6 +13,7 @@ from khive.services.providers.oai_compatible import (
 
 
 @pytest.mark.asyncio
+@pytest.mark.unit  # This is a unit test as it doesn't make real API calls
 async def test_openai_header():
     """Test that OpenAI header is properly formatted with API key."""
     from khive.services.providers.oai_compatible import OpenaiChatEndpoint
@@ -52,7 +53,7 @@ async def test_ollama_dummy_key():
 
 
 @pytest.mark.asyncio
-@pytest.mark.integration  # Mark as integration test since it tests actual client behavior
+@pytest.mark.unit  # This is a unit test as we mock everything
 async def test_clientsession_lifecycle():
     """Test that ClientSession is not closed after one call."""
     # Create a simple endpoint config

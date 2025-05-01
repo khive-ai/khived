@@ -2,10 +2,16 @@ from pydantic import BaseModel
 
 from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.third_party.openai_models import (  # type: ignore
-    CreateChatCompletionRequest,
-    CreateResponse,
-)
+
+try:
+    from khive.third_party.openai_models import (  # type: ignore
+        CreateChatCompletionRequest,
+        CreateResponse,
+    )
+except ModuleNotFoundError:
+    raise RuntimeError(
+        "Generate OpenAI models first – see khive/third_party/README.md"
+    )
 
 _HAS_OLLAMA = True
 try:
@@ -79,6 +85,9 @@ class OpenrouterChatEndpoint(Endpoint):
 # Ollama runs locally with no auth, but we need a placeholder key for the interface
 DUMMY_OLLAMA_API_KEY = "no_key_required"
 
+# Ollama runs locally with no auth, but we need a placeholder key for the interface
+DUMMY_OLLAMA_API_KEY = "no_key_required"
+
 ENDPOINT_CONFIG = EndpointConfig(
     name="ollama_chat",
     provider="ollama",
@@ -86,7 +95,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat",
     kwargs={"model": "qwen3"},
     openai_compatible=True,
-    api_key=settings.OLLAMA_API_KEY,
+    api_key=settings.OLLAMA_API_KEY or DUMMY_OLLAMA_API_KEY,  # Use dummy key if not set
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=CreateChatCompletionRequest,

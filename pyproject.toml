@@ -10,7 +10,8 @@ dependencies = [
     "aiolimiter>=1.2.1",
     "backoff>=2.2.1",
     "datamodel-code-generator[http]>=0.30.1",
-    "openai>=1.76.2",
+    # Pin openai until v2 beta stabilizes
+    "openai>=1.76.2,<2",
     "prance>=25.4.8.0",
     "pydantic>=2.11.3",
     "pydantic-settings>=2.9.1",
@@ -35,7 +36,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["khive"]
-only-include  = ["khive", "tests"]
 include-package-data = true
 
 [tool.hatch.build]
@@ -50,6 +50,12 @@ exclude = [
     "logs/*",
     "verification",
     "scripts",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests that require external dependencies or network access",
+    "unit: marks fast unit tests"
 ]
 
 [tool.black]
