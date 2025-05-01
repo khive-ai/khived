@@ -1,0 +1,15 @@
+```bash
+datamodel-codegen \
+  --url https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml \
+  --output khive/third_party/openai_models.py \
+  --allow-population-by-field-name \
+  --output-model-type pydantic_v2.BaseModel \
+  --field-constraints \
+  --use-schema-description \
+  --input-file-type openapi \
+  --use-field-description \
+  --use-one-literal-as-default \
+  --enum-field-as-literal all \
+  --use-union-operator \
+  --no-alias
+```
