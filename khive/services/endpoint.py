@@ -1,12 +1,12 @@
 import asyncio
 import logging
 from os import getenv
-from typing import Literal, TypeVar
+from typing import Any, Dict, Literal, TypeVar
 
 import aiohttp
+import backoff
 from aiocache import cached
 from aiolimiter import AsyncLimiter
-from anyio import CapacityLimiter
 from pydantic import (
     BaseModel,
     Field,
@@ -69,15 +69,35 @@ class EndpointConfig(BaseModel):
         if self.api_key is not None:
             if isinstance(self.api_key, SecretStr):
                 self._api_key = self.api_key.get_secret_value()
+            elif isinstance(self.api_key, str) and self.api_key in [
+                "OPENAI_API_KEY",
+                "OPENROUTER_API_KEY",
+                "EXA_API_KEY",
+                "PERPLEXITY_API_KEY",
+            ]:
+                # Use settings singleton to get the secret
+                from khive.config import settings
+
+                try:
+                    self._api_key = settings.get_secret(self.api_key)
+                except (AttributeError, ValueError):
+                    # Fall back to environment variable if not in settings
+                    self._api_key = getenv(self.api_key, self.api_key)
             else:
                 self._api_key = getenv(self.api_key, self.api_key)
+        return self
+
+    @model_validator(mode="after")
+    def _validate_base_url(self):
+        if self.base_url is None and self.provider == "openai":
+            self.base_url = "https://api.openai.com/v1"
         return self
 
     @property
     def full_url(self):
         if not self.endpoint_params:
-            return self.base_url + self.endpoint
-        return self.base_url + self.endpoint.format(**self.params)
+            return f"{self.base_url}/{self.endpoint}"
+        return f"{self.base_url}/{self.endpoint.format(**self.params)}"
 
     @field_validator("request_options", mode="before")
     def _validate_request_options(cls, v):
@@ -109,6 +129,27 @@ class EndpointConfig(BaseModel):
             else:
                 raise ValueError(f"Invalid key: {key}")
 
+    def validate_payload(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate payload data against the request_options model.
+
+        Args:
+            data: The payload data to validate
+
+        Returns:
+            The validated data
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if not self.request_options:
+            return data
+
+        try:
+            validated = self.request_options.model_validate(data)
+            return validated.model_dump(exclude_none=True)
+        except Exception as e:
+            raise ValueError(f"Invalid payload: {e}")
+
 
 class Endpoint:
     """
@@ -124,6 +165,10 @@ class Endpoint:
         elif isinstance(config, dict):
             config = EndpointConfig(**config, **kwargs)
         self.config = config
+        self.client = None
+
+    async def __aenter__(self):
+        """Initialize the client when entering the context manager."""
         if not self.config.openai_compatible:
             self.client = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(self.config.timeout),
@@ -141,6 +186,13 @@ class Endpoint:
                 websocket_base_url=self.config.websocket_base_url,
                 default_headers=self.config.default_headers,
             )
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Close the client when exiting the context manager."""
+        if self.client and not self.config.openai_compatible:
+            await self.client.close()
+        # AsyncOpenAI client doesn't need explicit closing
 
     @property
     def request_options(self):
@@ -173,6 +225,7 @@ class Endpoint:
             else request.model_dump(exclude_none=True)
         )
 
+        # Use the validate_payload method to validate the payload
         update_config = {
             k: v
             for k, v in kwargs.items()
@@ -190,49 +243,62 @@ class Endpoint:
         payload, headers = self.create_payload(request, **kwargs)
 
         async def _call(payload: dict, headers: dict, **kwargs):
-            if self.config.openai_compatible:
-                return await self._call_openai(
+            async with self:  # Use the context manager to handle client lifecycle
+                if self.config.openai_compatible:
+                    return await self._call_openai(
+                        payload=payload, headers=headers, **kwargs
+                    )
+                return await self._call_aiohttp(
                     payload=payload, headers=headers, **kwargs
                 )
-            return await self._call_aiohttp(payload=payload, headers=headers, **kwargs)
 
         if not cache_control:
             return await _call(payload, headers, **kwargs)
 
-        @cached(**settings.ASYNC_CACHED_CONFIG)
+        @cached(**settings.aiocache_config.model_dump())
         async def _cached_call(payload: dict, headers: dict, **kwargs):
             return await _call(payload=payload, headers=headers, **kwargs)
 
         return await _cached_call(payload, headers, **kwargs)
 
     async def _call_aiohttp(self, payload: dict, headers: dict, **kwargs):
-        async with self.client as session:
-            for i in range(self.config.max_retries):
-                try:
-                    async with session.request(
-                        method=self.config.method,
-                        url=self.config.full_url,
-                        headers=headers,
-                        json=payload,
-                        **kwargs,
-                    ) as response:
-                        if response.status != 200:
-                            raise ValueError(
-                                f"Request failed with status {response.status}"
-                            )
-                        return await response.json()
-                except asyncio.CancelledError:
-                    logger.warning("Request cancelled")
-                    raise
-                except aiohttp.ClientError as e:
-                    logger.error(f"Request failed: {e}")
-                    raise
-                except Exception as e:
-                    logger.error(f"Request failed: {e}")
-                    if i < self.config.max_retries - 1:
-                        await asyncio.sleep(2**i)
-                    else:
-                        raise
+        # Define a giveup function for backoff
+        def giveup_on_client_error(e):
+            # Don't retry on 4xx errors except 429 (rate limit)
+            if isinstance(e, aiohttp.ClientResponseError):
+                return 400 <= e.status < 500 and e.status != 429
+            return False
+
+        # Use backoff for retries with exponential backoff and jitter
+        @backoff.on_exception(
+            backoff.expo,
+            (aiohttp.ClientError, asyncio.TimeoutError),
+            max_tries=self.config.max_retries,
+            giveup=giveup_on_client_error,
+            jitter=backoff.full_jitter,
+        )
+        async def _make_request():
+            async with self.client.request(
+                method=self.config.method,
+                url=self.config.full_url,
+                headers=headers,
+                json=payload,
+                **kwargs,
+            ) as response:
+                # Check for rate limit or server errors that should be retried
+                if response.status == 429 or response.status >= 500:
+                    response.raise_for_status()  # This will be caught by backoff
+                elif response.status != 200:
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=f"Request failed with status {response.status}",
+                        headers=response.headers,
+                    )
+                return await response.json()
+
+        return await _make_request()
 
     async def _call_openai(self, payload: dict, headers: dict, **kwargs):
         payload = {**payload, **self.config.kwargs, **kwargs}
@@ -276,12 +342,23 @@ class iModel:
 
         if name:
             self.endpoint.config.name = name
-        self.request_limit = request_limit
-        self.concurrency_limit = concurrency_limit
-        self.limit_interval = limit_interval
 
-        self.rate = AsyncLimiter(request_limit, limit_interval)
-        self.slots = CapacityLimiter(concurrency_limit)
+        # Set default limits based on provider if not specified
+        if self.endpoint.config.provider == "openai":
+            self.request_limit = request_limit or 3500
+            self.limit_interval = limit_interval or 60
+        elif self.endpoint.config.provider == "perplexity":
+            self.request_limit = request_limit or 50
+            self.limit_interval = limit_interval or 60
+        else:
+            self.request_limit = request_limit
+            self.limit_interval = limit_interval
+
+        self.concurrency_limit = concurrency_limit
+
+        self.rate = AsyncLimiter(self.request_limit, self.limit_interval)
+        # Use asyncio.Semaphore instead of anyio.CapacityLimiter
+        self.slots = asyncio.Semaphore(self.concurrency_limit)
 
     @property
     def name(self):
@@ -292,7 +369,8 @@ class iModel:
     ):
         kwargs.update(self.endpoint.config.kwargs)
         if self.endpoint.request_options:
-            kwargs = self.endpoint.request_options.model_validate(kwargs)
+            # Use the validate_payload method
+            kwargs = self.endpoint.config.validate_payload(kwargs)
 
         return APICalling(
             request=kwargs,
@@ -346,6 +424,7 @@ class APICalling(Event):
         e1 = None
 
         try:
+            # Use the endpoint as a context manager
             response = await self.endpoint.call(
                 payload=self.request,
                 headers=self.headers,
@@ -365,7 +444,7 @@ class APICalling(Event):
                 self.error = str(e1)
                 self.status = EventStatus.FAILED
                 logger.error(
-                    msg=f"API call to {self.endpoint.config.base_url + self.endpoint.config.endpoint} failed: {e1}"
+                    msg=f"API call to {self.endpoint.config.full_url} failed: {e1}"
                 )
             else:
                 self.response_obj = response

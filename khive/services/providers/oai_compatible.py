@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
+from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
-
-from .openai_chat import ChatCompletionRequest
+from khive.third_party.openai_models import CreateChatCompletionRequest, CreateResponse
 
 _HAS_OLLAMA = True
 try:
@@ -11,7 +11,66 @@ except ImportError:
     _HAS_OLLAMA = False
 
 
-__all__ = ("OllamaChatEndpoint",)
+__all__ = (
+    "OpenaiChatEndpoint",
+    "OpenrouterChatEndpoint",
+    "OllamaChatEndpoint",
+    "OpenaiResponseEndpoint",
+)
+
+OPENAI_CHAT_ENDPOINT_CONFIG = EndpointConfig(
+    name="openai_chat",
+    provider="openai",
+    base_url=None,
+    endpoint="chat/completions",
+    kwargs={"model": "gpt-4o"},
+    openai_compatible=True,
+    api_key=settings.OPENAI_API_KEY,
+    auth_template={"Authorization": "Bearer $API_KEY"},
+    default_headers={"content-type": "application/json"},
+    request_options=CreateChatCompletionRequest,
+)
+
+OPENAI_RESPONSE_ENDPOINT_CONFIG = EndpointConfig(
+    name="openai_response",
+    provider="openai",
+    base_url=None,
+    endpoint="response",
+    kwargs={"model": "gpt-4o"},
+    openai_compatible=True,
+    api_key=settings.OPENAI_API_KEY,
+    auth_template={"Authorization": "Bearer $API_KEY"},
+    default_headers={"content-type": "application/json"},
+    request_options=CreateResponse,
+)
+
+OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
+    name="openrouter_chat",
+    provider="openrouter",
+    base_url="https://openrouter.ai/api/v1",
+    endpoint="chat/completions",
+    kwargs={"model": "gpt-4o"},
+    openai_compatible=True,
+    api_key=settings.OPENROUTER_API_KEY,  # Use SecretStr from settings
+    auth_template={"Authorization": "Bearer $API_KEY"},
+    default_headers={"content-type": "application/json"},
+    request_options=CreateChatCompletionRequest,
+)
+
+
+class OpenaiChatEndpoint(Endpoint):
+    def __init__(self, config=OPENAI_CHAT_ENDPOINT_CONFIG, **kwargs):
+        super().__init__(config, **kwargs)
+
+
+class OpenaiResponseEndpoint(Endpoint):
+    def __init__(self, config=OPENAI_RESPONSE_ENDPOINT_CONFIG, **kwargs):
+        super().__init__(config, **kwargs)
+
+
+class OpenrouterChatEndpoint(Endpoint):
+    def __init__(self, config=OPENROUTER_CHAT_ENDPOINT_CONFIG, **kwargs):
+        super().__init__(config, **kwargs)
 
 
 ENDPOINT_CONFIG = EndpointConfig(
@@ -24,7 +83,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     api_key="mock_key",
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
-    request_options=ChatCompletionRequest,
+    request_options=CreateChatCompletionRequest,
 )
 
 
