@@ -66,15 +66,20 @@ class EndpointConfig(BaseModel):
     def _validate_api_key(self):
         if self.api_key is None and self.openai_compatible:
             raise ValueError("API key is required for OpenAI compatible endpoints")
+
+        # Define the set of known environment variable names
+        ENV_VAR_NAMES = {
+            "OPENAI_API_KEY",
+            "OPENROUTER_API_KEY",
+            "EXA_API_KEY",
+            "PERPLEXITY_API_KEY",
+            "OLLAMA_API_KEY",
+        }
+
         if self.api_key is not None:
             if isinstance(self.api_key, SecretStr):
                 self._api_key = self.api_key.get_secret_value()
-            elif isinstance(self.api_key, str) and self.api_key in [
-                "OPENAI_API_KEY",
-                "OPENROUTER_API_KEY",
-                "EXA_API_KEY",
-                "PERPLEXITY_API_KEY",
-            ]:
+            elif isinstance(self.api_key, str) and self.api_key in ENV_VAR_NAMES:
                 # Use settings singleton to get the secret
                 from khive.config import settings
 
@@ -85,6 +90,24 @@ class EndpointConfig(BaseModel):
                     self._api_key = getenv(self.api_key, self.api_key)
             else:
                 self._api_key = getenv(self.api_key, self.api_key)
+
+        # Try settings helper before failing hard for known env vars
+        if (
+            self._api_key is None
+            and isinstance(self.api_key, str)
+            and self.api_key in ENV_VAR_NAMES
+        ):
+            from khive.config import settings
+
+            try:
+                self._api_key = settings.get_secret(self.api_key)
+            except (AttributeError, ValueError):
+                pass
+
+        # Final check after all attempts to resolve the key
+        if self._api_key is None:
+            raise ValueError("API key is required but not set for this endpoint")
+
         return self
 
     @model_validator(mode="after")
@@ -194,6 +217,11 @@ class Endpoint:
             await self.client.close()
         # AsyncOpenAI client doesn't need explicit closing
 
+    async def aclose(self):
+        """Gracefully close the client session."""
+        if not self.config.openai_compatible and self.client and not self.client.closed:
+            await self.client.close()
+
     @property
     def request_options(self):
         return self.config.request_options
@@ -255,7 +283,7 @@ class Endpoint:
         if not cache_control:
             return await _call(payload, headers, **kwargs)
 
-        @cached(**settings.aiocache_config.model_dump())
+        @cached(**settings.aiocache_config.as_kwargs())
         async def _cached_call(payload: dict, headers: dict, **kwargs):
             return await _call(payload=payload, headers=headers, **kwargs)
 
@@ -278,25 +306,32 @@ class Endpoint:
             jitter=backoff.full_jitter,
         )
         async def _make_request():
-            async with self.client.request(
-                method=self.config.method,
-                url=self.config.full_url,
-                headers=headers,
-                json=payload,
-                **kwargs,
-            ) as response:
-                # Check for rate limit or server errors that should be retried
-                if response.status == 429 or response.status >= 500:
-                    response.raise_for_status()  # This will be caught by backoff
-                elif response.status != 200:
-                    raise aiohttp.ClientResponseError(
-                        request_info=response.request_info,
-                        history=response.history,
-                        status=response.status,
-                        message=f"Request failed with status {response.status}",
-                        headers=response.headers,
-                    )
-                return await response.json()
+            session = self.client  # ClientSession already initialized
+            response = None
+            try:
+                async with session.request(
+                    method=self.config.method,
+                    url=self.config.full_url,
+                    headers=headers,
+                    json=payload,
+                    **kwargs,
+                ) as response:
+                    # Check for rate limit or server errors that should be retried
+                    if response.status == 429 or response.status >= 500:
+                        response.raise_for_status()  # This will be caught by backoff
+                    elif response.status != 200:
+                        raise aiohttp.ClientResponseError(
+                            request_info=response.request_info,
+                            history=response.history,
+                            status=response.status,
+                            message=f"Request failed with status {response.status}",
+                            headers=response.headers,
+                        )
+                    return await response.json()
+            finally:
+                # Ensure response is properly released if coroutine is cancelled between retries
+                if response is not None and not response.closed:
+                    await response.release()
 
         return await _make_request()
 

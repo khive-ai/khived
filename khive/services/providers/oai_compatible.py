@@ -2,7 +2,10 @@ from pydantic import BaseModel
 
 from khive.config import settings
 from khive.services.endpoint import Endpoint, EndpointConfig
-from khive.third_party.openai_models import CreateChatCompletionRequest, CreateResponse
+from khive.third_party.openai_models import (  # type: ignore
+    CreateChatCompletionRequest,
+    CreateResponse,
+)
 
 _HAS_OLLAMA = True
 try:
@@ -73,6 +76,9 @@ class OpenrouterChatEndpoint(Endpoint):
         super().__init__(config, **kwargs)
 
 
+# Ollama runs locally with no auth, but we need a placeholder key for the interface
+DUMMY_OLLAMA_API_KEY = "no_key_required"
+
 ENDPOINT_CONFIG = EndpointConfig(
     name="ollama_chat",
     provider="ollama",
@@ -80,7 +86,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat",
     kwargs={"model": "qwen3"},
     openai_compatible=True,
-    api_key="mock_key",
+    api_key=settings.OLLAMA_API_KEY,
     auth_template={"Authorization": "Bearer $API_KEY"},
     default_headers={"content-type": "application/json"},
     request_options=CreateChatCompletionRequest,
@@ -99,6 +105,15 @@ class OllamaChatEndpoint(Endpoint):
             )
 
         super().__init__(config, **kwargs)
+
+        # Warn if a real key was provided (Ollama doesn't need authentication)
+        if self.config.api_key and self.config._api_key != DUMMY_OLLAMA_API_KEY:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                "Ollama runs unauthenticated locally; supplied API key will be ignored."
+            )
 
         from ollama import list as o_list  # type: ignore
         from ollama import pull as o_pull  # type: ignore
