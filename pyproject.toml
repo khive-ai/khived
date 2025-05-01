@@ -53,6 +53,8 @@ exclude = [
     "logs/*",
     "verification",
     "scripts",
+    # Remove the problematic glob pattern
+    # "tests/**/hooks/*"
 ]
 
 [tool.pytest.ini_options]
