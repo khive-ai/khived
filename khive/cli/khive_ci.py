@@ -231,51 +231,7 @@ def ci(threshold: int, check_only: bool = False) -> int:
 | Stack     | % Lines | Covered | Total | Status |
 |-----------|:------:|:-------:|:-----:|:------:|
 | Frontend  | {fe_cov.pct:6.2f}% | {fe_cov.covered:^7} | {fe_cov.total:^5} | {"✅" if fe_rc == 0 else "❌"} |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
 | Backend   | {be_cov.pct:6.2f}% | {be_cov.covered:^7} | {be_cov.total:^5} | {"✅" if be_rc == 0 else "❌"} |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
-| |
 | **All**   | **{total.pct:6.2f}%** | **{total.covered:^7}** | **{total.total:^5}** | — |"""
         print(textwrap.dedent(tbl))
 
