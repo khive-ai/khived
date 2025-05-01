@@ -29,6 +29,7 @@ async def test_openai_header():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration  # Mark as integration test since it depends on ollama package
 async def test_ollama_dummy_key():
     """Test that Ollama uses the dummy key."""
     # Skip if ollama package is not installed
@@ -51,6 +52,7 @@ async def test_ollama_dummy_key():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration  # Mark as integration test since it tests actual client behavior
 async def test_clientsession_lifecycle():
     """Test that ClientSession is not closed after one call."""
     # Create a simple endpoint config
@@ -83,6 +85,7 @@ async def test_clientsession_lifecycle():
 
 
 @pytest.mark.asyncio
+@pytest.mark.unit  # Explicitly mark as unit test
 async def test_api_key_validation():
     """Test that API key validation fails fast on missing key."""
     # Create config with no API key
@@ -100,6 +103,7 @@ async def test_api_key_validation():
 
 
 @pytest.mark.asyncio
+@pytest.mark.unit  # Explicitly mark as unit test
 async def test_cache_config():
     """Test that CacheConfig.as_kwargs() returns the expected dict."""
     from khive.config import CacheConfig
