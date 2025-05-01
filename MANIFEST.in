@@ -1,0 +1,10 @@
+# Include generated OpenAI models in the wheel
+# Note: File is not version-controlled but is included in wheels
+include khive/third_party/openai_models.py
+
+# Include README and LICENSE
+include README.md
+include LICENSE
+
+# Exclude tests from the wheel
+exclude tests/

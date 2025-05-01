@@ -129,6 +129,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.secrets.env
 .venv
 env/
 venv/
@@ -174,3 +176,6 @@ cython_debug/
 .pypirc
 
 *.DS_Store
+
+# generated OpenAI schemas
+khive/third_party/openai_models.py
