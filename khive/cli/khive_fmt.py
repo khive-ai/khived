@@ -37,7 +37,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Coroutine, Dict, List
 
-from .utils import ANSI
+from ..utils import ANSI
 
 try:
     import tomllib  # py311+

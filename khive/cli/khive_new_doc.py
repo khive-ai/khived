@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from .utils import ANSI
+from ..utils import ANSI
 
 verbose = False
 

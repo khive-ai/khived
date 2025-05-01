@@ -195,7 +195,7 @@ def _cli() -> argparse.Namespace:
 
 
 async def _call_api(tool: str, request_obj: BaseModel) -> None:
-    from .search_service import search_service
+    from ..tools.search_tool import search_service
 
     if tool == "exa":
         result = await search_service.exa_search(request_obj)  # type: ignore

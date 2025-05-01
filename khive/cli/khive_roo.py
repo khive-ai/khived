@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml  # Requires PyYAML: pip install PyYAML
 
-from .utils import read_md_body
+from ..utils import read_md_body
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
