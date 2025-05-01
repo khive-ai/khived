@@ -121,6 +121,25 @@ async def test_api_key_validation():
 
 @pytest.mark.asyncio
 @pytest.mark.unit  # Explicitly mark as unit test
+async def test_api_key_validation_negative():
+    """Test that OpenAI-compatible endpoints require an API key."""
+    # Negative test: OpenAI-compatible endpoints require an API key
+    with pytest.raises(
+        ValueError, match="API key is required for OpenAI compatible endpoints"
+    ):
+        EndpointConfig(
+            name="test",
+            provider="openai",  # Not "test" or "ollama"
+            base_url="http://example.com",
+            endpoint="test",
+            request_options=None,
+            api_key=None,
+            openai_compatible=True,
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.unit  # Explicitly mark as unit test
 async def test_cache_config():
     """Test that CacheConfig.as_kwargs() returns the expected dict."""
     from khive.config import CacheConfig
