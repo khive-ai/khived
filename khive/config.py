@@ -17,6 +17,10 @@ class CacheConfig(BaseModel):
     alias: str | None = None
     noself: Any = lambda _: False
 
+    def as_kwargs(self) -> dict[str, Any]:
+        """Convert config to kwargs dict for @cached decorator."""
+        return self.model_dump(exclude_none=True)
+
 
 class AppSettings(BaseSettings, frozen=True):
     """Application settings with environment variable support."""
@@ -34,11 +38,12 @@ class AppSettings(BaseSettings, frozen=True):
     )
 
     # secrets
+    # secrets
     OPENAI_API_KEY: SecretStr | None = None
     OPENROUTER_API_KEY: SecretStr | None = None
     EXA_API_KEY: SecretStr | None = None
     PERPLEXITY_API_KEY: SecretStr | None = None
-
+    OLLAMA_API_KEY: SecretStr | None = None
     # Class variable to store the singleton instance
     _instance: ClassVar[Any] = None
 
@@ -71,3 +76,5 @@ class AppSettings(BaseSettings, frozen=True):
 
 # Create a singleton instance
 settings = AppSettings()
+# Store the instance in the class variable for singleton pattern
+AppSettings._instance = settings
