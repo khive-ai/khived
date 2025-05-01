@@ -8,6 +8,7 @@ from khive.services.providers.oai_compatible import OpenaiChatEndpoint
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration  # Mark as integration test since it tests actual client behavior
 async def test_aiohttp_session_reuse():
     """Test that the aiohttp ClientSession is reused across multiple calls."""
     # Create a simple endpoint config
@@ -26,14 +27,19 @@ async def test_aiohttp_session_reuse():
     # Initialize client
     await endpoint.__aenter__()
 
-    # Mock the request method to avoid actual HTTP requests
-    original_request = endpoint.client.request
+    # Create a proper mock for aiohttp response
     mock_response = MagicMock()
     mock_response.__aenter__ = MagicMock(return_value=mock_response)
     mock_response.__aexit__ = MagicMock(return_value=None)
     mock_response.status = 200
     mock_response.json = MagicMock(return_value={"result": "success"})
+    mock_response.closed = False
+    mock_response.release = MagicMock(return_value=None)
 
+    # Save original request method
+    original_request = endpoint.client.request
+
+    # Replace with our mock
     endpoint.client.request = MagicMock(return_value=mock_response)
 
     # Make multiple calls
@@ -58,6 +64,7 @@ async def test_aiohttp_session_reuse():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration  # Mark as integration test since it depends on openai package
 async def test_openai_client_lifecycle():
     """Test that the OpenAI client is properly initialized and doesn't need explicit closing."""
     # Skip if openai package is not installed
@@ -87,6 +94,7 @@ async def test_openai_client_lifecycle():
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration  # Mark as integration test since it tests actual client behavior
 async def test_aclose_method():
     """Test that the aclose method properly closes the client."""
     # Create a simple endpoint config
