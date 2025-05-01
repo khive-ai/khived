@@ -33,6 +33,19 @@ class NodeEdgeMapping:
     def __init__(self):
         self.mapping = {}
 
+    def __contains__(self, key: Any) -> bool:
+        """Check if a node ID is in the mapping.
+
+        Args:
+            key: Either a UUID or a Node object
+
+        Returns:
+            bool: True if the node is in the mapping
+        """
+        if hasattr(key, "id"):  # Handle Node objects
+            return key.id in self.mapping
+        return key in self.mapping
+
     def add_node(self, node: Node):
         self.mapping[node.id] = {"in": {}, "out": {}}
 
@@ -75,10 +88,11 @@ class NodeEdgeMapping:
         if direction not in {"both", "in", "out"}:
             raise ValueError("The direction should be 'both', 'in', or 'out'.")
 
-        if node not in self.mapping:
-            raise ItemNotFoundError(f"Node {node} not found in the graph nodes.")
+        # Convert Node to UUID if needed
+        _id = node.id if hasattr(node, "id") else node
 
-        _id = node.id if isinstance(node, Node) else node
+        if _id not in self.mapping:
+            raise ItemNotFoundError(f"Node {node} not found in the graph nodes.")
 
         found_edge_ids = []
         if direction in {"both", "in"}:
@@ -108,11 +122,11 @@ class Graph(Element):
 
     @model_validator(mode="after")
     def _validate_node_mapping(self) -> Self:
-        self.node_edge_mapping = {}
+        self.node_edge_mapping = NodeEdgeMapping()
         if self.internal_nodes:
             for node in self.internal_nodes:
-                if node.id not in self.node_edge_mapping:
-                    self.node_edge_mapping.add_node(node.id)
+                if node.id not in self.node_edge_mapping.mapping:
+                    self.node_edge_mapping.add_node(node)
 
         if self.internal_edges:
             for edge in self.internal_edges:
@@ -127,6 +141,9 @@ class Graph(Element):
             )
         try:
             self.internal_nodes.append(node)
+            self.node_edge_mapping.add_node(
+                node
+            )  # Update the mapping after successful append
         except ItemExistsError:
             raise ItemExistsError(
                 f"Failed to add node: Node with ID {node.id} already exists. If you need to update the node, use `graph.internal_nodes.update()` instead."
@@ -243,7 +260,7 @@ class Graph(Element):
         self,
         node_label="lion_class",
         edge_label="label",
-        draw_kwargs={},
+        draw_kwargs=None,
         **kwargs,
     ):
         """Display the graph using NetworkX and Matplotlib."""
@@ -262,6 +279,8 @@ class Graph(Element):
 
         g = self.to_networkx(**kwargs)
         pos = nx.spring_layout(g)
+        if draw_kwargs is None:
+            draw_kwargs = {}
         nx.draw(
             g,
             pos,
@@ -278,7 +297,20 @@ class Graph(Element):
 
     def is_acyclic(self) -> bool:
         """Check if the graph is acyclic (contains no cycles)."""
-        node_ids = self.internal_nodes.order[:]
+        # Fast path using NetworkX if available
+        if _HAS_NETWORKX:
+            try:
+                nx_graph = self.to_networkx()
+                nx.find_cycle(nx_graph, orientation="original")
+                return False  # Cycle found
+            except nx.exception.NetworkXNoCycle:
+                return True  # No cycle found
+            except Exception:
+                # Fall back to custom implementation if NetworkX fails
+                pass
+
+        # Custom DFS-based cycle detection
+        node_ids = [node.id for node in self.internal_nodes]
         check_deque = deque(node_ids)
 
         # 0: unvisited, 1: visiting, 2: visited
@@ -291,7 +323,7 @@ class Graph(Element):
                 return False
 
             check_dict[nid] = 1
-            for edge_id in self.node_edge_mapping[nid]["out"]:
+            for edge_id in self.node_edge_mapping.mapping[nid]["out"]:
                 edge: Edge = self.internal_edges[edge_id]
                 if not visit(edge.tail):
                     return False
@@ -306,3 +338,17 @@ class Graph(Element):
 
     def __contains__(self, item: object) -> bool:
         return item in self.internal_nodes or item in self.internal_edges
+
+    def __repr__(self) -> str:
+        """Return a string representation of the graph for debugging."""
+        node_count = len(self.internal_nodes)
+        edge_count = len(self.internal_edges)
+
+        # Show first 3 node IDs
+        node_preview = []
+        for i, node_id in enumerate(self.internal_nodes.order):
+            if i >= 3:
+                break
+            node_preview.append(str(node_id)[:8] + "...")
+
+        return f"Graph(nodes={node_count}, edges={edge_count}, preview=[{', '.join(node_preview)}])"

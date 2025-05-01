@@ -6,6 +6,7 @@ from pydantic import Field, field_serializer, field_validator
 
 from .element import ELEMENT_FIELDS, Element
 from .node import Node
+from .utils import serialize_id, validate_id
 
 __all__ = (
     "EdgeCondition",
@@ -35,7 +36,7 @@ class Edge(Element):
     properties: dict[str, Any] = Field(
         default_factory=dict,
         title="Properties",
-        description="Custom properties associated with this edge.",
+        description="Custom properties associated with this edge. Note that the 'condition' property is deliberately excluded from serialization because it may contain coroutine objects that break JSON serialization.",
     )
 
     def __init__(
@@ -83,11 +84,11 @@ class Edge(Element):
 
     @field_serializer("head", "tail")
     def _serialize_head_tail(self, value: UUID) -> str:
-        return self._serialize_id(value)
+        return serialize_id(value)
 
     @field_validator("head", "tail", mode="before")
     def _validate_head_tail(cls, value: UUID) -> UUID:
-        return cls._validate_id(value)
+        return validate_id(value)
 
     @property
     def label(self) -> list[str] | None:
@@ -115,6 +116,14 @@ class Edge(Element):
             self.properties["label"] = value
             return
         raise ValueError("Label must be a string or a list of strings.")
+
+    @field_serializer("properties")
+    def _serialize_properties(self, properties: dict[str, Any]) -> dict[str, Any]:
+        """
+        Serialize the properties of the edge. Exclude the condition from serialization.
+        """
+        serialized = {k: v for k, v in properties.items() if k != "condition"}
+        return serialized
 
     async def check_condition(self, *args, **kwargs) -> bool:
         """

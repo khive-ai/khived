@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from types import MappingProxyType
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -17,6 +18,8 @@ from pydantic import (
 
 from khive._class_registry import get_class
 from khive.utils import import_module
+
+from .utils import serialize_created_at, serialize_id, validate_created_at, validate_id
 
 logger = logging.getLogger(__name__)
 
@@ -55,36 +58,24 @@ class Element(BaseModel):
 
     @field_serializer("created_at")
     def _serialize_created_at(self, v: datetime):
-        return v.isoformat()
+        return serialize_created_at(v)
 
     @field_validator("created_at", mode="before")
     def _validate_created_at(cls, v: str | datetime):
-        if isinstance(v, datetime):
-            return v
-        if isinstance(v, str):
-            try:
-                return datetime.fromisoformat(v)
-            except:
-                pass
-
-        raise ValueError(
-            "Input value for field <created_at> should be a `datetime.datetime` object or `isoformat` string"
-        )
+        return validate_created_at(v)
 
     @field_serializer("id")
     def _serialize_id(self, v):
-        return str(v)
+        return serialize_id(v)
 
     @field_validator("id", mode="before")
     def _validate_id(cls, v: str | UUID):
-        if isinstance(v, UUID):
-            return v
-        try:
-            return UUID(str(v))
-        except:
-            raise ValueError(
-                "Input value for field <id> should be a `uuid.UUID` object or a valid `uuid` representation"
-            )
+        return validate_id(v)
+
+    @property
+    def metaview(self):
+        """Return an immutable view of metadata to prevent accidental side-effects."""
+        return MappingProxyType(self.__dict__["metadata"])
 
     @field_validator("metadata", mode="before")
     def _validate_meta_integrity(cls, val: dict) -> dict:
@@ -100,6 +91,11 @@ class Element(BaseModel):
             val = to_dict(val, recursive=True, suppress=True)
         if "lion_class" in val and val["lion_class"] != cls.class_name(full=True):
             raise ValueError("Metadata class mismatch.")
+        # Check if lion_class key already exists and warn if it will be overwritten
+        if "lion_class" in val and val["lion_class"] != cls.class_name(full=True):
+            logger.warning(
+                f"Overwriting existing lion_class key in metadata from {val['lion_class']} to {cls.class_name(full=True)}"
+            )
         if not isinstance(val, dict):
             raise ValueError("Invalid metadata.")
         return val
@@ -111,10 +107,29 @@ class Element(BaseModel):
             return str(cls).split("'")[1]
         return cls.__name__
 
+    def __hash__(self) -> int:
+        """Make Element hashable based on its ID.
+
+        This allows Element objects to be used as dictionary keys and in sets.
+        """
+        return hash(self.id)
+
+    def __eq__(self, other) -> bool:
+        """Compare Elements based on their IDs.
+
+        Two Elements are considered equal if they have the same ID.
+        """
+        if not isinstance(other, Element):
+            return NotImplemented
+        return self.id == other.id
+
     def to_dict(self) -> dict:
         """Converts this Element to a dictionary. Add lion_class to metadata"""
         dict_ = self.model_dump()
-        dict_["metadata"].update({"lion_class": self.class_name(full=True)})
+        # Make a copy of the metadata to avoid modifying the original
+        metadata_copy = dict_.get("metadata", {}).copy()
+        metadata_copy["lion_class"] = self.class_name(full=True)
+        dict_["metadata"] = metadata_copy
         return dict_
 
     @classmethod

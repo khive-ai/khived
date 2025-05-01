@@ -35,7 +35,7 @@ class Pile(Element, Adaptable, Generic[T]):
 
     def __pydantic_extra__(self) -> dict[str, FieldInfo]:
         return {
-            "_async": Field(default_factory=asyncio.Lock),
+            "_async_lock": Field(default_factory=asyncio.Lock),
         }
 
     def __pydantic_private__(self) -> dict[str, FieldInfo]:
@@ -51,6 +51,17 @@ class Pile(Element, Adaptable, Generic[T]):
     @field_serializer("collections")
     def _serialize_collections(self, data: dict[UUID, T]):
         return {str(k): v.to_dict() for k, v in data.items()}
+
+    def __getstate__(self):
+        """Prepare for pickling."""
+        state = self.__dict__.copy()
+        state["_async_lock"] = None
+        return state
+
+    def __setstate__(self, state):
+        """Restore after unpickling."""
+        self.__dict__.update(state)
+        self._async_lock = asyncio.Lock()
 
     @property
     def async_lock(self):
@@ -160,16 +171,18 @@ class Pile(Element, Adaptable, Generic[T]):
 
     # private methods
     def __getitem__(self, key: int | slice | UUID) -> list[T] | T:
-        if isinstance(key, int | slice):
+        if isinstance(key, (int, slice)):
             try:
-                result_ids = self.order[key]
-                result_ids = (
-                    [result_ids] if not isinstance(result_ids, list) else result_ids
-                )
-                result = []
-                for i in result_ids:
-                    result.append(self.collections[i])
-                return result[0] if len(result) == 1 else result
+                # Get the UUID(s) at the specified index/slice
+                uuid_keys = self.order[key]
+
+                # Handle both single UUID and list of UUIDs
+                if isinstance(uuid_keys, list):
+                    result = [self.collections[uuid_key] for uuid_key in uuid_keys]
+                else:
+                    return self.collections[uuid_keys]
+
+                return result
             except Exception as e:
                 raise ItemNotFoundError(f"index {key}. Error: {e}")
 
@@ -194,6 +207,16 @@ class Pile(Element, Adaptable, Generic[T]):
         return [self.collections[id] for id in self.order]
 
     def insert(self, index: int, item: T, /):
+        """Insert an item at the specified index.
+
+        Args:
+            index: The position to insert the item
+            item: The Element to insert
+
+        Raises:
+            TypeError: If index is not an integer or item is not an Element
+            ItemExistsError: If the item already exists in the pile
+        """
         if not isinstance(index, int):
             raise TypeError(
                 "The index for inserting items into a pile must be an integer"
@@ -202,7 +225,9 @@ class Pile(Element, Adaptable, Generic[T]):
             raise TypeError("The item in a pile must be an instance of Element")
         if item.id in self.collections:
             raise ItemExistsError(f"Item({str(item.id)[:5]}...) already")
-        self.order.insert(index, item)
+        # Store UUID in order list, not the item itself
+        # This prevents unhashable object issues and reduces memory usage
+        self.order.insert(index, item.id)
         self.collections[item.id] = item
 
     def append(self, item: T, /):
@@ -214,17 +239,17 @@ class Pile(Element, Adaptable, Generic[T]):
         if not isinstance(items, list):
             raise TypeError("The items to extend must be a list or a Pile")
 
-        to_add = {}
-        to_add_order = []
+        # Check for duplicates more efficiently
+        item_ids = [i.id for i in items]
+        dup_ids = set(item_ids) & set(self.collections.keys())
+        if dup_ids:
+            raise ItemExistsError(
+                f"Item(s) {', '.join(str(id)[:5]+'...' for id in dup_ids)}) already exist"
+            )
 
-        for i in items:
-            if i in self.collections:
-                raise ItemExistsError(f"Item({str(i.id)[:5]}...) already")
-            to_add[i.id] = i
-            to_add_order.append(i.id)
-
+        to_add = {i.id: i for i in items}
         self.collections.update(to_add)
-        self.order.extend(to_add_order)
+        self.order.extend(item_ids)
 
     def get(self, key: T | UUID, default=..., /) -> T | D:
         """lookup via item or id"""
