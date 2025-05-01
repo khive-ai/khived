@@ -3,7 +3,7 @@ import importlib.util
 import os
 from typing import TypeVar
 
-from ._errors import MissingAdapterError
+from ._errors import ClassNotFoundError
 
 T = TypeVar("T")
 KHIVE_CLASS_REGISTRY: dict[str, type[T]] = {}
@@ -81,5 +81,11 @@ def get_class(class_name: str) -> type:
         found_class_filepath = KHIVE_CLASS_FILE_REGISTRY[class_name]
         found_class_dict = get_class_objects(found_class_filepath)
         return found_class_dict[class_name]
+    except KeyError:
+        # More specific error for class not found
+        raise ClassNotFoundError(
+            f"Class '{class_name}' not found in registry or dynamically"
+        )
     except Exception as e:
-        raise MissingAdapterError(f"Adapter for key '{class_name}' not found")
+        # Re-raise with more context
+        raise ClassNotFoundError(f"Error loading class '{class_name}': {str(e)}") from e

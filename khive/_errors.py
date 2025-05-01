@@ -19,3 +19,9 @@ class MissingAdapterError(Exception):
     """Raised when an adapter is not found for a given type."""
 
     pass
+
+
+class ClassNotFoundError(Exception):
+    """Raised when a class cannot be found by name in the registry or dynamically."""
+
+    pass

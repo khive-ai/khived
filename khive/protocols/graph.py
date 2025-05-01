@@ -46,8 +46,14 @@ class NodeEdgeMapping:
             return key.id in self.mapping
         return key in self.mapping
 
-    def add_node(self, node: Node):
-        self.mapping[node.id] = {"in": {}, "out": {}}
+    def add_node(self, node: Node | UUID):
+        """Add a node to the mapping.
+
+        Args:
+            node: Either a Node object or a UUID
+        """
+        node_id = node.id if hasattr(node, "id") else node
+        self.mapping[node_id] = {"in": {}, "out": {}}
 
     def add_edge(self, edge: Edge):
         self.mapping[edge.head]["out"][edge.id] = edge.tail
@@ -206,28 +212,61 @@ class Graph(Element):
         /,
         direction: Literal["both", "in", "out"] = "both",
     ) -> list[Edge]:
-        """Find edges associated with a node by direction (in, out, or both)."""
+        """Find edges associated with a node by direction (in, out, or both).
+
+        Args:
+            node: The node to find edges for
+            direction: The direction of edges to find ("both", "in", or "out")
+
+        Returns:
+            list[Edge]: A list of edges associated with the node
+
+        Raises:
+            ItemNotFoundError: If the node is not in the graph's internal_nodes
+        """
+        # First check if the node is in the graph's internal_nodes
+        node_id = node.id if hasattr(node, "id") else node
+        if node_id not in self.internal_nodes:
+            raise ItemNotFoundError(f"Node {node} not found in the graph nodes.")
 
         found_edge_ids = self.node_edge_mapping.find_node_edge(node, direction)
         return [self.internal_edges[edge_id] for edge_id in found_edge_ids]
 
     def get_heads(self) -> list[Node]:
-        """Return nodes with no incoming edges (head nodes)."""
+        """Return nodes with no incoming edges (head nodes).
+
+        Returns:
+            list[Node]: A list of nodes that have no incoming edges
+        """
         head_ids = self.node_edge_mapping.find_head()
         return [self.internal_nodes[head_id] for head_id in head_ids]
 
-    def get_predecessors(self, node: Node, /) -> Pile[Node]:
-        """Return all nodes that have outbound edges to the given node."""
+    def get_predecessors(self, node: Node, /) -> list[Node]:
+        """Return all nodes that have outbound edges to the given node.
+
+        Args:
+            node: The node to find predecessors for
+
+        Returns:
+            list[Node]: A list of nodes that have edges pointing to the given node
+        """
         edges = self.find_node_edge(node, direction="in")
-        result = []
+        result: list[Node] = []
         for edge in edges:
             result.append(self.internal_nodes[edge.head])
         return result
 
-    def get_successors(self, node: Node, /) -> Pile[Node]:
-        """Return all nodes that have inbound edges to the given node."""
+    def get_successors(self, node: Node, /) -> list[Node]:
+        """Return all nodes that have inbound edges to the given node.
+
+        Args:
+            node: The node to find successors for
+
+        Returns:
+            list[Node]: A list of nodes that the given node has edges pointing to
+        """
         edges = self.find_node_edge(node, direction="out")
-        result = []
+        result: list[Node] = []
         for edge in edges:
             result.append(self.internal_nodes[edge.tail])
         return result
@@ -301,10 +340,8 @@ class Graph(Element):
         if _HAS_NETWORKX:
             try:
                 nx_graph = self.to_networkx()
-                nx.find_cycle(nx_graph, orientation="original")
-                return False  # Cycle found
-            except nx.exception.NetworkXNoCycle:
-                return True  # No cycle found
+                # More efficient than find_cycle + exception handling
+                return nx.is_directed_acyclic_graph(nx_graph)
             except Exception:
                 # Fall back to custom implementation if NetworkX fails
                 pass

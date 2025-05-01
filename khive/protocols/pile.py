@@ -30,8 +30,14 @@ class Pile(Element, Adaptable, Generic[T]):
     _adapter_registry: ClassVar[AdapterRegistry] = PileAdapterRegistry
 
     def clear(self) -> None:
+        """Clear all items from the pile and reset the async lock.
+
+        This ensures that a cleared pile can be safely reused without deadlocks.
+        """
         self.order.clear()
         self.collections.clear()
+        # Reset the async lock to prevent deadlocks when reusing a cleared pile
+        self._async_lock = asyncio.Lock()
 
     def __pydantic_extra__(self) -> dict[str, FieldInfo]:
         return {
@@ -280,10 +286,20 @@ class Pile(Element, Adaptable, Generic[T]):
         self.collections.update({i.id: i for i in items})
         self.order = orders
 
-    def keys(self):
+    def keys(self) -> Iterator[UUID]:
+        """Return an iterator over the UUIDs of the items in the pile.
+
+        Returns:
+            Iterator[UUID]: An iterator over the UUIDs
+        """
         return iter(self.order)
 
-    def values(self):
+    def values(self) -> Iterator[T]:
+        """Return an iterator over the items in the pile.
+
+        Returns:
+            Iterator[T]: An iterator over the items
+        """
         return iter(self.collections[id] for id in self.order)
 
     def pop(self, key: int | UUID | T, default=..., /):
