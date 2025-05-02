@@ -7,11 +7,7 @@ version: "1.6"
 description: >
   Pragmatic TDD workflow for khive.  Tests double as living documentation.
   CI (and the local `khive ci` script) require **≥ 80 pct combined line coverage**:
-  - ! WARNING---K.D KHIVE-DEV TEAM MUST RETAIN FROM  EDITING THIS DOCUMENT.
-  - ! WARNING: THIS DOCUMENT IS READ-ONLY
 ---
-
-! WARNING: THIS DOCUMENT IS READ-ONLY
 
 ## 1 · Why we test
 

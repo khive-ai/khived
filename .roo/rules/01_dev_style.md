@@ -7,12 +7,8 @@ version: '1.6'
 description: >
   Practical coding standards for khive (Rust + Tauri backend, React/TS
   frontend).  Designed to be easy to follow from the terminal with the khive
-  helper scripts; enforced in Quality Review & CI:
-  - ! WARNING---K.D KHIVE-DEV TEAM MUST RETAIN FROM  EDITING THIS DOCUMENT.
-  - ! WARNING: THIS DOCUMENT IS READ-ONLY
+  helper scripts; enforced in Quality Review & CI
 ---
-
-! WARNING: THIS DOCUMENT IS READ-ONLY
 
 ## 1 · Why another guide?
 
