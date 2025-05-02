@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from enum import Enum
 import logging
 from typing import ClassVar, Final
 
@@ -14,6 +15,18 @@ from khive.protocols.element import Log
 
 logger = logging.getLogger("khive.search")
 logger.setLevel(logging.INFO)
+
+
+class SearchAction(str, Enum):
+    """
+    Enum for search actions.
+    """
+
+    EXA_SEARCH = "exa_search"
+    PERPLEXITY_CHAT = "perplexity_chat"
+
+
+
 
 
 class SearchService:
