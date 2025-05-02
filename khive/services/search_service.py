@@ -26,9 +26,6 @@ class SearchAction(str, Enum):
     PERPLEXITY_CHAT = "perplexity_chat"
 
 
-
-
-
 class SearchService:
     """
     Lazy-initialised singletons around iModel pools so that:
