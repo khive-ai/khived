@@ -1,6 +1,5 @@
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
+from pathlib import Path
 
 
 def dir_to_files(
@@ -27,13 +26,9 @@ def dir_to_files(
         verbose (bool): If True, print verbose output.
         recursive (bool): If True, process directories recursively (the default).
             If False, only process files in the top-level directory.
-
-    Returns:
-        List[Path]: A list of Path objects representing the files found.
-
-    Raises:
-        ValueError: If the provided directory doesn't exist or isn't a directory.
     """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     directory_path = Path(directory)
     if not directory_path.is_dir():
         raise ValueError(f"The provided path is not a valid directory: {directory}")
@@ -68,3 +63,16 @@ def dir_to_files(
         return files
     except Exception as e:
         raise ValueError(f"Error processing directory {directory}: {e}") from e
+
+
+def calculate_text_tokens(s_: str = None, /) -> int:
+    """Calculate the number of tokens in a string using the tiktoken library."""
+    import tiktoken
+
+    if not s_:
+        return 0
+    try:
+        tokenizer = tiktoken.get_encoding("o200k_base").encode
+        return len(tokenizer(s_))
+    except Exception:
+        return 0

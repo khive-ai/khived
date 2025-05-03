@@ -20,6 +20,7 @@ __all__ = (
     "ADAPTER_MEMBERS",
     "Adapter",
     "AdapterRegistry",
+    "Adaptable",
 )
 
 

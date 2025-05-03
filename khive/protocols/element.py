@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import json
 import logging
+from ast import TypeVar
 from datetime import UTC, datetime
 from types import MappingProxyType
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    JsonValue,
-    PrivateAttr,
     field_serializer,
     field_validator,
 )
@@ -20,128 +18,176 @@ from pydantic import (
 from khive._class_registry import get_class
 from khive.utils import import_module
 
-from .utils import serialize_created_at, serialize_id, validate_created_at, validate_id
+from .utils import (
+    serialize_created_at,
+    serialize_id,
+    sha256_of_dict,
+    validate_created_at,
+    validate_id,
+)
 
 logger = logging.getLogger(__name__)
 
 
 __all__ = (
-    "ELEMENT_FIELDS",
+    "Metadata",
     "Element",
-    "Log",
 )
 
 
+class Metadata:
+    """Meta class for all elements in the system."""
+
+    __slots__ = ("id", "created_at", "lion_class", "extra", "content_sha256")
+
+    def __init__(
+        self,
+        id: UUID,
+        created_at: datetime,
+        lion_class: str,
+        content_sha256: str | None = None,
+        **kwargs,
+    ):
+        self.id = id
+        self.created_at = created_at
+        self.lion_class = lion_class
+        self.content_sha256 = content_sha256
+        if kwargs:
+            self.extra = kwargs
+        else:
+            self.extra = {}
+
+    @classmethod
+    def create(cls, cls_type: type[Element], /, **kwargs) -> Metadata:
+        """Create a new LionMeta with the current time and a new UUID."""
+        return cls(
+            id=uuid4(),
+            created_at=datetime.now(UTC),
+            lion_class=cls_type.class_name(full=True),
+            **kwargs,
+        )
+
+    def to_dict(self, mode: Literal["json", "python"]) -> dict[str, Any]:
+        """Convert this LionMeta to a dictionary."""
+        return {
+            "id": serialize_id(self.id) if mode == "json" else self.id,
+            "created_at": (
+                serialize_created_at(self.created_at)
+                if mode == "json"
+                else self.created_at
+            ),
+            "lion_class": self.lion_class,
+            "content_sha256": self.content_sha256,
+            **self.extra,
+        }
+
+    @classmethod
+    def from_dict(cls, cls_type: type[Element], data: dict, /) -> Metadata:
+        """Create a LionMeta from a dictionary.
+
+        This method is used to restore a LionMeta from a dictionary
+        previously produced by `to_dict`.
+        """
+        lion_class = data.get("lion_class")
+        if lion_class != cls_type.class_name(full=True):
+            raise ValueError(
+                f"lion_class mismatch: {lion_class} != {cls_type.class_name(full=True)}"
+            )
+        data["id"] = validate_id(data.get("id"))
+        data["created_at"] = validate_created_at(data.get("created_at"))
+        return cls(**data)
+
+
 class Element(BaseModel):
+    """all elements in the system should inherit from this class. provides metadata, and polymorphic creation."""
+
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         use_enum_values=True,
         populate_by_name=True,
         extra="forbid",
     )
-    id: UUID = Field(
-        default_factory=uuid4,
-        title="ID",
-        description="Unique identifier for this element.",
-        frozen=True,
-    )
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC),
-        title="Creation Timestamp",
-        description="Timestamp of element creation.",
-        frozen=True,
-    )
-    metadata: dict = Field(
-        default_factory=dict,
-        title="Metadata",
-        description="Additional data for this element.",
+
+    metadata: Metadata = Field(
+        default_factory=lambda: Metadata.create(Element),
+        description="Meta class for Element.",
     )
 
-    @field_serializer("created_at")
-    def _serialize_created_at(self, v: datetime):
-        return serialize_created_at(v)
+    @field_serializer("metadata")
+    def _serialize_metadata(self, v: Metadata) -> dict[str, Any]:
+        self.get_content_sha256(update=True)
+        return self.metadata.to_dict(mode="json")
 
-    @field_validator("created_at", mode="before")
-    def _validate_created_at(cls, v: str | datetime):
-        return validate_created_at(v)
+    @field_validator("metadata", mode="before")
+    def _validate_meta_before(cls, val: dict) -> Metadata:
+        return Metadata.from_dict(cls, val)
 
-    @field_serializer("id")
-    def _serialize_id(self, v):
-        return serialize_id(v)
+    @field_validator("metadata", mode="after")
+    def _validate_sha256(self, val: Metadata) -> Metadata:
+        if val.content_sha256 is not None:
+            if self.get_content_sha256(update=False) != val.content_sha256:
+                raise ValueError(
+                    f"Error in element instance re-creation: SHA256 mismatch"
+                )
+        return val
 
-    @field_validator("id", mode="before")
-    def _validate_id(cls, v: str | UUID):
-        return validate_id(v)
+    def get_content_sha256(self, update=True) -> str:
+        """Return the SHA256 hash of the content of this element.
+        if update is True, update the content_sha256 in metadata.
+        """
+        dict_ = self.model_dump()
+        dict_.pop("metadata")
+        sha256 = sha256_of_dict(dict_)
+        if update:
+            self.metadata.content_sha256 = sha256
+            return sha256
+
+        if not self.metadata.content_sha256:
+            self.metadata.content_sha256 = sha256
+        return sha256
+
+    @property
+    def content_sha256(self) -> str:
+        return self.metadata.content_sha256 or self.get_content_sha256()
+
+    @property
+    def id(self) -> UUID:
+        """Return the unique identifier for this element."""
+        return self.metadata.id
+
+    @property
+    def created_at(self) -> datetime:
+        """Return the creation timestamp for this element."""
+        return self.metadata.created_at
 
     @property
     def metaview(self):
         """Return an immutable view of metadata to prevent accidental side-effects."""
-        return MappingProxyType(self.__dict__["metadata"])
-
-    @field_validator("metadata", mode="before")
-    def _validate_meta_integrity(cls, val: dict) -> dict:
-        """Validates that `metadata` is a dictionary and checks class naming.
-
-        If a `lion_class` field is present in `metadata`, it must match the
-        fully qualified name of this class. Converts `metadata` to a dict
-        if needed.
-        """
-        if not val:
-            return {}
-        if isinstance(val, str):
-            try:
-                val = json.loads(val)
-            except json.JSONDecodeError:
-                pass
-        if not isinstance(val, dict):
-            raise ValueError("Invalid metadata.")
-
-        if "lion_class" in val and val["lion_class"] != cls.class_name(full=True):
-            raise ValueError("Metadata class mismatch.")
-        # Check if lion_class key already exists and warn if it will be overwritten
-        if "lion_class" in val and val["lion_class"] != cls.class_name(full=True):
-            logger.warning(
-                f"Overwriting existing lion_class key in metadata from {val['lion_class']} to {cls.class_name(full=True)}"
-            )
-        if not isinstance(val, dict):
-            raise ValueError("Invalid metadata.")
-        return val
+        return MappingProxyType(self.metadata.to_dict(mode="python"))
 
     @classmethod
     def class_name(cls, full: bool = False) -> str:
-        """Returns this class's name. full: True, returns the fully qualified class name; otherwise, returns only the class name."""
+        """Returns this class's name. if full, returns the fully qualified name"""
         if full:
             return str(cls).split("'")[1]
         return cls.__name__
 
     def __hash__(self) -> int:
-        """Make Element hashable based on its ID.
-
-        This allows Element objects to be used as dictionary keys and in sets.
-        """
+        """Make Element hashable based on its creation information."""
         return hash(self.id)
 
-    def __eq__(self, other) -> bool:
-        """Compare Elements based on their IDs.
+    def __bool__(self) -> bool:
+        """Always True"""
+        return True
 
-        Two Elements are considered equal if they have the same ID.
-        """
+    def __eq__(self, other) -> bool:
         if not isinstance(other, Element):
             return NotImplemented
         return self.id == other.id
 
-    def to_dict(self) -> dict:
-        """Converts this Element to a dictionary. Add lion_class to metadata"""
-        dict_ = self.model_dump()
-        # Make a copy of the metadata to avoid modifying the original
-        metadata_copy = dict_.get("metadata", {}).copy()
-        metadata_copy["lion_class"] = self.class_name(full=True)
-        dict_["metadata"] = metadata_copy
-        return dict_
-
     @classmethod
     def from_dict(cls, data: dict) -> Element:
-        """Deserializes a dictionary into an Element or subclass of Element.
+        """Deserializes a json dictionary into an Element or subclass of Element.
 
         If `lion_class` in `metadata` refers to a subclass, this method
         attempts to create an instance of that subclass."""
@@ -149,7 +195,7 @@ class Element(BaseModel):
         subcls: None | str = data.get("metadata", {}).get("lion_class")
         if subcls is not None and subcls != Element.class_name(True):
             try:
-                subcls_type: type = get_class(subcls.split(".")[-1])
+                subcls_type: type[Element] = get_class(subcls.split(".")[-1])
             except Exception:
                 try:
                     mod, imp = subcls.rsplit(".", 1)
@@ -165,56 +211,4 @@ class Element(BaseModel):
         return cls.model_validate(data)
 
 
-class Log(Element):
-    """
-    An immutable log entry that wraps a dictionary of content.
-
-    Once created or restored from a dictionary, the log is marked
-    as read-only.
-    """
-
-    content: dict[str, JsonValue]
-    _immutable: bool = PrivateAttr(False)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Prevent mutation if log is immutable."""
-        if getattr(self, "_immutable", False):
-            raise AttributeError("This Log is immutable.")
-        super().__setattr__(name, value)
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Log:
-        """
-        Create a Log from a dictionary previously produced by `to_dict`.
-
-        The dictionary must contain keys in `serialized_keys`.
-        """
-        self = cls.model_validate(data)
-        self._immutable = True
-        return self
-
-    @classmethod
-    def create(cls, content: Element | dict) -> Log:
-        """
-        Create a new Log from an Element, storing a dict snapshot
-        of the element's data.
-        """
-        if hasattr(content, "to_dict"):
-            content = content.to_dict()
-        elif hasattr(content, "model_dump"):
-            content = content.model_dump()
-
-        if content == {}:
-            logger.warning(
-                "No content to log, or original data was of invalid type. Making an empty log..."
-            )
-            return cls(content={"error": "No content to log."})
-        if not isinstance(content, dict):
-            raise ValueError(
-                "The input content for log creation should be of type `Element`, subclass of `pydantic.BaseModel` or a python dict"
-            )
-
-        return cls(content=content)
-
-
-ELEMENT_FIELDS = {"id", "created_at", "metadata", "content", "embedding"}
+E = TypeVar("E", bound=Element)

@@ -15,3 +15,19 @@ class MissingAdapterError(Exception):
 
 class ClassNotFoundError(Exception):
     """Raised when a class cannot be found by name in the registry or dynamically."""
+
+
+class EdgeError(Exception):
+    """Raised when there is an issue with a edge relation"""
+
+
+class EdgeConditionError(Exception):
+    """Raised when there is an issue with a edge condition"""
+
+
+class MissingEdgeConditionError(EdgeConditionError):
+    """Raised when a condition is not found in the registry or dynamically."""
+
+
+class EdgeEntityError(Exception):
+    """Raised when there is an issue with a edge or its head/tail entities"""

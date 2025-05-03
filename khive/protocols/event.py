@@ -36,9 +36,9 @@ class Event(Element):
     """
 
     request: dict | None = None
+    response: Any = None
     status: EventStatus = EventStatus.PENDING
     duration: float | None = None
-    response: Any = None
     error: str | None = None
     error_code: str | None = None
     response_obj: Any = Field(None, exclude=True)

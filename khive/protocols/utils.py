@@ -2,8 +2,23 @@
 Utility functions for the protocols module.
 """
 
+import json
 from datetime import datetime
+from hashlib import sha256
 from uuid import UUID
+
+
+def sha256_of_dict(d: dict) -> str:
+    """Generate a SHA256 hash of a dictionary."""
+
+    canonical = json.dumps(
+        d,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+    return sha256(canonical).hexdigest()
 
 
 def serialize_id(value: UUID) -> str:

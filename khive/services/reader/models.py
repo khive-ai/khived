@@ -56,7 +56,7 @@ class ReaderReadParams(BaseModel):
 
 
 class ReaderListDirParams(BaseModel):
-    dir_path: str = Field(
+    directory: str = Field(
         ...,
         description="Directory path to list.",
         examples=["/path/to/directory", "/path/to/directory/subdirectory"],
