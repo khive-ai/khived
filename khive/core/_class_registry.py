@@ -3,7 +3,7 @@ import importlib.util
 import os
 from typing import TypeVar
 
-from ._errors import ClassNotFoundError
+from .._errors import ClassNotFoundError
 
 T = TypeVar("T")
 KHIVE_CLASS_REGISTRY: dict[str, type[T]] = {}

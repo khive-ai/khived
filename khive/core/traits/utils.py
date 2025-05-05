@@ -1,24 +1,36 @@
-"""
-Utility functions for the protocols module.
-"""
-
-import json
+import hashlib
 from datetime import datetime
-from hashlib import sha256
 from uuid import UUID
 
+from openai import BaseModel
+import orjson
 
-def sha256_of_dict(d: dict) -> str:
-    """Generate a SHA256 hash of a dictionary."""
 
-    canonical = json.dumps(
-        d,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
+def sha256_of_dict(obj: dict) -> str:
+    """Deterministic SHA-256 of an arbitrary mapping."""
+    payload: bytes = orjson.dumps(
+        obj,
+        option=(
+            orjson.OPT_SORT_KEYS  # canonical ordering
+            | orjson.OPT_NON_STR_KEYS  # allow int / enum keys if you need them
+        ),
+    )
+    return hashlib.sha256(memoryview(payload)).hexdigest()
 
-    return sha256(canonical).hexdigest()
+
+def serialize_model_to_dict(m: BaseModel | dict | None, /, **kwargs) -> dict:
+    """Serialize a Pydantic model to a dictionary. kwargs are passed to model_dump."""
+
+    if isinstance(m, BaseModel):
+        return m.model_dump(**kwargs)
+    if m is None:
+        return {}
+    if isinstance(m, dict):
+        return m
+
+    raise ValueError(
+        "Input value for field <model> should be a `pydantic.BaseModel` object or a `dict`"
+    )
 
 
 def serialize_id(value: UUID) -> str:

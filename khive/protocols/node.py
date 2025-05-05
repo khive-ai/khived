@@ -5,15 +5,15 @@ from typing import Any, ClassVar
 
 from pydantic import Field, field_validator
 
-from khive._class_registry import KHIVE_CLASS_REGISTRY
 from khive.adapters.types import Adaptable, AdapterRegistry, NodeAdapterRegistry
+from khive.core._class_registry import KHIVE_CLASS_REGISTRY
 
-from .element import Element
+from .element import Identifiable
 
 __all__ = ("Node",)
 
 
-class Node(Element, Adaptable):
+class Node(Identifiable, Adaptable):
     """
     A base class for all Nodes in a graph, storing:
       - Arbitrary content

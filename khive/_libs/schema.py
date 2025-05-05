@@ -19,7 +19,6 @@ B = TypeVar("B", bound=BaseModel)
 
 
 class SchemaUtil:
-
     @staticmethod
     def load_pydantic_model_from_schema(
         schema: str | dict[str, Any],

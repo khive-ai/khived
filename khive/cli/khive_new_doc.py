@@ -25,7 +25,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..utils import ANSI
+from ..common import ANSI
 
 verbose = False
 

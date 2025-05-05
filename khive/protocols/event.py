@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
-from .element import Element
+from .element import Identifiable
 
 __all__ = (
     "Event",
@@ -28,7 +28,7 @@ class EventStatus(str, Enum):
     FAILED = "failed"
 
 
-class Event(Element):
+class Event(Identifiable):
     """Extends Element with an execution state.
 
     Attributes:
@@ -45,7 +45,7 @@ class Event(Element):
 
     @field_validator("request", mode="before")
     def _validate_request(cls, v):
-        if isinstance(v, Element):
+        if isinstance(v, Identifiable):
             return v.to_dict()
         if isinstance(v, BaseModel):
             return v.model_dump()

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import zipfile
-import tempfile
 import shutil
+import tempfile
+import zipfile
 from pathlib import Path
 
 
@@ -11,7 +11,6 @@ class FileOperationError(Exception):
 
 
 class FileUtils:
-    
     @staticmethod
     def unzip_to_temp(
         zip_path: str | Path,
@@ -45,7 +44,6 @@ class FileUtils:
             )
 
         return tmp_dir
-
 
     @staticmethod
     def dir_to_files(
@@ -81,14 +79,18 @@ class FileUtils:
                 if file_types is None or file_path.suffix in file_types:
                     return file_path
             except Exception as e:
-                    raise FileOperationError(f"Error processing {file_path}: {e}") from e
+                raise FileOperationError(f"Error processing {file_path}: {e}") from e
             return None
 
-        file_iterator = directory_path.rglob("*") if recursive else directory_path.glob("*")
+        file_iterator = (
+            directory_path.rglob("*") if recursive else directory_path.glob("*")
+        )
         try:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
-                    executor.submit(process_file, f) for f in file_iterator if f.is_file()
+                    executor.submit(process_file, f)
+                    for f in file_iterator
+                    if f.is_file()
                 ]
                 files = [
                     future.result()
@@ -97,4 +99,6 @@ class FileUtils:
                 ]
             return files
         except Exception as e:
-            raise FileOperationError(f"Error processing directory {directory}: {e}") from e
+            raise FileOperationError(
+                f"Error processing directory {directory}: {e}"
+            ) from e

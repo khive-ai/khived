@@ -4,7 +4,7 @@ import pytest
 
 from khive._errors import ItemExistsError, ItemNotFoundError
 from khive.protocols.edge import Edge, EdgeCondition
-from khive.protocols.element import Element
+from khive.protocols.element import Identifiable
 from khive.protocols.graph import Graph, NodeEdgeMapping
 from khive.protocols.node import Node
 from khive.protocols.pile import Pile
@@ -13,17 +13,17 @@ from khive.protocols.pile import Pile
 class TestElement:
     def test_id_serialization(self):
         """Test that ID serialization works correctly."""
-        element = Element()
+        element = Identifiable()
         serialized = element.to_dict()
         assert isinstance(serialized["id"], str)
 
         # Test round-trip
-        deserialized = Element.from_dict(serialized)
+        deserialized = Identifiable.from_dict(serialized)
         assert deserialized.id == element.id
 
     def test_metadata_immutability(self):
         """Test that metadata is immutable."""
-        element = Element(metadata={"test": "value"})
+        element = Identifiable(metadata={"test": "value"})
         assert isinstance(element.metaview, MappingProxyType)
 
         # Verify we can read values

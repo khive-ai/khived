@@ -31,12 +31,12 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..utils import ANSI
+from .utils import ANSI
 
 try:
     import tomllib  # py311+
 except ModuleNotFoundError:  # pragma: no cover
-    import tomli as tomllib  # type: ignore
+    import toml as tomllib  # type: ignore
 
 ROOT = Path.cwd()
 

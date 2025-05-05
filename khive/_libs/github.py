@@ -1,6 +1,8 @@
 import os
-import requests
 from pathlib import Path
+
+import requests
+
 
 class GithubUtils:
 

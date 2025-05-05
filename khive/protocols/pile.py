@@ -12,16 +12,16 @@ from typing_extensions import Self
 from khive._errors import ItemExistsError, ItemNotFoundError
 from khive.adapters.types import Adaptable, AdapterRegistry, PileAdapterRegistry
 
-from .element import Element
+from .element import Identifiable
 
-T = TypeVar("T", bound=Element)
+T = TypeVar("T", bound=Identifiable)
 D = TypeVar("D", bound=Any)
 
 
 __all__ = ("Pile",)
 
 
-class Pile(Element, Adaptable, Generic[T]):
+class Pile(Identifiable, Adaptable, Generic[T]):
     order: list[UUID] = Field(
         default_factory=list,
         description="List of UUIDs representing the order of items in the pile.",
@@ -52,7 +52,7 @@ class Pile(Element, Adaptable, Generic[T]):
     def _validate_item(cls, data: dict):
         for k, v in data.items():
             if isinstance(v, dict):
-                data[k] = Element.from_dict(v)
+                data[k] = Identifiable.from_dict(v)
         return data
 
     @field_serializer("collections")
@@ -149,7 +149,7 @@ class Pile(Element, Adaptable, Generic[T]):
         key: UUID | int,
         item: T,
     ) -> None:
-        if not isinstance(item, Element):
+        if not isinstance(item, Identifiable):
             raise TypeError(
                 f"Invalid item type: {type(item)}. Expected Element instances."
             )
@@ -228,7 +228,7 @@ class Pile(Element, Adaptable, Generic[T]):
             raise TypeError(
                 "The index for inserting items into a pile must be an integer"
             )
-        if not isinstance(item, Element):
+        if not isinstance(item, Identifiable):
             raise TypeError("The item in a pile must be an instance of Element")
         if item.id in self.collections:
             raise ItemExistsError(f"Item({str(item.id)[:5]}...) already")
@@ -261,7 +261,7 @@ class Pile(Element, Adaptable, Generic[T]):
     def get(self, key: T | UUID, default=..., /) -> T | D:
         """lookup via item or id"""
         v = None
-        if isinstance(key, Element):
+        if isinstance(key, Identifiable):
             v = self.collections.get(key.id)
         if isinstance(key, UUID):
             v = self.collections.get(key)

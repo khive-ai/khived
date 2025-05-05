@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC
-from ast import TypeVar
 from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any, Literal
@@ -16,10 +14,7 @@ from pydantic import (
     field_validator,
 )
 
-from khive.core._class_registry import get_class
-from khive.utils import import_module
-
-from ..core.traits.utils import (
+from .utils import (
     serialize_created_at,
     serialize_id,
     sha256_of_dict,
@@ -115,7 +110,8 @@ class Identifiable(BaseModel):
     )
 
     metadata: Metadata = Field(
-        default_factory=lambda: Metadata.create(Identifiable),
+        None,
+        validate_default=False,
         description="Meta class for Element.",
     )
 
@@ -126,6 +122,8 @@ class Identifiable(BaseModel):
 
     @field_validator("metadata", mode="before")
     def _validate_meta_before(cls, val: dict) -> Metadata:
+        if val is None:
+            return Metadata.create(cls)
         return Metadata.from_dict(cls, val)
 
     @field_validator("metadata", mode="after")
@@ -185,21 +183,3 @@ class Identifiable(BaseModel):
         if not isinstance(other, Identifiable):
             return NotImplemented
         return self.id == other.id
-
-
-class NotReconstructable(ABC):
-    """A class that cannot be reconstructed from a dictionary.
-
-    This is used for classes that are not meant to be
-    reconstructed from a dictionary, such as events.
-    """
-
-    @classmethod
-    def from_dict(cls, data: dict) -> Identifiable:
-        """Raises an error if called."""
-        raise NotImplementedError(
-            f"{cls.__name__} cannot be reconstructed from a dictionary."
-        )
-
-
-E = TypeVar("E", bound=Identifiable)

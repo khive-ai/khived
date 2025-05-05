@@ -1,3 +1,5 @@
+import sys
+
 ANSI = {
     "G": "\033[32m" if sys.stdout.isatty() else "",
     "R": "\033[31m" if sys.stdout.isatty() else "",

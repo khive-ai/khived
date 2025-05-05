@@ -18,9 +18,9 @@ from pydantic import (
     model_validator,
 )
 
+from khive._libs.schema import SchemaUtil
 from khive.config import settings
 from khive.protocols.event import Event, EventStatus
-from khive.utils import load_pydantic_model_from_schema
 
 B = TypeVar("B", bound=type[BaseModel])
 
@@ -157,7 +157,7 @@ class EndpointConfig(BaseModel):
             if isinstance(v, BaseModel):
                 return v.__class__
             if isinstance(v, (dict, str)):
-                return load_pydantic_model_from_schema(v)
+                return SchemaUtil.load_pydantic_model_from_schema(v)
         except Exception as e:
             raise ValueError(f"Invalid request options: {e}")
         raise ValueError(

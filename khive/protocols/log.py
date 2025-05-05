@@ -1,16 +1,94 @@
 from __future__ import annotations
 
 import logging
+from abc import abstractmethod
+from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, JsonValue, PrivateAttr
+from pydantic import (
+    BaseModel,
+    Field,
+    JsonValue,
+    PrivateAttr,
+    field_serializer,
+    field_validator,
+)
 
-from .element import Element
+from .element import Identifiable
 
 logger = logging.getLogger(__name__)
 
 
-class Log(Element):
+class EventStatus(str, Enum):
+    """Status states for tracking action execution progress.
+
+    Attributes:
+        PENDING: Initial state before execution starts.
+        PROCESSING: Action is currently being executed.
+        COMPLETED: Action completed successfully.
+        FAILED: Action failed during execution.
+    """
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class Event(Identifiable):
+    """Represents an event in the system."""
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        raise NotImplementedError("Event cannot be re-constructed from a dictionary.")
+
+
+class Event(Identifiable):
+    request: dict | None = None
+    response: Any = None
+    status: EventStatus = EventStatus.PENDING
+    duration: float | None = None
+    error: str | None = None
+    error_code: str | None = None
+    response_obj: Any = Field(None, exclude=True)
+
+
+__all__ = (
+    "Event",
+    "EventStatus",
+)
+
+
+class Event(Identifiable):
+    request: dict | None = None
+    response: Any = None
+    status: EventStatus = EventStatus.PENDING
+    duration: float | None = None
+    error: str | None = None
+    error_code: str | None = None
+    response_obj: Any = Field(None, exclude=True)
+
+    @field_validator("request", mode="before")
+    def _validate_request(cls, v):
+        if isinstance(v, Identifiable):
+            return v.to_dict()
+        if isinstance(v, BaseModel):
+            return v.model_dump()
+        if isinstance(v, dict):
+            return v
+        if v is None:
+            return {}
+
+    @field_serializer("status")
+    def _serialize_request(self, v: EventStatus):
+        return v.value
+
+    @abstractmethod
+    async def invoke(self, *args, **kwargs):
+        pass
+
+
+class Log(Identifiable):
     """
     An immutable log entry that wraps a dictionary of content.
 
@@ -58,6 +136,3 @@ class Log(Element):
             )
 
         return cls(content=content)
-
-
-ELEMENT_FIELDS = {"id", "created_at", "metadata"}

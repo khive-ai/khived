@@ -5,23 +5,32 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from khive.config import settings
-
+from enum import Enum
 from ..endpoint import Endpoint, EndpointConfig
 
-SearchCategory = Literal[
-    "company",
-    "research paper",
-    "news",
-    "pdf",
-    "github",
-    "tweet",
-    "personal site",
-    "linkedin profile",
-    "financial report",
-]
 
-LivecrawlType = Literal["never", "fallback", "always"]
-SearchType = Literal["keyword", "neural", "auto"]
+class SearchCategory(str, Enum):
+    company = "company"
+    research_paper = "research paper"
+    news = "news"
+    pdf = "pdf"
+    github = "github"
+    tweet = "tweet"
+    personal_site = "personal site"
+    linkedin_profile = "linkedin profile"
+    financial_report = "financial report"
+
+
+class LivecrawlType(str, Enum):
+    never = "never"
+    fallback = "fallback"
+    always = "always"
+
+
+class SearchType(str, Enum):
+    keyword = "keyword"
+    neural = "neural"
+    auto = "auto"
 
 
 class ContentsText(BaseModel):
@@ -80,7 +89,7 @@ class Contents(BaseModel):
         default=None, description="Return a short summary of each page."
     )
     livecrawl: None | LivecrawlType = Field(
-        default=LivecrawlType.NEVER,
+        default=LivecrawlType.,
         description="Livecrawling setting for each page. Options: never, fallback, always.",
     )
     livecrawlTimeout: int | None = Field(

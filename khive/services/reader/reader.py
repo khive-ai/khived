@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from khive.utils import calculate_text_tokens
+from khive.common import calculate_text_tokens
 
 from .models import (
     DocumentInfo,
@@ -173,7 +173,6 @@ class ReaderService:
         return self._save_to_temp(text, doc_id)
 
     def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
-
         if params.doc_id not in self.documents:
             return ReaderResponse(success=False, error="doc_id not found in memory")
 
