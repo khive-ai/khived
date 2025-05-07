@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import aiohttp
 import pytest
 
-from khive.services.endpoint import Endpoint, EndpointConfig
+from khive.endpoint import Endpoint, EndpointConfig
 from khive.services.providers.oai_compatible import OpenaiChatEndpoint
 
 

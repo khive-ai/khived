@@ -4,7 +4,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from khive.config import settings
-from khive.services.endpoint import Endpoint, EndpointConfig
+from khive.endpoint import Endpoint, EndpointConfig
 
 __all__ = ("PerplexityChatEndpoint",)
 

@@ -4,7 +4,7 @@ import pytest
 from pydantic import SecretStr
 
 from khive.config import settings
-from khive.services.endpoint import Endpoint, EndpointConfig
+from khive.endpoint import Endpoint, EndpointConfig
 from khive.services.providers.oai_compatible import (
     DUMMY_OLLAMA_API_KEY,
     OllamaChatEndpoint,
