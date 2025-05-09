@@ -331,17 +331,15 @@ def test_get_existing_pr_details_with_existing_pr(mocker: MagicMock):
             "url,number,title,baseRefName,headRefName,isDraft,state",
         ],
         0,
-        stdout=json.dumps(
-            {
-                "url": "https://github.com/owner/repo/pull/123",
-                "number": 123,
-                "title": "Test PR",
-                "baseRefName": "main",
-                "headRefName": "feature/test-branch",
-                "isDraft": False,
-                "state": "OPEN",
-            }
-        ),
+        stdout=json.dumps({
+            "url": "https://github.com/owner/repo/pull/123",
+            "number": 123,
+            "title": "Test PR",
+            "baseRefName": "main",
+            "headRefName": "feature/test-branch",
+            "isDraft": False,
+            "state": "OPEN",
+        }),
         stderr="",
     )
     config = PRConfig(project_root=Path("/test"))

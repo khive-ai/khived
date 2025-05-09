@@ -553,16 +553,14 @@ def cli_entry_new_doc() -> None:
                 print(
                     f"    Output Subdir: {tpl.output_subdir}, Filename Prefix: {tpl.filename_prefix}"
                 )
-            output_templates.append(
-                {
-                    "doc_type": tpl.doc_type,
-                    "title": tpl.title,
-                    "filename": tpl.path.name,
-                    "path": str(rel_path),
-                    "output_subdir": tpl.output_subdir,
-                    "filename_prefix": tpl.filename_prefix,
-                }
-            )
+            output_templates.append({
+                "doc_type": tpl.doc_type,
+                "title": tpl.title,
+                "filename": tpl.path.name,
+                "path": str(rel_path),
+                "output_subdir": tpl.output_subdir,
+                "filename_prefix": tpl.filename_prefix,
+            })
         if config.json_output:
             print(
                 json.dumps(

@@ -482,12 +482,10 @@ async def test_run_dry_run_mode(mocker: MagicMock, tmp_path: Path, capsys):
     # Mock determine_steps_to_run to return a known set of steps
     mocker.patch(
         "khive.cli.khive_init.determine_steps_to_run",
-        return_value=OrderedDict(
-            [
-                ("python", ("builtin", step_python)),
-                ("custom_echo", ("custom", CustomStepCfg(cmd="echo hello"))),
-            ]
-        ),
+        return_value=OrderedDict([
+            ("python", ("builtin", step_python)),
+            ("custom_echo", ("custom", CustomStepCfg(cmd="echo hello"))),
+        ]),
     )
     mock_sh_func = mocker.patch("khive.cli.khive_init.sh")
 
@@ -515,11 +513,9 @@ async def test_run_single_builtin_step_success(mocker: MagicMock, tmp_path: Path
     )
     mocker.patch(
         "khive.cli.khive_init.determine_steps_to_run",
-        return_value=OrderedDict(
-            [
-                ("tools", ("builtin", mock_step_tools_func)),
-            ]
-        ),
+        return_value=OrderedDict([
+            ("tools", ("builtin", mock_step_tools_func)),
+        ]),
     )
 
     results = await _run(config)
@@ -541,12 +537,10 @@ async def test_run_step_failure_halts_execution(mocker: MagicMock, tmp_path: Pat
 
     mocker.patch(
         "khive.cli.khive_init.determine_steps_to_run",
-        return_value=OrderedDict(
-            [
-                ("python", ("builtin", mock_step_python_func)),
-                ("npm", ("builtin", mock_step_npm_func)),
-            ]
-        ),
+        return_value=OrderedDict([
+            ("python", ("builtin", mock_step_python_func)),
+            ("npm", ("builtin", mock_step_npm_func)),
+        ]),
     )
     mock_error_func = mocker.patch("khive.cli.khive_init.error")
 
@@ -569,11 +563,9 @@ async def test_run_custom_step_condition_not_met(mocker: MagicMock, tmp_path: Pa
     custom_cfg = CustomStepCfg(cmd="echo custom", run_if="file_exists:nope.txt")
     mocker.patch(
         "khive.cli.khive_init.determine_steps_to_run",
-        return_value=OrderedDict(
-            [
-                ("custom_step", ("custom", custom_cfg)),
-            ]
-        ),
+        return_value=OrderedDict([
+            ("custom_step", ("custom", custom_cfg)),
+        ]),
     )
     mocker.patch("khive.cli.khive_init.cond_ok", return_value=False)  # Condition fails
     mock_sh_func = mocker.patch("khive.cli.khive_init.sh")

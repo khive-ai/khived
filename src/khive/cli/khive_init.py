@@ -83,9 +83,11 @@ def die(
             results_list = []
         # Ensure message is just the string, not ANSI formatted for JSON
         plain_msg = msg.replace(ANSI["R"], "").replace(ANSI["N"], "").replace("✖ ", "")
-        results_list.append(
-            {"name": "critical_error", "status": "FAILED", "message": plain_msg}
-        )
+        results_list.append({
+            "name": "critical_error",
+            "status": "FAILED",
+            "message": plain_msg,
+        })
         print(json.dumps({"status": "failure", "steps": results_list}, indent=2))
     sys.exit(1)
 
@@ -497,15 +499,13 @@ async def step_husky(config: InitConfig) -> dict[str, Any]:
 
 BUILTIN_STEPS: OrderedDictType[
     str, Callable[[InitConfig], Awaitable[dict[str, Any]]]
-] = OrderedDict(
-    [
-        ("tools", step_tools),
-        ("python", step_python),
-        ("npm", step_npm),
-        ("rust", step_rust),
-        ("husky", step_husky),
-    ]
-)
+] = OrderedDict([
+    ("tools", step_tools),
+    ("python", step_python),
+    ("npm", step_npm),
+    ("rust", step_rust),
+    ("husky", step_husky),
+])
 
 
 # ────────── Orchestrator ──────────
@@ -573,9 +573,11 @@ async def _run(config: InitConfig) -> list[dict[str, Any]]:
         msg = "No steps selected or auto-detected to run."
         if not config.json_output:
             print(msg)
-        all_results.append(
-            {"name": "orchestrator", "status": "SKIPPED", "message": msg}
-        )
+        all_results.append({
+            "name": "orchestrator",
+            "status": "SKIPPED",
+            "message": msg,
+        })
         return all_results
 
     for step_name, (step_type, step_action) in ordered_steps_to_process.items():
@@ -691,13 +693,11 @@ async def _run(config: InitConfig) -> list[dict[str, Any]]:
                     error(error_msg)
                 # Add this as a final orchestrator message if not already there
                 if not any(r["name"] == "orchestrator_halt" for r in all_results):
-                    all_results.append(
-                        {
-                            "name": "orchestrator_halt",
-                            "status": "FAILED",
-                            "message": error_msg,
-                        }
-                    )
+                    all_results.append({
+                        "name": "orchestrator_halt",
+                        "status": "FAILED",
+                        "message": error_msg,
+                    })
                 break
 
     return all_results
