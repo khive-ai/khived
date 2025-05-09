@@ -40,8 +40,6 @@ class Resource(Identifiable):
         if isinstance(value, str):
             try:
                 loaded = json.loads(value)
-                if not isinstance(loaded, list):
-                    raise TypeError
                 return [float(x) for x in loaded]
             except Exception as e:
                 raise ValueError("Invalid embedding string.") from e
