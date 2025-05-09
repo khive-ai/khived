@@ -46,10 +46,19 @@ class ReaderService:
 
     # List of file extensions supported by docling
 
-    def __init__(self):
+    def __init__(self, *, converter=None):
+        """
+        Initialize the ReaderService.
+
+        Parameters
+        ----------
+        converter : DocumentConverter, optional
+            Inject a converter for easier testing; falls back to Docling's
+            default when omitted.
+        """
         from docling.document_converter import DocumentConverter  # type: ignore[import]
 
-        self.converter: DocumentConverter = DocumentConverter()
+        self.converter = converter or DocumentConverter()
         self.documents = {}  # doc_id -> (temp_file_path, doc_length, num_tokens)
 
     def handle_request(self, request: ReaderRequest) -> ReaderResponse:
@@ -87,6 +96,11 @@ class ReaderService:
         try:
             result = self.converter.convert(params.path_or_url)
             text = result.document.export_to_markdown()
+
+            # Ensure text is a string - defensive in case export_to_markdown returns something unexpected
+            if not isinstance(text, str):
+                text = str(text)
+
         except Exception as e:
             return ReaderResponse(
                 success=False,
@@ -128,6 +142,10 @@ class ReaderService:
         return self._save_to_temp(files, doc_id)
 
     def _save_to_temp(self, text, doc_id) -> ReaderResponse:
+        # Defensive: ensure text is a string
+        if not isinstance(text, str):
+            raise TypeError("Converted document must be string markdown")
+
         temp_file = tempfile.NamedTemporaryFile(
             delete=False, mode="w", encoding="utf-8"
         )
