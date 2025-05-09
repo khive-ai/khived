@@ -1,10 +1,8 @@
 # project: khive
 
-- Human Creator: `OCEAN`
-- Repo owner: `khive-ai`
-- Repo name: `khive.d`
-- Repo description: sanity checker dev tools for agents
-
+human creator: `ocean`
+repo owner: `khive-ai`
+repo: `khive.d`
 
 # Team Memebers
 

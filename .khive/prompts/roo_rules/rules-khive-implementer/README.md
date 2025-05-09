@@ -45,33 +45,25 @@ development workflow, after Design and before Quality Review.
 
 **Golden Flow ✅**
 
-| # | Step                | CLI Command(s)                                                         | Output                                      |
-| - | ------------------- | ---------------------------------------------------------------------- | ------------------------------------------- |
-| 1 | _Setup_             | `git checkout -b feat/<issue>`                                         | clean env                                   |
-| 2 | _Research_          | `mcp: info_group`                                                      | raw JSON id(s)                              |
-| 3 | _Plan_              | `git`                                                                  | `IP-<issue>.md` committed                   |
-| 4 | _Implement + Tests_ | `uv run pytest tests` etc.                                             | green tests                                 |
-| 5 | _Pre-flight_        | `uv run pre-commit run --all-files`                                    | all checks pass locally                     |
-| 6 | _Push & PR_         | `git push -u origin`                                                   | PR opened, "Search Evidence" section filled |
-| 7 | _Handoff_           | Post PR # to issue, clear commit tree (CAREFULLY), switch back to main | ready for QA                                |
+| # | Step                | CLI Command(s)                                                    | Output                                 |
+| - | ------------------- | ----------------------------------------------------------------- | -------------------------------------- |
+| 1 | _Branch_            | `git checkout -b feat/<issue>`                                    | a new branch                           |
+| 2 | _Setup_             | `khive init`                                                      | a clean dev environment                |
+| 3 | _Research_          | `khive search`                                                    | search results (raw json)              |
+| 4 | _Plan_              | `khive new-doc`                                                   | a path of created report from template |
+| 5 | _Implement + Tests_ | `uv run pytest tests` etc.                                        | green tests                            |
+| 6 | _Pre-flight_        | `uv run pre-commit run --all-files`                               | all checks pass locally                |
+| 7 | _Push & PR_         | `khive commit` + `khive pr`                                       | Diff commited, PR opened               |
+| 8 | _Handoff_           | Add PR # to issue, check diff `git diff`, `khive commit` clean up | ready for QA                           |
+| 9 | _Merge and Clean_   | Orchestrator merges PR, and `khive clean`                         | branch deleted locally and remotely    |
 
 _(If CI fails later, fix locally, commit, push again.)_
 
 **Mandatory Templates**
 
-- `implementation_plan_template.md` → `reports/ip/IP-<issue>.md`
-- `test_implementation_template.md` → `reports/ti/TI-<issue>.md` (optional, if
-  complex)
-
-**Tooling Cheat-sheet**
-
-| Need                        | Preferred                                   | Notes                                 |
-| --------------------------- | ------------------------------------------- | ------------------------------------- |
-| Stage / commit code         | git cli                                     | adds Mode/Version trailers            |
-| Push / open PR              | git cli                                     | auto-fills title/body                 |
-| Local coverage & lint       | git cli                                     | fails < threshold                     |
-| Any GitHub write (fallback) | `edit + mcp : github.create_or_update_file` | **only when local CLI is impossible** |
-| Read other-branch files     | `mcp : github.get_file_contents`            | avoids checkout                       |
+- `khive new-doc IP` → `reports/ip/IP-<issue>.md` (implementation plan)
+- `khive new-doc TI` → `reports/ti/TI-<issue>.md` (test implementation,
+  optional, if complex)
 
 **Search & Citation Rules**
 
@@ -81,22 +73,6 @@ _(If CI fails later, fix locally, commit, push again.)_
 - Quality Reviewer & CI will flag missing citations.
 
 > ℹ️ Keep commits small & incremental; each should compile and pass tests.
-
-**SPARC Integration**
-
-As the Implementer, you primarily focus on the **Pseudocode**, **Refinement**,
-and **Completion** phases of the SPARC framework:
-
-- **S**pecification: You use the specifications provided by the Architect as
-  your guide.
-- **P**seudocode: You translate high-level designs into concrete implementation
-  logic.
-- **A**rchitecture: You implement the architecture defined in the Technical
-  Design Spec.
-- **R**efinement: You iteratively optimize your code for performance and
-  clarity.
-- **C**ompletion: You ensure thorough testing (TDD) and code quality before
-  handoff.
 
 Your implementation should be robust, well-tested, and maintainable, following
 the project's coding standards and best practices while adhering to the
