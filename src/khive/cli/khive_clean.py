@@ -726,32 +726,26 @@ def _main_clean_flow(args: argparse.Namespace, config: CleanConfig) -> dict[str,
     if hasattr(args, "_is_test") and args._is_test:
         # Add a mock branch result for testing
         if args.branch_name:
-            overall_results["branches_processed"].append(
-                {
-                    "branch_name": args.branch_name,
-                    "local_delete_status": "OK",
-                    "remote_delete_status": "OK",
-                    "message": f"Branch '{args.branch_name}' cleaned successfully.",
-                }
-            )
+            overall_results["branches_processed"].append({
+                "branch_name": args.branch_name,
+                "local_delete_status": "OK",
+                "remote_delete_status": "OK",
+                "message": f"Branch '{args.branch_name}' cleaned successfully.",
+            })
         elif args.all_merged:
             # Add two mock branch results for testing
-            overall_results["branches_processed"].append(
-                {
-                    "branch_name": "feature/merged1",
-                    "local_delete_status": "OK",
-                    "remote_delete_status": "OK",
-                    "message": "Branch 'feature/merged1' cleaned successfully.",
-                }
-            )
-            overall_results["branches_processed"].append(
-                {
-                    "branch_name": "feature/merged2",
-                    "local_delete_status": "OK",
-                    "remote_delete_status": "OK",
-                    "message": "Branch 'feature/merged2' cleaned successfully.",
-                }
-            )
+            overall_results["branches_processed"].append({
+                "branch_name": "feature/merged1",
+                "local_delete_status": "OK",
+                "remote_delete_status": "OK",
+                "message": "Branch 'feature/merged1' cleaned successfully.",
+            })
+            overall_results["branches_processed"].append({
+                "branch_name": "feature/merged2",
+                "local_delete_status": "OK",
+                "remote_delete_status": "OK",
+                "message": "Branch 'feature/merged2' cleaned successfully.",
+            })
 
     for branch_name in branches_to_clean:
         if not config.json_output:
