@@ -22,9 +22,10 @@ COMMANDS: dict[str, str] = {
     "clean": "clean",  # -> khive.commands.clean
     "new-doc": "new_doc",  # -> khive.commands.new_doc
     # Add other commands here:
-    "search": "search",
     "mcp": "mcp",  # Assuming khive_mcp.py becomes mcp.py
     "roo": "roo",  # If khive_roo.py is kept for old functionality
+    "info": "info",
+    "reader": "reader",
 }
 
 # Expected name of the entry point function in each command module.
