@@ -668,7 +668,7 @@ def _main_commit_flow(args: argparse.Namespace, config: CommitConfig) -> dict[st
 
 
 # --- CLI Entrypoint ---
-def cli_entry() -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="khive Git commit helper with Conventional Commit."
     )
@@ -826,4 +826,4 @@ def cli_entry() -> None:
 
 if __name__ == "__main__":
     DRY_RUN = False  # For backward compatibility
-    cli_entry()
+    main()

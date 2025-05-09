@@ -20,7 +20,7 @@ from khive.cli.khive_commit import (
     CommitConfig,
     _main_commit_flow,
     build_commit_message_from_args,
-    cli_entry,
+    main,
     ensure_git_identity,
     get_current_branch,
     git_run,
@@ -626,7 +626,7 @@ def test_cli_entry_valid_message(mocker: MagicMock):
     mock_path_is_dir.return_value = True
 
     # Act
-    cli_entry()
+    main()
 
     # Assert
     mock_main_flow.assert_called_once()
@@ -658,7 +658,7 @@ def test_cli_entry_structured_args(mocker: MagicMock):
     mock_path_is_dir.return_value = True
 
     # Act
-    cli_entry()
+    main()
 
     # Assert
     mock_main_flow.assert_called_once()
@@ -683,7 +683,7 @@ def test_cli_entry_no_message_strategy(mocker: MagicMock):
     )  # Mock _main_commit_flow to prevent it from being called
 
     # Act
-    cli_entry()
+    main()
 
     # Assert
     mock_die_commit.assert_called_once()
@@ -705,7 +705,7 @@ def test_cli_entry_project_root_not_dir(mocker: MagicMock):
 
     # Act
     with pytest.raises(SystemExit):
-        cli_entry()
+        main()
 
     # Assert
     mock_die_commit.assert_called_once_with(
@@ -730,7 +730,7 @@ def test_cli_entry_json_output(mocker: MagicMock):
     mock_print = mocker.patch("builtins.print")
 
     # Act
-    cli_entry()
+    main()
 
     # Assert
     mock_json_dumps.assert_called_once_with(
