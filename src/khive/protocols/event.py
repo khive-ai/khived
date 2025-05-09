@@ -2,9 +2,8 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
-from ._utils import serialize_model_to_dict
 from .identifiable import Identifiable
 
 __all__ = (
@@ -45,7 +44,17 @@ class Event(Identifiable):
 
     @field_validator("request", mode="before")
     def _validate_request(cls, v):
-        return serialize_model_to_dict(v)
+        """Serialize a Pydantic model to a dictionary. kwargs are passed to model_dump."""
+
+        if isinstance(v, BaseModel):
+            return v.model_dump()
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+
+        error_msg = "Input value for field <model> should be a `pydantic.BaseModel` object or a `dict`"
+        raise ValueError(error_msg)
 
     @abstractmethod
     async def invoke(self, *args, **kwargs):

@@ -3,10 +3,10 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
-from ._utils import serialize_datetime, serialize_id, validate_datetime, validate_id
-
 
 class Identifiable(BaseModel):
+    """Base class for objects with a unique identifier and timestamps."""
+
     model_config = ConfigDict(
         extra="forbid",
         use_enum_values=True,
@@ -35,16 +35,32 @@ class Identifiable(BaseModel):
 
     @field_serializer("id")
     def _serialize_ids(self, v: UUID) -> str:
-        return serialize_id(v)
+        return str(v)
 
     @field_validator("id", mode="before")
     def _validate_ids(cls, v: str | UUID) -> UUID:
-        return validate_id(v)
+        if isinstance(v, UUID):
+            return v
+        try:
+            return UUID(str(v))
+        except Exception as e:
+            error_msg = "Input value for field <id> should be a `uuid.UUID` object or a valid `uuid` representation"
+            raise ValueError(error_msg) from e
 
     @field_serializer("created_at", "updated_at")
     def _serialize_created_updated(self, v: datetime) -> str:
-        return serialize_datetime(v)
+        return v.isoformat()
 
     @field_validator("created_at", "updated_at", mode="before")
     def _validate_created_updated(cls, v: str | datetime) -> datetime:
-        return validate_datetime(v)
+        """Validate and convert a string or datetime to a datetime."""
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            try:
+                return datetime.fromisoformat(v)
+            except Exception:
+                pass
+
+        error_msg = "Input value for field <created_at> should be a `datetime.datetime` object or `isoformat` string"
+        raise ValueError(error_msg)
