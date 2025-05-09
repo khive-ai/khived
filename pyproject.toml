@@ -1,7 +1,7 @@
 [project]
 name = "khive"
 version = "0.2.0"
-description = "Add your description here"
+description = "Autonomous software development with github/roo"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -33,15 +33,12 @@ reader = [
 openai = [
     "openai>=1.77.0",
 ]
-
 mcp = [
     "fastmcp>=2.3.0",
 ]
-
 schema = [
     "datamodel-code-generator>=0.30.1",
 ]
-
 all = [
     "docling>=2.31.0",
     "tiktoken>=0.9.0",
@@ -50,9 +47,9 @@ all = [
     "datamodel-code-generator>=0.30.1",
 ]
 
-
-
-
+[tool.pytest.ini_options]
+addopts = "-ra --cov=khive --cov-report=term-missing"
+testpaths = ["tests"]
 
 [build-system]
 requires = ["hatchling"]

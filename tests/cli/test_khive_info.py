@@ -2,12 +2,12 @@
 Tests for khive_info.py CLI
 """
 
+import contextlib
 import json
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from khive.cli.khive_info import (
     create_perplexity_messages,
     main,
@@ -15,7 +15,6 @@ from khive.cli.khive_info import (
     run_info_request_and_print,
 )
 from khive.services.info.parts import (
-    ConsultModel,
     ExaSearchRequest,
     InfoAction,
     InfoConsultParams,
@@ -71,7 +70,7 @@ def mock_print_and_exit(monkeypatch):
 def run_cli_with_args(monkeypatch, args_list, mock_service_call=None):
     """Helper to run CLI with specific args and mocks"""
     # Only set sys.argv, don't override other patches that might be applied in the test
-    monkeypatch.setattr("sys.argv", ["khive_info"] + args_list)
+    monkeypatch.setattr("sys.argv", ["khive_info", *args_list])
 
     # Only set the service mock if explicitly provided
     if mock_service_call:
@@ -84,10 +83,9 @@ def run_cli_with_args(monkeypatch, args_list, mock_service_call=None):
 
     # Wrap main_cli in try-except to handle expected exceptions during testing
     try:
-        main()
-    except SystemExit:
-        # This is expected for some error cases, argparse may call sys.exit directly
-        pass
+        with contextlib.suppress(SystemExit):
+            main()
+
     except Exception as e:
         # For tests that expect exceptions, we'll just let the test handle it
         # For unexpected exceptions, print them for debugging
@@ -356,7 +354,6 @@ def test_cli_search_perplexity_with_messages_json():
     """Test Perplexity search with custom messages JSON"""
     # Skip this test for now as it's causing issues
     # We'll come back to it later if needed
-    pass
 
 
 def test_cli_search_invalid_provider(monkeypatch):
@@ -371,11 +368,9 @@ def test_cli_search_invalid_provider(monkeypatch):
     with patch("khive.cli.khive_info.sys.stderr", mock_stderr):
         with patch("khive.cli.khive_info.sys.exit", mock_exit):
             # Don't use run_cli_with_args helper since it's causing issues with patching
-            monkeypatch.setattr("sys.argv", ["khive_info"] + args)
-            try:
+            monkeypatch.setattr("sys.argv", ["khive_info", *args])
+            with contextlib.suppress(SystemExit):
                 main()
-            except SystemExit:
-                pass
 
     # Verify error handling
     mock_stderr.write.assert_called()
@@ -492,11 +487,9 @@ def test_cli_missing_required_args(monkeypatch):
     with patch("khive.cli.khive_info.sys.stderr", mock_stderr):
         with patch("khive.cli.khive_info.sys.exit", mock_exit):
             # Don't use run_cli_with_args helper since it's causing issues with patching
-            monkeypatch.setattr("sys.argv", ["khive_info"] + args)
-            try:
+            monkeypatch.setattr("sys.argv", ["khive_info", *args])
+            with contextlib.suppress(SystemExit):
                 main()
-            except SystemExit:
-                pass
 
     # Verify error handling
     mock_stderr.write.assert_called()
@@ -525,11 +518,9 @@ def test_cli_invalid_option_value(monkeypatch):
     with patch("khive.cli.khive_info.sys.stderr", mock_stderr):
         with patch("khive.cli.khive_info.sys.exit", mock_exit):
             # Don't use run_cli_with_args helper since it's causing issues with patching
-            monkeypatch.setattr("sys.argv", ["khive_info"] + args)
-            try:
+            monkeypatch.setattr("sys.argv", ["khive_info", *args])
+            with contextlib.suppress(SystemExit):
                 main()
-            except SystemExit:
-                pass
 
     # Verify error handling
     mock_stderr.write.assert_called()
@@ -558,11 +549,11 @@ def test_cli_invalid_json_in_options(monkeypatch):
     with patch("khive.cli.khive_info.sys.stderr", mock_stderr):
         with patch("khive.cli.khive_info.sys.exit", mock_exit):
             # Don't use run_cli_with_args helper since it's causing issues with patching
-            monkeypatch.setattr("sys.argv", ["khive_info"] + args)
-            try:
+            monkeypatch.setattr("sys.argv", ["khive_info", *args])
+            with contextlib.suppress(SystemExit):
+                # Wrap main in try-except to handle expected exceptions during testing
+                # This is to avoid the test failing due to SystemExit
                 main()
-            except SystemExit:
-                pass
 
     # Verify error handling
     mock_stderr.write.assert_called()

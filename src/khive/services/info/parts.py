@@ -72,7 +72,7 @@ class InfoConsultParams(BaseModel):
             elif isinstance(m, ConsultModel):
                 models.append(m)
             else:
-                raise ValueError(f"Invalid model type: {m}")
+                raise TypeError(f"Invalid model type: {m}")
         return models
 
 
