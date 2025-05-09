@@ -4,8 +4,8 @@ by: "khive-architect"
 created: "2025-04-12"
 updated: "2025-04-12"
 version: "1.1"
-doc_type: TDS
-output_subdir: tdss
+doc_type: "TDS"
+output_subdir: "tds"
 description: "Template for creating detailed technical specifications for khive components and services"
 ---
 

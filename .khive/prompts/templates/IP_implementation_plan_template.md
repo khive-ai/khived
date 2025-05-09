@@ -1,11 +1,11 @@
 ---
 title: "Implementation Plan Template"
-by: "khive-orchestrator"
+by: "khive-implementer"
 created: "2025-04-12"
 updated: "2025-04-12"
 version: "1.1"
-doc_type: IP
-output_subdir: ips
+doc_type: "IP"
+output_subdir: "ip"
 description: "Template for creating detailed implementation plans for khive components following TDD principles"
 ---
 

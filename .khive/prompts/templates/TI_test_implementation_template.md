@@ -1,11 +1,11 @@
 ---
 title: "Test Implementation Template"
-by: "khive-tester"
+by: "khive-implementer"
 created: "2025-04-12"
 updated: "2025-04-12"
 version: "1.1"
-doc_type: TI
-output_subdir:
+doc_type: "TI"
+output_subdir: "ti"
 description: "Template for creating comprehensive test suites for khive components"
 ---
 
