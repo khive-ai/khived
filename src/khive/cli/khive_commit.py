@@ -17,11 +17,11 @@ Features
 * **Interactive mode** for guided commit creation
 * **JSON output** option for machine-readable results
 * **Configuration** via .khive/commit.toml
-
+* **Auto-publish branch** if not already tracking a remote.
 Synopsis
 --------
 ```bash
-khive_commit.py "feat(ui): add dark-mode toggle"
+khive_commit.py "feat(ui): add dark-mode toggle"           # Auto-publishes new branch if needed
 khive_commit.py "fix: missing null-check" --patch --no-push
 khive_commit.py "chore!: bump API to v2" --amend -v
 khive_commit.py --type feat --scope ui --subject "add dark-mode toggle" --search-id pplx-abc
@@ -221,13 +221,17 @@ def git_run(
     cwd: Path,
 ) -> subprocess.CompletedProcess[str] | int:
     full_cmd = ["git", *cmd_args]
-    log_msg("git " + " ".join(cmd_args))
+    # Centralized logging for dry-run / verbose for git commands
     if dry_run:
-        info_msg(f"[DRY-RUN] Would run: git {' '.join(cmd_args)}", console=True)
-        # For dry run, return a dummy CompletedProcess-like object if capture is expected or 0 for success
+        # In dry-run mode, always inform what would be run, regardless of verbosity for this specific message
+        print(f"{ANSI['B']}[DRY-RUN] Would run: git {' '.join(cmd_args)}{ANSI['N']}")
         if capture:
             return subprocess.CompletedProcess(full_cmd, 0, stdout="", stderr="")
         return 0
+
+    log_msg(
+        "git " + " ".join(cmd_args)
+    )  # Log actual command if not dry_run and verbose
 
     try:
         process = subprocess.run(
@@ -277,13 +281,26 @@ def ensure_git_identity(config: CommitConfig) -> None:
 
 def get_current_branch(config: CommitConfig) -> str:
     if config.dry_run:
-        return "main"  # Dummy for dry run
+        return "feature/dry-run-branch"  # More descriptive dummy for dry run
     proc = git_run(
         ["branch", "--show-current"], capture=True, check=False, cwd=config.project_root
     )
-    if isinstance(proc, subprocess.CompletedProcess) and proc.returncode == 0:
+    if (
+        isinstance(proc, subprocess.CompletedProcess)
+        and proc.returncode == 0
+        and proc.stdout.strip()
+    ):
         return proc.stdout.strip()
-    return "HEAD"  # Fallback for detached head or error
+    # Fallback for detached HEAD or error; might need more robust handling
+    head_sha_proc = git_run(
+        ["rev-parse", "--short", "HEAD"],
+        capture=True,
+        check=True,
+        cwd=config.project_root,
+    )
+    if isinstance(head_sha_proc, subprocess.CompletedProcess):
+        return f"detached-HEAD-{head_sha_proc.stdout.strip()}"
+    return "HEAD"
 
 
 def stage_changes(stage_mode: str, config: CommitConfig) -> bool:
@@ -608,61 +625,129 @@ def _main_commit_flow(args: argparse.Namespace, config: CommitConfig) -> dict[st
         return results
 
     # Handle push
-    should_push_flag = (
-        args.push
-        if args.push is not None
-        else (not args.no_push if args.no_push is not None else config.default_push)
-    )
+    # Corrected logic for should_push_flag
+    should_push_flag = args.push if args.push is not None else config.default_push
 
     if not should_push_flag:
         results["status"] = "success"
-        results["message"] = "Commit successful. Push skipped by user/config."
+        results["message"] = (
+            f"Commit {results.get('commit_sha', 'successful')}. Push skipped by user/config."
+        )
         results["push_status"] = "SKIPPED"
         info_msg("Push skipped.", console=not config.json_output)
         return results
 
     current_branch = get_current_branch(config)
+    push_args_final = ["push"]
+    action_verb = "Pushing"
+    log_suffix = ""
+
+    if config.dry_run:
+        # For dry run, informatively show the --set-upstream possibility
+        push_args_final.extend(["--set-upstream", "origin", current_branch])
+        action_verb = "Publishing and setting upstream for"
+        log_suffix = " (dry run, -u shown for info)"
+    else:
+        # Actual check for existing upstream configuration for the current branch
+        remote_proc = git_run(
+            ["config", f"branch.{current_branch}.remote"],
+            capture=True,
+            check=False,
+            dry_run=False,
+            cwd=config.project_root,  # Internal check, not dry_run
+        )
+        merge_proc = git_run(
+            ["config", f"branch.{current_branch}.merge"],
+            capture=True,
+            check=False,
+            dry_run=False,
+            cwd=config.project_root,  # Internal check, not dry_run
+        )
+
+        is_remote_set = (
+            isinstance(remote_proc, subprocess.CompletedProcess)
+            and remote_proc.returncode == 0
+            and remote_proc.stdout.strip()
+        )
+        is_merge_set = (
+            isinstance(merge_proc, subprocess.CompletedProcess)
+            and merge_proc.returncode == 0
+            and merge_proc.stdout.strip()
+        )
+
+        if not (is_remote_set and is_merge_set):
+            push_args_final.extend(["--set-upstream", "origin", current_branch])
+            action_verb = "Publishing and setting upstream for"
+        else:
+            push_args_final.extend(["origin", current_branch])
+            # action_verb remains "Pushing"
+
+    action_description = (
+        f"{action_verb} branch '{current_branch}' to origin{log_suffix}"
+    )
+
+    # The git_run command itself will print "[DRY-RUN] Would run: git..." if dry_run is true.
+    # This info_msg provides a higher-level context.
+    if not config.json_output:  # Only print if not json output
+        # For dry-run, this clarifies the "Would run..." message from git_run.
+        # For actual run, this states the intent before execution.
+        info_msg(action_description, console=True)
+
     push_proc = git_run(
-        ["push", "origin", current_branch],
+        push_args_final,
         dry_run=config.dry_run,
         capture=True,
         check=False,
         cwd=config.project_root,
     )
 
-    if isinstance(push_proc, int) and push_proc == 0:  # Dry run success
+    # Determine the base message for success to avoid repetition
+    base_success_message_part = action_description.split(" (dry run")[
+        0
+    ]  # Remove dry run suffix for actual msg
+
+    if isinstance(push_proc, int) and push_proc == 0:  # Dry run success from git_run
         results["push_status"] = "OK_DRY_RUN"
+        # Message already printed by info_msg above for dry_run context
+        # And git_run would have printed "Would run..."
+        # We just need a confirmation it would have been successful.
         info_msg(
-            f"Pushed branch '{current_branch}' to origin (dry run).",
+            f"{base_success_message_part} - successful (dry run).",
             console=not config.json_output,
         )
+
     elif (
         isinstance(push_proc, subprocess.CompletedProcess) and push_proc.returncode == 0
-    ):
+    ):  # Actual success
         results["push_status"] = "OK"
         info_msg(
-            f"Pushed branch '{current_branch}' to origin.",
-            console=not config.json_output,
+            f"{base_success_message_part} - successful.", console=not config.json_output
         )
-    else:
+    else:  # Failure (actual or from dry_run if git_run somehow returned non-zero int for dry_run, though unlikely)
         stderr = (
             push_proc.stderr
             if isinstance(push_proc, subprocess.CompletedProcess)
-            else "Unknown error"
+            else "Unknown error during push operation"
         )
         results["push_status"] = "FAILED"
+
+        failure_action_description = base_success_message_part.lower()
+        if config.dry_run:
+            failure_action_description += " (dry run)"
+
         results["message"] = (
-            f"Commit successful, but push failed for branch '{current_branch}'. Stderr: {stderr}"
+            f"Commit {results.get('commit_sha', 'successful')}, but {failure_action_description} failed for branch '{current_branch}'. Stderr: {stderr}"
         )
-        warn_msg(
-            results["message"], console=not config.json_output
-        )  # Warning because commit was successful
-        # Don't change overall status to failure if commit was fine, but report push failure details
+        warn_msg(results["message"], console=not config.json_output)
         results["push_details"] = stderr
-        return results  # Return here as push failed but commit was okay
+        return results
 
     results["status"] = "success"
-    results["message"] = "Commit and push successful."
+    results["message"] = (
+        f"Commit {results.get('commit_sha', 'successful')}. {base_success_message_part} successful"
+    )
+    if config.dry_run:
+        results["message"] += " (dry run)."
     results["branch_pushed"] = current_branch
     return results
 
@@ -670,7 +755,7 @@ def _main_commit_flow(args: argparse.Namespace, config: CommitConfig) -> dict[st
 # --- CLI Entrypoint ---
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="khive Git commit helper with Conventional Commit."
+        description="khive Git commit helper with Conventional Commit and auto branch publishing."
     )
 
     # Message construction options
@@ -787,8 +872,8 @@ def main() -> None:
 
     # If interactive, staging mode might also become interactive
     if (
-        args.interactive and not args.patch_stage
-    ):  # if interactive and no explicit staging choice, prefer patch
+        args.interactive and args.patch_stage is None
+    ):  # If interactive and no staging flag, prefer patch
         args.patch_stage = "patch"
 
     if args.message and (args.type or args.scope or args.subject or args.body):

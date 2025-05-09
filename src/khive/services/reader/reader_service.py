@@ -47,7 +47,7 @@ class ReaderService:
     # List of file extensions supported by docling
 
     def __init__(self):
-        from docling.document_converter import DocumentConverter    #type: ignore[import]
+        from docling.document_converter import DocumentConverter  # type: ignore[import]
 
         self.converter: DocumentConverter = DocumentConverter()
         self.documents = {}  # doc_id -> (temp_file_path, doc_length, num_tokens)
@@ -107,9 +107,8 @@ class ReaderService:
         e = min(length, params.end_offset if params.end_offset is not None else length)
 
         try:
-            with open(path, encoding="utf-8") as f:
-                f.seek(s)
-                content = f.read(e - s)
+            path = Path(path)
+            content = path.read_text(encoding="utf-8")[s:e]
         except Exception as ex:
             return ReaderResponse(success=False, error=f"Read error: {ex!s}")
 
@@ -150,5 +149,5 @@ class ReaderService:
             ),
         )
 
- 
+
 global_reader_service = ReaderService()
