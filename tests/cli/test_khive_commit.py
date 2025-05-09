@@ -40,6 +40,7 @@ def create_mock_cli_args(**kwargs):
         "breaking_change_description": None,
         "closes": None,
         "search_id": None,
+        "by": None,  # Added to support the new --by parameter
         "interactive": False,
         "patch_stage": None,
         "amend": False,
