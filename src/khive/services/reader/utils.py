@@ -65,7 +65,7 @@ def dir_to_files(
         raise ValueError(f"Error processing directory {directory}: {e}") from e
 
 
-def calculate_text_tokens(s_: str = None, /) -> int:
+def calculate_text_tokens(s_: str | None = None, /) -> int:
     """Calculate the number of tokens in a string using the tiktoken library."""
     import tiktoken
 

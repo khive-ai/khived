@@ -93,6 +93,7 @@ ignore = [
     "B007",   # Loop control variable not used within loop body
     "E741",   # Ambiguous variable name
     "N805",   # Default argument value is mutable (This was likely an intended ignore, you can confirm)
+    "TRY300",
 ]
 
 # Per-file ignores allow you to disable specific rules for certain files or directories.
