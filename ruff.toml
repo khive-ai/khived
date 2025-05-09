@@ -1,0 +1,175 @@
+# ruff.toml
+
+# Assume Python 3.10+ for all Ruff operations (consistent with requires-python and pyupgrade)
+target-version = "py310"
+line-length = 88 # Inherited from Black's preferred default
+
+# List of files and directories to exclude from linting and formatting.
+# This mirrors the typical .gitignore and common build/cache directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache", # Ruff's own cache directory
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "*.pyc",
+    "__pycache__",
+    "tests/**/hooks/*", # Your specific exclusion
+    "temp_logs/*",      # From your hatch exclude
+    "logs/*",           # From your hatch exclude
+]
+
+[lint]
+select = [
+    "A",    # flake8-builtins
+    "ARG",  # flake8-unused-arguments
+    "ASYNC",# flake8-async
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    # "D",    # pydocstyle (uncomment and configure below if you want to enable it)
+    "DTZ",  # flake8-datetimez
+    "E",    # pycodestyle errors
+    "EM",   # flake8-errmsg
+    "EXE",  # flake8-executable
+    "F",    # pyflakes
+    "FA",   # flake8-future-annotations
+    "FLY",  # flynt
+    "FURB", # refurb
+    "I",    # isort (ensure this is selected for import sorting)
+    "ICN",  # flake8-import-conventions
+    "INT",  # flake8-gettext
+    "ISC",  # implicit-str-concat (will be auto-fixed by ruff format)
+    "LOG",  # flake8-logging
+    "N",    # pep8-naming
+    "PERF", # perflint
+    "PGH",  # pygrep-hooks
+    "PIE",  # flake8-pie
+    "RET",  # flake8-return
+    "RSE",  # flake8-raise
+    "RUF",  # Ruff-specific lints
+    "S",    # flake8-bandit
+    "SIM",  # flake8-simplify
+    "SLF",  # flake8-self
+    "SLOT", # flake8-slots
+    "TCH",  # flake8-type-checking
+    "TID",  # ban relative imports (flake8-tidy-imports)
+    "TRY",  # tryceratops
+    "UP",   # pyupgrade (ensure this is selected)
+    "W",    # pycodestyle warnings
+    "YTT",  # flake8-2020
+]
+
+ignore = [
+    "B028",   # No explicit `stacklevel` keyword argument found
+    # "COM812", # No longer needed as ruff format handles trailing commas
+    # "ISC001", # No longer needed as ruff format handles implicit string concatenation
+    "G004",   # Logging statement uses f-string
+    "N818",   # Exception name should be named with an Error suffix
+    "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+    "S404",   # `subprocess` module is possibly insecure
+    "E501",   # Line too long (Ruff formatter will handle this by default for formatting, this ignore helps for lint checks not auto-fixed)
+    "UP042",  # Class inherits from both `str` and `enum.Enum` (third-party models)
+    "N815",   # Variable in class scope should not be mixedCase (third-party models)
+    "EXE001", # Shebang is present but file is not executable
+    "SLF001", # Private member accessed (Note: you had this twice in your pyproject, once is enough)
+    "TRY401", # Redundant exception object included in logging call
+    "TRY003", # Avoid specifying long messages outside the exception class
+    "EM101",  # Exception must not use a string literal, assign to variable first
+    "EM102",  # Exception must not use an f-string literal, assign to variable first
+    "B007",   # Loop control variable not used within loop body
+    "E741",   # Ambiguous variable name
+    "N805",   # Default argument value is mutable (This was likely an intended ignore, you can confirm)
+]
+
+# Per-file ignores allow you to disable specific rules for certain files or directories.
+[lint.per-file-ignores]
+"tests/*" = [
+    # "D104", # Missing docstring in public package (Uncomment if D rules are enabled)
+    # "D200", # One-line docstring should fit on one line with quotes (Uncomment if D rules are enabled)
+    "S101",   # use of assert
+    "S603",   # `subprocess` call: check for execution of untrusted input
+    "S106",   # Possible hardcoded password assigned to argument: "password"
+    "S108",   # Probable insecure usage of temporary file or directory: "/tmp"
+    "ARG001", # Unused function argument
+    "F841",   # Local variable is assigned to but never used
+    "SLF001", # Private member accessed (Can be more specific if needed, though globally ignored too)
+    "ARG005", # Unused lambda argument
+    "DTZ011", # `datetime.date.today()` used
+    "TCH003", # Move standard library import into a type-checking block
+    "PGH003", # Use specific rule codes when ignoring type issues
+    "SIM103", # Return the condition directly
+    "SIM117", # Use a single `with` statement with multiple contexts
+]
+"cookiecutter/*" = [
+    "S603",   # `subprocess` call: check for execution of untrusted input
+]
+"docs/conf.py" = [
+    "A001",   # Variable is shadowing a Python builtin
+    # "D100"  # Missing docstring in public module (Uncomment if D rules are enabled)
+]
+"src/khive/third_party/*" = [
+    "N815",   # Variable in class scope should not be mixedCase
+    "UP042",  # Class inherits from both `str` and `enum.Enum`
+    "RUF001", # String contains ambiguous dash
+]
+"src/khive/protocols/*" = [
+    "S110",   # `try`-`except`-`pass` detected
+]
+"src/khive/cli/*" = [
+    "F821",   # Undefined name
+    "FURB101",# `open` and `read` should be replaced by `Path().read_text()`
+    "B904",   # Within an `except` clause, raise exceptions with `raise ... from err`
+    "TRY300", # Consider moving this statement to an `else` block
+    "RET504", # Unnecessary assignment before `return` statement
+    "S603",   # `subprocess` call: check for execution of untrusted input
+    "S607",   # Starting a process with a partial executable path
+    "PERF102",# When using only the keys of a dict use the `keys()` method
+    "SIM103", # Return the condition directly
+    "ARG001", # Unused function argument
+    "F841",   # Local variable is assigned to but never used
+    "RUF029", # Function is declared `async`, but doesn't `await`
+    "FURB113",# Use `list.extend(...)` instead of repeatedly calling `list.append()`
+    "RUF005", # Consider `[x, *y]` instead of concatenation
+    "PERF401",# Use a list comprehension to create a transformed list
+    "DTZ011", # `datetime.date.today()` used
+    "C414",   # Unnecessary `list` call within `sorted()`
+    "SIM105", # Use `contextlib.suppress(OSError)` instead of `try`-`except`-`pass`
+    "TCH003", # Move standard library import into a type-checking block
+    "PGH003", # Use specific rule codes when ignoring type issues
+    "TRY004", # Prefer `TypeError` exception for invalid type
+    "PERF203",# `try`-`except`-`TypeError` that can be simplified
+]
+
+# Configuration for the 'isort' import sorter.
+[lint.isort]
+# known-first-party = ["khive"] # Example: Define your project's own modules
+# profile = "black" # Ruff's default is largely compatible with black, explicit if needed
+
+# Configuration for 'pydocstyle' if you enable 'D' rules in `select`.
+# [lint.pydocstyle]
+# convention = "google" # Or "numpy", "pep257"
+# Example: Add D rules to `select` like "D100", "D101", "D102", "D103"
+# You would then uncomment the D-related ignores in `per-file-ignores` as needed.
+
+[format]
+# Configures the formatter to be equivalent to Black.
+# quote-style = "double" # Default is "double" which matches Black
+# indent-style = "space" # Default
+# skip-magic-trailing-comma = false # Default, matches Black
+# line-ending = "lf" # Optional: Enforce Unix line endings
+preview = true # Enable preview mode for formatting (align with pre-commit args if used)
+# quote-style = "preserve" # This was your original setting, uncomment if you prefer it over Black's default "double"
