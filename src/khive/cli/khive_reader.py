@@ -34,13 +34,13 @@ from typing import Any, Final
 # --------------------------------------------------------------------------- #
 try:
     # Assuming parts.py and reader_service.py are in khive.services.reader
-    from khive.services.reader.parts import ReaderRequest  # Main request model
-    from khive.services.reader.parts import ReaderResponse  # Main response model
     from khive.services.reader.parts import (  # Import specific param models
         ReaderAction,
         ReaderListDirParams,
         ReaderOpenParams,
         ReaderReadParams,
+        ReaderRequest,  # Main request model
+        ReaderResponse,  # Main response model
     )
     from khive.services.reader.reader_service import ReaderService
 except ModuleNotFoundError as e:
@@ -64,7 +64,9 @@ def _load_cache() -> dict[str, Any]:
         try:
             return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
         except Exception:
-            pass  # fall through to new cache
+            sys.stderr.write(
+                f"Failed to load cache from {CACHE_FILE}. Starting with an empty cache."
+            )
     return {}
 
 

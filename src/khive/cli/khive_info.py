@@ -28,7 +28,7 @@ import asyncio
 import json
 import logging
 import sys
-from typing import Any, Dict, List, Union
+from typing import Any
 
 # Configure basic logging for the CLI
 logging.basicConfig(
@@ -86,11 +86,11 @@ async def run_info_request_and_print(request_model: InfoRequest) -> None:
         sys.exit(1)
 
 
-def parse_key_value_options(options_list: List[str] | None) -> Dict[str, Any]:
+def parse_key_value_options(options_list: list[str] | None) -> dict[str, Any]:
     """Parses a list of 'key=value' strings into a dictionary with naive type casting."""
     if not options_list:
         return {}
-    parsed_options: Dict[str, Any] = {}
+    parsed_options: dict[str, Any] = {}
     for item in options_list:
         if "=" not in item:
             logger.warning(
@@ -123,7 +123,7 @@ def parse_key_value_options(options_list: List[str] | None) -> Dict[str, Any]:
     return parsed_options
 
 
-def create_perplexity_messages(query: str) -> List[PerplexityMessage]:
+def create_perplexity_messages(query: str) -> list[PerplexityMessage]:
     """Helper to create a simple messages list for Perplexity from a query."""
     return [PerplexityMessage(role="user", content=query)]
 
@@ -186,7 +186,7 @@ def main() -> None:
     args = parser.parse_args()
     action = InfoAction(args.action_command)
 
-    params_for_action: Union[InfoSearchParams, InfoConsultParams]
+    params_for_action: InfoSearchParams | InfoConsultParams
     final_request_payload: InfoRequest
 
     try:
@@ -204,7 +204,7 @@ def main() -> None:
             # The primary query is always present. Provider options can override or add to it.
             provider_specific_payload_dict = {"query": args.query, **provider_options}
 
-            provider_model_instance: Union[ExaSearchRequest, PerplexityChatRequest]
+            provider_model_instance: ExaSearchRequest | PerplexityChatRequest
 
             if provider == SearchProvider.EXA:
                 # Ensure 'query' is correctly mapped if 'query' was also in options (options take precedence)

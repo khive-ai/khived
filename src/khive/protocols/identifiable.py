@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
@@ -20,18 +20,18 @@ class Identifiable(BaseModel):
         frozen=True,
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC),
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Creation timestamp for the element.",
         frozen=True,
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC),
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Last updated timestamp for the element.",
     )
 
     def update_timestamp(self) -> None:
         """Update the last updated timestamp to the current time."""
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = datetime.now(timezone.utc)
 
     @field_serializer("id")
     def _serialize_ids(self, v: UUID) -> str:

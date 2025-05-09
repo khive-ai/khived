@@ -95,6 +95,7 @@ ignore = [
     "N805",   # Default argument value is mutable (This was likely an intended ignore, you can confirm)
     "TRY300",
     "TRY301",
+    "TCH001",
 ]
 
 # Per-file ignores allow you to disable specific rules for certain files or directories.
@@ -115,6 +116,7 @@ ignore = [
     "PGH003", # Use specific rule codes when ignoring type issues
     "SIM103", # Return the condition directly
     "SIM117", # Use a single `with` statement with multiple contexts
+    "E402",
 ]
 "cookiecutter/*" = [
     "S603",   # `subprocess` call: check for execution of untrusted input
