@@ -453,7 +453,7 @@ def create_document(
 
 
 # --- CLI Entrypoint ---
-def cli_entry_new_doc() -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="khive document scaffolder from templates."
     )
@@ -628,4 +628,4 @@ def cli_entry_new_doc() -> None:
 
 
 if __name__ == "__main__":
-    cli_entry_new_doc()
+    main()

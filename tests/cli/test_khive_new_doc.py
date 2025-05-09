@@ -12,11 +12,11 @@ import pytest
 from khive.cli.khive_new_doc import (
     NewDocConfig,
     Template,
-    cli_entry_new_doc,
     create_document,
     discover_templates,
     find_template,
     load_new_doc_config,
+    main,
     parse_frontmatter,
     substitute_placeholders,
 )
@@ -445,7 +445,7 @@ def test_cli_list_templates(mock_load_config, mock_discover, capsys):
     mock_discover.return_value = [mock_template1, mock_template2]
 
     # Act
-    cli_entry_new_doc()
+    main()
 
     # Assert
     captured = capsys.readouterr()
@@ -521,7 +521,7 @@ def test_cli_json_output(
     }
 
     # Act
-    cli_entry_new_doc()
+    main()
 
     # Assert
     captured = capsys.readouterr()
@@ -564,7 +564,7 @@ def test_cli_template_not_found(
     mock_die_doc.side_effect = lambda msg, *args, **kwargs: None
 
     # Act
-    cli_entry_new_doc()
+    main()
 
     # Assert
     mock_die_doc.assert_called_once()

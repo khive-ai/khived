@@ -9,7 +9,7 @@ in khive.cli.khive_new_doc.
 from __future__ import annotations
 
 # Import the original implementation
-from khive.cli.khive_new_doc import cli_entry_new_doc
+from khive.cli.khive_new_doc import main as original_main
 
 
 def cli_entry() -> None:
@@ -18,7 +18,7 @@ def cli_entry() -> None:
 
     This function delegates to the original implementation.
     """
-    cli_entry_new_doc()
+    original_main()
 
 
 if __name__ == "__main__":

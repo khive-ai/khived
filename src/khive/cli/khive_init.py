@@ -704,7 +704,7 @@ async def _run(config: InitConfig) -> list[dict[str, Any]]:
 
 
 # ────────── CLI Entrypoint ──────────
-def _cli() -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(description="khive project initialization tool.")
     parser.add_argument(
         "--project-root",
@@ -789,7 +789,7 @@ if __name__ == "__main__":
     # This ensures that if the script is run directly, it behaves as expected.
     # The khive_cli.py dispatcher would call _cli() or main() on the imported module.
     # For consistency, let's assume khive_cli.py will call a function named 'main_entry'.
-    _cli()
+    main()
 
 
 # To be called by khive_cli.py
@@ -830,7 +830,7 @@ def main_entry(argv: list[str] | None = None) -> None:
         sys.argv = [script_name] + argv
 
     try:
-        _cli()
+        main()
     finally:
         if original_argv is not None:
             sys.argv = original_argv  # Restore original sys.argv

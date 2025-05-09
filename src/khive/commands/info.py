@@ -9,7 +9,7 @@ in khive.cli.khive_search.
 from __future__ import annotations
 
 # Import the original implementation
-from khive.cli.khive_search import main as original_main
+from khive.cli.khive_info import main as original_main
 
 
 def cli_entry() -> None:

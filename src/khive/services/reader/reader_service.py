@@ -52,19 +52,19 @@ class ReaderService:
         self.converter: DocumentConverter = DocumentConverter()
         self.documents = {}  # doc_id -> (temp_file_path, doc_length, num_tokens)
 
-    async def handle_request(self, request: ReaderRequest) -> ReaderResponse:
+    def handle_request(self, request: ReaderRequest) -> ReaderResponse:
         if request.action == ReaderAction.OPEN:
-            return await self._open_doc(request.params)
+            return self._open_doc(request.params)
         if request.action == ReaderAction.READ:
-            return await self._read_doc(request.params)
+            return self._read_doc(request.params)
         if request.action == ReaderAction.LIST_DIR:
-            return await self._list_dir(request.params)
+            return self._list_dir(request.params)
         return ReaderResponse(
             success=False,
             error="Unknown action type, must be one of: open, read, list_dir",
         )
 
-    async def _open_doc(self, params: ReaderOpenParams) -> ReaderResponse:
+    def _open_doc(self, params: ReaderOpenParams) -> ReaderResponse:
         # Check if it's a URL
         is_url = params.path_or_url.startswith(("http://", "https://", "ftp://"))
 
@@ -97,7 +97,7 @@ class ReaderService:
         doc_id = f"DOC_{abs(hash(params.path_or_url))}"
         return self._save_to_temp(text, doc_id)
 
-    async def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
+    def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
         if params.doc_id not in self.documents:
             return ReaderResponse(success=False, error="doc_id not found in memory")
 
@@ -117,7 +117,7 @@ class ReaderService:
             chunk=PartialChunk(start_offset=s, end_offset=e, content=content),
         )
 
-    async def _list_dir(self, params: ReaderListDirParams) -> ReaderResponse:
+    def _list_dir(self, params: ReaderListDirParams) -> ReaderResponse:
         from .utils import dir_to_files
 
         files = dir_to_files(
@@ -127,7 +127,7 @@ class ReaderService:
         doc_id = f"DIR_{abs(hash(params.directory))}"
         return self._save_to_temp(files, doc_id)
 
-    async def _save_to_temp(self, text, doc_id) -> ReaderResponse:
+    def _save_to_temp(self, text, doc_id) -> ReaderResponse:
         temp_file = tempfile.NamedTemporaryFile(
             delete=False, mode="w", encoding="utf-8"
         )
