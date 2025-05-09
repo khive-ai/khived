@@ -528,7 +528,7 @@ def _main_pr_flow(args: argparse.Namespace, config: PRConfig) -> dict[str, Any]:
 
 
 # --- CLI Entrypoint ---
-def cli_entry_pr() -> None:
+def main() -> None:
     parser = argparse.ArgumentParser(description="khive Git PR helper.")
 
     # PR content
@@ -628,4 +628,4 @@ def cli_entry_pr() -> None:
 
 
 if __name__ == "__main__":
-    cli_entry_pr()
+    main()
