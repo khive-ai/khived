@@ -20,6 +20,7 @@ dev = [
     "ipykernel>=6.29.5",
     "pre-commit>=4.2.0",
     "pytest-asyncio>=0.23.0", # Added pytest-asyncio
+    "pytest-cov>=4.1.0",
     "pytest-mock>=3.10.0",
     "ruff>=0.11.8",
 ]
