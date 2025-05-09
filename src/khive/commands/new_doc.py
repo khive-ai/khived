@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""
+new_doc.py - Scaffold Markdown documents from templates.
+
+This is an adapter module that delegates to the original implementation
+in khive.cli.khive_new_doc.
+"""
+
+from __future__ import annotations
+
+# Import the original implementation
+from khive.cli.khive_new_doc import cli_entry_new_doc
+
+
+def cli_entry() -> None:
+    """
+    Entry point for the new-doc command.
+
+    This function delegates to the original implementation.
+    """
+    cli_entry_new_doc()
+
+
+if __name__ == "__main__":
+    cli_entry()
