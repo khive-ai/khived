@@ -20,13 +20,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from khive.cli.khive_pr import (
     PRConfig,
     _main_pr_flow,
-    cli_entry_pr,
     get_current_branch_pr,
     get_default_base_branch_pr,
     get_existing_pr_details,
     get_last_commit_details_pr,
     git_run_pr,
     load_pr_config,
+    main,
 )
 
 
@@ -573,7 +573,7 @@ def test_cli_entry_pr_with_valid_arguments(mocker: MagicMock):
     mock_path_is_dir.return_value = True
 
     # Act
-    cli_entry_pr()
+    main()
 
     # Assert
     mock_main_flow.assert_called_once()
@@ -600,7 +600,7 @@ def test_cli_entry_pr_with_json_output(mocker: MagicMock):
     mock_print = mocker.patch("builtins.print")
 
     # Act
-    cli_entry_pr()
+    main()
 
     # Assert
     mock_json_dumps.assert_called_once_with(
@@ -618,7 +618,7 @@ def test_cli_entry_pr_with_invalid_project_root(mocker: MagicMock):
 
     # Act
     with pytest.raises(SystemExit):
-        cli_entry_pr()
+        main()
 
     # Assert
     mock_die_pr.assert_called_once()
