@@ -18,6 +18,7 @@ Features
 * **JSON output** option for machine-readable results
 * **Configuration** via .khive/commit.toml
 * **Auto-publish branch** if not already tracking a remote.
+* **Mode Indication** via `--by` flag, adding a `Committed-by:` trailer.
 Synopsis
 --------
 ```bash
@@ -26,6 +27,7 @@ khive_commit.py "fix: missing null-check" --patch --no-push
 khive_commit.py "chore!: bump API to v2" --amend -v
 khive_commit.py --type feat --scope ui --subject "add dark-mode toggle" --search-id pplx-abc
 khive_commit.py --interactive
+khive_commit.py --type feat --scope api --subject "new endpoint" --by khive-coder
 ```
 """
 
@@ -404,6 +406,10 @@ def build_commit_message_from_args(
     if args.closes:
         extra_info.append(f"Closes #{args.closes}")
 
+    trailers = []
+    if args.by:
+        trailers.append(f"Committed-by: {args.by}")
+
     if extra_info:  # Add as a new paragraph in the body if body exists, or as the body
         if body_parts:
             body_parts.append("")  # Ensure separation
@@ -463,6 +469,9 @@ def interactive_commit_prompt(config: CommitConfig) -> str | None:
 
         closes_issue = input("Issue ID this closes (e.g., 123, optional): ").strip()
         search_id = input("Search ID for evidence (e.g., pplx-abc, optional): ").strip()
+        committed_by = input(
+            "Committed by (mode slug, optional, e.g., khive-implementer): "
+        ).strip()
 
         # Construct message (similar to build_commit_message_from_args)
         header = commit_type
@@ -491,6 +500,18 @@ def interactive_commit_prompt(config: CommitConfig) -> str | None:
         final_message = header
         if full_body_parts:
             final_message += "\n\n" + "\n".join(full_body_parts)
+
+        if committed_by:
+            # Ensure a blank line before the trailer if there's any body
+            if full_body_parts or "\n\n" not in final_message:
+                if final_message.count("\n") >= 2 and not final_message.endswith(
+                    "\n\n"
+                ):
+                    final_message += "\n"
+                final_message += "\n"
+            else:  # Header only
+                final_message += "\n\n"
+            final_message += f"Committed-by: {committed_by}"
 
         info_msg("\nConstructed commit message:", console=not config.json_output)
         if not config.json_output:
@@ -787,6 +808,10 @@ def main() -> None:
     )
     group_struct.add_argument(
         "--search-id", help="Search ID for evidence (e.g., pplx-abc)."
+    )
+    group_struct.add_argument(
+        "--by",
+        help="Mode slug indicating the committer's 'persona' (e.g., khive-implementer, khive-researcher).",
     )
 
     parser.add_argument(
