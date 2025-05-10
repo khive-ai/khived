@@ -8,13 +8,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 from khive.cli.khive_fmt import (
-    FmtConfig,
     MAX_FILES_PER_BATCH,
+    FmtConfig,
     StackConfig,
+    _main_fmt_flow,
     find_files,
     format_stack,
     load_fmt_config,
-    _main_fmt_flow,
 )
 
 
@@ -233,7 +233,7 @@ def test_batching_error_handling():
     check_only = True
     if not all_success and not check_only:
         # This should not be reached
-        assert False
+        raise AssertionError("This code path should not be reached")
 
 
 @patch("khive.cli.khive_fmt.run_command")
