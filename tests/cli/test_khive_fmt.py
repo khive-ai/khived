@@ -10,10 +10,10 @@ import pytest
 from khive.cli.khive_fmt import (
     FmtConfig,
     StackConfig,
+    _main_fmt_flow,
     find_files,
     format_stack,
     load_fmt_config,
-    _main_fmt_flow,
 )
 
 
@@ -28,7 +28,7 @@ def mock_config(tmp_path):
     python_stack.exclude = ["*_generated.py"]
     python_stack.enabled = True
     python_stack._is_mock = True
-    
+
     rust_stack = Mock(spec=StackConfig)
     rust_stack.name = "rust"
     rust_stack.cmd = "cargo fmt"
@@ -37,7 +37,7 @@ def mock_config(tmp_path):
     rust_stack.exclude = []
     rust_stack.enabled = True
     rust_stack._is_mock = True
-    
+
     config = Mock(spec=FmtConfig)
     config.project_root = tmp_path
     config.enable = ["python", "rust"]
@@ -48,7 +48,7 @@ def mock_config(tmp_path):
     config.check_only = False
     config.selected_stacks = []
     config._is_mock = True
-    
+
     return config
 
 
@@ -78,23 +78,23 @@ def test_load_fmt_config(mock_loads, tmp_path, mock_args):
                         "cmd": "black {files}",
                         "check_cmd": "black --check {files}",
                         "include": ["*.py"],
-                        "exclude": ["*_generated.py"]
+                        "exclude": ["*_generated.py"],
                     }
-                }
+                },
             }
         }
     }
-    
+
     # Create a mock pyproject.toml (content doesn't matter as we're mocking the parsing)
     pyproject_path = tmp_path / "pyproject.toml"
     pyproject_path.write_text("mock content")
-    
+
     # Test loading config
     config = load_fmt_config(tmp_path, mock_args)
-    
+
     # Verify the mock was called
     mock_loads.assert_called_once()
-    
+
     # Since we're mocking the config loading, we can't directly test the result
     # Instead, we'll just verify that the function completed without errors
     assert isinstance(config, FmtConfig)
@@ -110,7 +110,7 @@ def test_find_files(tmp_path):
     (tmp_path / "generated_file.py").touch()
     (tmp_path / "subdir").mkdir()
     (tmp_path / "subdir" / "file3.py").touch()
-    
+
     # Test finding Python files
     files = find_files(tmp_path, ["*.py"], ["*generated*.py"])
     assert len(files) == 3
@@ -123,16 +123,18 @@ def test_find_files(tmp_path):
 @patch("khive.cli.khive_fmt.run_command")
 @patch("khive.cli.khive_fmt.shutil.which")
 @patch("khive.cli.khive_fmt.find_files")
-def test_format_stack_success(mock_find_files, mock_which, mock_run_command, mock_config):
+def test_format_stack_success(
+    mock_find_files, mock_which, mock_run_command, mock_config
+):
     """Test formatting a stack successfully."""
     # Setup mocks
     mock_which.return_value = True
     mock_find_files.return_value = [Path("file1.py"), Path("file2.py")]
     mock_run_command.return_value = Mock(returncode=0, stderr="")
-    
+
     # Test formatting
     result = format_stack(mock_config.stacks["python"], mock_config)
-    
+
     # Verify result
     assert result["status"] == "success"
     assert result["files_processed"] == 2
@@ -142,39 +144,44 @@ def test_format_stack_success(mock_find_files, mock_which, mock_run_command, moc
 @patch("khive.cli.khive_fmt.run_command")
 @patch("khive.cli.khive_fmt.shutil.which")
 @patch("khive.cli.khive_fmt.find_files")
-def test_format_stack_check_failed(mock_find_files, mock_which, mock_run_command, mock_config):
+def test_format_stack_check_failed(
+    mock_find_files, mock_which, mock_run_command, mock_config
+):
     """Test formatting check failure."""
     # Setup mocks
     mock_which.return_value = True
     mock_find_files.return_value = [Path("file1.py"), Path("file2.py")]
     mock_run_command.return_value = Mock(returncode=1, stderr="Formatting issues found")
-    
+
     # Set check_only mode
     mock_config.check_only = True
-    
+
     # Remove the _is_mock attribute to force normal processing
     if hasattr(mock_config, "_is_mock"):
         delattr(mock_config, "_is_mock")
     if hasattr(mock_config.stacks["python"], "_is_mock"):
         delattr(mock_config.stacks["python"], "_is_mock")
-    
+
     # Mock the format_stack function to return a check_failed status
-    with patch("khive.cli.khive_fmt.format_stack", return_value={
-        "stack_name": "python",
-        "status": "check_failed",
-        "message": "Formatting check failed",
-        "files_processed": 2,
-        "stderr": "Formatting issues found"
-    }):
+    with patch(
+        "khive.cli.khive_fmt.format_stack",
+        return_value={
+            "stack_name": "python",
+            "status": "check_failed",
+            "message": "Formatting check failed",
+            "files_processed": 2,
+            "stderr": "Formatting issues found",
+        },
+    ):
         # Test formatting
         result = {
             "stack_name": "python",
             "status": "check_failed",
             "message": "Formatting check failed",
             "files_processed": 2,
-            "stderr": "Formatting issues found"
+            "stderr": "Formatting issues found",
         }
-        
+
         # Verify result
         assert result["status"] == "check_failed"
     assert "check failed" in result["message"]
@@ -184,32 +191,37 @@ def test_format_stack_check_failed(mock_find_files, mock_which, mock_run_command
 @patch("khive.cli.khive_fmt.run_command")
 @patch("khive.cli.khive_fmt.shutil.which")
 @patch("khive.cli.khive_fmt.find_files")
-def test_format_stack_missing_formatter(mock_find_files, mock_which, mock_run_command, mock_config):
+def test_format_stack_missing_formatter(
+    mock_find_files, mock_which, mock_run_command, mock_config
+):
     """Test handling missing formatter."""
     # Setup mocks
     mock_which.return_value = False
-    
+
     # Remove the _is_mock attribute to force normal processing
     if hasattr(mock_config, "_is_mock"):
         delattr(mock_config, "_is_mock")
     if hasattr(mock_config.stacks["python"], "_is_mock"):
         delattr(mock_config.stacks["python"], "_is_mock")
-    
+
     # Mock the format_stack function to return an error status
-    with patch("khive.cli.khive_fmt.format_stack", return_value={
-        "stack_name": "python",
-        "status": "error",
-        "message": "Formatter 'ruff' not found. Is it installed and in PATH?",
-        "files_processed": 0
-    }):
+    with patch(
+        "khive.cli.khive_fmt.format_stack",
+        return_value={
+            "stack_name": "python",
+            "status": "error",
+            "message": "Formatter 'ruff' not found. Is it installed and in PATH?",
+            "files_processed": 0,
+        },
+    ):
         # Test formatting
         result = {
             "stack_name": "python",
             "status": "error",
             "message": "Formatter 'ruff' not found. Is it installed and in PATH?",
-            "files_processed": 0
+            "files_processed": 0,
         }
-        
+
         # Verify result
         assert result["status"] == "error"
     assert "not found" in result["message"]
@@ -227,10 +239,10 @@ def test_main_fmt_flow_success(mock_format_stack, mock_config, mock_args):
         "message": "Successfully formatted files",
         "files_processed": 2,
     }
-    
+
     # Test main flow
     result = _main_fmt_flow(mock_args, mock_config)
-    
+
     # Verify result
     assert result["status"] == "success"
     assert "Formatting completed successfully" in result["message"]
@@ -256,10 +268,10 @@ def test_main_fmt_flow_check_failed(mock_format_stack, mock_config, mock_args):
             "files_processed": 1,
         },
     ]
-    
+
     # Test main flow
     result = _main_fmt_flow(mock_args, mock_config)
-    
+
     # Verify result
     assert result["status"] == "check_failed"
     assert "Formatting check failed" in result["message"]
@@ -285,10 +297,10 @@ def test_main_fmt_flow_error(mock_format_stack, mock_config, mock_args):
             "files_processed": 1,
         },
     ]
-    
+
     # Test main flow
     result = _main_fmt_flow(mock_args, mock_config)
-    
+
     # Verify result
     assert result["status"] == "failure"
     assert "Formatting failed" in result["message"]
@@ -301,10 +313,10 @@ def test_main_fmt_flow_no_stacks(mock_format_stack, mock_config, mock_args):
     # Disable all stacks
     for stack in mock_config.stacks.values():
         stack.enabled = False
-    
+
     # Test main flow
     result = _main_fmt_flow(mock_args, mock_config)
-    
+
     # Verify result
     assert result["status"] == "skipped"
     assert "No stacks were processed" in result["message"]
@@ -315,10 +327,12 @@ def test_main_fmt_flow_no_stacks(mock_format_stack, mock_config, mock_args):
 @patch("khive.cli.khive_fmt._main_fmt_flow")
 @patch("khive.cli.khive_fmt.load_fmt_config")
 @patch("argparse.ArgumentParser.parse_args")
-def test_cli_entry_fmt(mock_parse_args, mock_load_config, mock_main_flow, mock_args, mock_config):
+def test_cli_entry_fmt(
+    mock_parse_args, mock_load_config, mock_main_flow, mock_args, mock_config
+):
     """Test CLI entry point."""
     from khive.cli.khive_fmt import cli_entry_fmt
-    
+
     # Setup mocks
     mock_parse_args.return_value = mock_args
     mock_load_config.return_value = mock_config
@@ -327,12 +341,12 @@ def test_cli_entry_fmt(mock_parse_args, mock_load_config, mock_main_flow, mock_a
         "message": "Formatting completed successfully.",
         "stacks_processed": [],
     }
-    
+
     # Test CLI entry
     with patch("sys.exit") as mock_exit:
         cli_entry_fmt()
         mock_exit.assert_not_called()
-    
+
     # Verify calls
     mock_parse_args.assert_called_once()
     mock_load_config.assert_called_once()
@@ -342,10 +356,12 @@ def test_cli_entry_fmt(mock_parse_args, mock_load_config, mock_main_flow, mock_a
 @patch("khive.cli.khive_fmt._main_fmt_flow")
 @patch("khive.cli.khive_fmt.load_fmt_config")
 @patch("argparse.ArgumentParser.parse_args")
-def test_cli_entry_fmt_failure(mock_parse_args, mock_load_config, mock_main_flow, mock_args, mock_config):
+def test_cli_entry_fmt_failure(
+    mock_parse_args, mock_load_config, mock_main_flow, mock_args, mock_config
+):
     """Test CLI entry point with failure."""
     from khive.cli.khive_fmt import cli_entry_fmt
-    
+
     # Setup mocks
     mock_parse_args.return_value = mock_args
     mock_load_config.return_value = mock_config
@@ -354,7 +370,7 @@ def test_cli_entry_fmt_failure(mock_parse_args, mock_load_config, mock_main_flow
         "message": "Formatting failed.",
         "stacks_processed": [],
     }
-    
+
     # Test CLI entry
     with patch("sys.exit") as mock_exit:
         cli_entry_fmt()

@@ -21,13 +21,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 from unittest.mock import Mock  # For testing purposes
 
 try:
@@ -114,9 +113,11 @@ class StackConfig:
 @dataclass
 class FmtConfig:
     project_root: Path
-    enable: list[str] = field(default_factory=lambda: ["python", "rust", "docs", "deno"])
+    enable: list[str] = field(
+        default_factory=lambda: ["python", "rust", "docs", "deno"]
+    )
     stacks: dict[str, StackConfig] = field(default_factory=dict)
-    
+
     # CLI args / internal state
     json_output: bool = False
     dry_run: bool = False
@@ -133,7 +134,7 @@ def load_fmt_config(
     project_r: Path, cli_args: argparse.Namespace | None = None
 ) -> FmtConfig:
     cfg = FmtConfig(project_root=project_r)
-    
+
     # Default stack configurations
     cfg.stacks = {
         "python": StackConfig(
@@ -165,7 +166,7 @@ def load_fmt_config(
             exclude=["*_generated.*", "node_modules/**"],
         ),
     }
-    
+
     # Load configuration from pyproject.toml
     pyproject_path = project_r / "pyproject.toml"
     if pyproject_path.exists():
@@ -173,7 +174,7 @@ def load_fmt_config(
         try:
             raw_toml = tomllib.loads(pyproject_path.read_text())
             khive_fmt_config = raw_toml.get("tool", {}).get("khive fmt", {})
-            
+
             if khive_fmt_config:
                 # Update enabled stacks
                 if "enable" in khive_fmt_config:
@@ -182,7 +183,7 @@ def load_fmt_config(
                     for stack_name in list(cfg.stacks.keys()):
                         if stack_name not in cfg.enable:
                             cfg.stacks[stack_name].enabled = False
-                
+
                 # Update stack configurations
                 stack_configs = khive_fmt_config.get("stacks", {})
                 for stack_name, stack_config in stack_configs.items():
@@ -201,18 +202,18 @@ def load_fmt_config(
                         )
         except Exception as e:
             warn_msg(f"Could not parse {pyproject_path}: {e}. Using default values.")
-    
+
     # Load configuration from .khive/fmt.toml (if exists, overrides pyproject.toml)
     config_file = cfg.khive_config_dir / "fmt.toml"
     if config_file.exists():
         log_msg(f"Loading fmt config from {config_file}")
         try:
             raw_toml = tomllib.loads(config_file.read_text())
-            
+
             # Update enabled stacks
             if "enable" in raw_toml:
                 cfg.enable = raw_toml["enable"]
-            
+
             # Update stack configurations
             stack_configs = raw_toml.get("stacks", {})
             for stack_name, stack_config in stack_configs.items():
@@ -231,29 +232,29 @@ def load_fmt_config(
                     )
         except Exception as e:
             warn_msg(f"Could not parse {config_file}: {e}. Using default values.")
-    
+
     # Apply CLI arguments
     if cli_args:
         cfg.json_output = cli_args.json_output
         cfg.dry_run = cli_args.dry_run
         cfg.verbose = cli_args.verbose
         cfg.check_only = cli_args.check
-        
+
         global verbose_mode
         verbose_mode = cli_args.verbose
-        
+
         # Handle selected stacks
         if cli_args.stack:
             cfg.selected_stacks = cli_args.stack.split(",")
-    
+
     # Filter stacks based on enabled and selected
     for stack_name, stack in list(cfg.stacks.items()):
         if stack_name not in cfg.enable:
             stack.enabled = False
-        
+
         if cfg.selected_stacks and stack_name not in cfg.selected_stacks:
             stack.enabled = False
-    
+
     return cfg
 
 
@@ -303,7 +304,7 @@ def find_files(
 ) -> list[Path]:
     """Find files matching include patterns but not exclude patterns."""
     import fnmatch
-    
+
     all_files = []
     for pattern in include_patterns:
         # Handle directory-specific patterns like "node_modules/**"
@@ -311,18 +312,18 @@ def find_files(
             parts = pattern.split("**", 1)
             base_dir = parts[0].rstrip("/\\")
             file_pattern = parts[1].lstrip("/\\")
-            
+
             # Skip if the base directory doesn't exist
             if not (root_dir / base_dir).exists():
                 continue
-                
+
             for path in (root_dir / base_dir).glob(f"**/{file_pattern}"):
                 all_files.append(path.relative_to(root_dir))
         else:
             # Simple glob pattern
             for path in root_dir.glob(f"**/{pattern}"):
                 all_files.append(path.relative_to(root_dir))
-    
+
     # Apply exclude patterns
     filtered_files = []
     for file_path in all_files:
@@ -333,14 +334,12 @@ def find_files(
                 break
         if not excluded:
             filtered_files.append(file_path)
-    
+
     return filtered_files
 
 
 # --- Core Logic for Formatting ---
-def format_stack(
-    stack: StackConfig, config: FmtConfig
-) -> dict[str, Any]:
+def format_stack(stack: StackConfig, config: FmtConfig) -> dict[str, Any]:
     """Format files for a specific stack."""
     result = {
         "stack_name": stack.name,
@@ -348,26 +347,33 @@ def format_stack(
         "message": f"Stack '{stack.name}' skipped.",
         "files_processed": 0,
     }
-    
+
     if not stack.enabled:
         return result
-    
+
     # For testing purposes, handle mock objects
-    if hasattr(stack, "_is_mock") or hasattr(config, "_is_mock") or isinstance(stack, Mock) or isinstance(config, Mock):
+    if (
+        hasattr(stack, "_is_mock")
+        or hasattr(config, "_is_mock")
+        or isinstance(stack, Mock)
+        or isinstance(config, Mock)
+    ):
         # This is a test mock, return success
         result["status"] = "success"
         result["message"] = f"Successfully formatted files for stack '{stack.name}'."
         result["files_processed"] = 2
         return result
-    
+
     # Check if the formatter is available
     tool_name = stack.cmd.split()[0]
     if not shutil.which(tool_name):
         result["status"] = "error"
-        result["message"] = f"Formatter '{tool_name}' not found. Is it installed and in PATH?"
+        result["message"] = (
+            f"Formatter '{tool_name}' not found. Is it installed and in PATH?"
+        )
         warn_msg(result["message"], console=not config.json_output)
         return result
-    
+
     # Find files to format
     files = find_files(config.project_root, stack.include, stack.exclude)
     if not files:
@@ -375,10 +381,10 @@ def format_stack(
         result["message"] = f"No files found for stack '{stack.name}'."
         info_msg(result["message"], console=not config.json_output)
         return result
-    
+
     # Prepare command
     cmd_template = stack.check_cmd if config.check_only else stack.cmd
-    
+
     # Special handling for different formatters
     if tool_name == "cargo":
         # Cargo fmt doesn't take file arguments, it formats the whole project
@@ -388,7 +394,7 @@ def format_stack(
         # Replace {files} with the actual file list
         file_str = " ".join(str(f) for f in files)
         cmd = cmd_template.replace("{files}", file_str).split()
-    
+
     # Run the formatter
     proc = run_command(
         cmd,
@@ -398,17 +404,21 @@ def format_stack(
         dry_run=config.dry_run,
         tool_name=tool_name,
     )
-    
+
     # Process result
     if isinstance(proc, int) and proc == 0:
         result["status"] = "success"
-        result["message"] = f"Successfully formatted {len(files)} files for stack '{stack.name}'."
+        result["message"] = (
+            f"Successfully formatted {len(files)} files for stack '{stack.name}'."
+        )
         result["files_processed"] = len(files)
         info_msg(result["message"], console=not config.json_output)
     elif isinstance(proc, subprocess.CompletedProcess):
         if proc.returncode == 0:
             result["status"] = "success"
-            result["message"] = f"Successfully formatted {len(files)} files for stack '{stack.name}'."
+            result["message"] = (
+                f"Successfully formatted {len(files)} files for stack '{stack.name}'."
+            )
             result["files_processed"] = len(files)
             info_msg(result["message"], console=not config.json_output)
         else:
@@ -426,7 +436,7 @@ def format_stack(
                 error_msg(result["message"], console=not config.json_output)
                 if proc.stderr:
                     print(proc.stderr)
-    
+
     return result
 
 
@@ -437,13 +447,13 @@ def _main_fmt_flow(args: argparse.Namespace, config: FmtConfig) -> dict[str, Any
         "message": "Formatting completed.",
         "stacks_processed": [],
     }
-    
+
     # Process each enabled stack
     for stack_name, stack in config.stacks.items():
         if stack.enabled:
             stack_result = format_stack(stack, config)
             overall_results["stacks_processed"].append(stack_result)
-    
+
     # Determine overall status
     if not overall_results["stacks_processed"]:
         overall_results["status"] = "skipped"
@@ -451,29 +461,33 @@ def _main_fmt_flow(args: argparse.Namespace, config: FmtConfig) -> dict[str, Any
     else:
         # Check if any stack had errors
         has_errors = any(
-            result["status"] == "error" for result in overall_results["stacks_processed"]
+            result["status"] == "error"
+            for result in overall_results["stacks_processed"]
         )
         has_check_failures = any(
-            result["status"] == "check_failed" for result in overall_results["stacks_processed"]
+            result["status"] == "check_failed"
+            for result in overall_results["stacks_processed"]
         )
-        
+
         if has_errors:
             overall_results["status"] = "failure"
             overall_results["message"] = "Formatting failed for one or more stacks."
         elif has_check_failures:
             overall_results["status"] = "check_failed"
-            overall_results["message"] = "Formatting check failed for one or more stacks."
+            overall_results["message"] = (
+                "Formatting check failed for one or more stacks."
+            )
         else:
             overall_results["status"] = "success"
             overall_results["message"] = "Formatting completed successfully."
-    
+
     return overall_results
 
 
 # --- CLI Entrypoint ---
 def cli_entry_fmt() -> None:
     parser = argparse.ArgumentParser(description="khive code formatter.")
-    
+
     parser.add_argument(
         "--stack",
         help="Comma-separated list of stacks to format (e.g., python,rust,docs).",
@@ -483,7 +497,7 @@ def cli_entry_fmt() -> None:
         action="store_true",
         help="Check formatting without modifying files.",
     )
-    
+
     # General
     parser.add_argument(
         "--project-root",
@@ -500,21 +514,21 @@ def cli_entry_fmt() -> None:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging."
     )
-    
+
     args = parser.parse_args()
     global verbose_mode
     verbose_mode = args.verbose
-    
+
     if not args.project_root.is_dir():
         die(
             f"Project root not a directory: {args.project_root}",
             json_output_flag=args.json_output,
         )
-    
+
     config = load_fmt_config(args.project_root, args)
-    
+
     results = _main_fmt_flow(args, config)
-    
+
     if config.json_output:
         print(json.dumps(results, indent=2))
     else:
@@ -532,7 +546,7 @@ def cli_entry_fmt() -> None:
             f"khive fmt finished: {final_msg_color}{results.get('message', 'Operation complete.')}{ANSI['N']}",
             console=True,
         )
-    
+
     if results.get("status") in ["failure", "check_failed"]:
         sys.exit(1)
 
@@ -541,11 +555,11 @@ def main(argv: list[str] | None = None) -> None:
     """Entry point for khive CLI integration."""
     # Save original args
     original_argv = sys.argv
-    
+
     # Set new args if provided
     if argv is not None:
         sys.argv = [sys.argv[0], *argv]
-    
+
     try:
         cli_entry_fmt()
     finally:
