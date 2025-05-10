@@ -1,6 +1,7 @@
 # Contributing to Khive
 
-Thank you for your interest in contributing to Khive! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to Khive! This document provides
+guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 
@@ -15,7 +16,8 @@ Thank you for your interest in contributing to Khive! This document provides gui
 
 ## Code of Conduct
 
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Please read it before contributing.
+By participating in this project, you agree to abide by our
+[Code of Conduct](CODE_OF_CONDUCT.md). Please read it before contributing.
 
 ## Getting Started
 
@@ -90,20 +92,25 @@ Before you begin, ensure you have the following installed:
 
 Khive uses several tools to enforce coding standards:
 
-- **Python**: [ruff](https://github.com/astral-sh/ruff) for linting and formatting
+- **Python**: [ruff](https://github.com/astral-sh/ruff) for linting and
+  formatting
 - **Rust**: `rustfmt` for formatting
 - **Markdown**: Deno's markdown formatter
 - **TypeScript/JavaScript**: Deno's formatter
 
-Run `khive fmt` to automatically format your code according to the project's standards.
+Run `khive fmt` to automatically format your code according to the project's
+standards.
 
 ### Conventional Commits
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for commit messages. This enables automatic versioning and changelog generation.
+We follow the [Conventional Commits](https://www.conventionalcommits.org/)
+specification for commit messages. This enables automatic versioning and
+changelog generation.
 
 Format: `<type>(<scope>): <description>`
 
 Types:
+
 - `feat`: A new feature
 - `fix`: A bug fix
 - `docs`: Documentation changes
@@ -129,7 +136,8 @@ When adding new features, please include appropriate tests.
 
 ## Documentation
 
-Documentation is crucial for Khive. When adding or modifying features, please update the relevant documentation:
+Documentation is crucial for Khive. When adding or modifying features, please
+update the relevant documentation:
 
 - Update the README.md if necessary
 - Update or add documentation in the docs/ directory

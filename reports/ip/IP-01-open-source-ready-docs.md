@@ -10,7 +10,10 @@ status: "Draft"
 
 ## 1. Overview
 
-This implementation plan outlines the necessary documentation updates to make the khive project "open source ready." The focus is on ensuring all documentation is clear, consistent, accurate, and accessible to new users and external contributors.
+This implementation plan outlines the necessary documentation updates to make
+the khive project "open source ready." The focus is on ensuring all
+documentation is clear, consistent, accurate, and accessible to new users and
+external contributors.
 
 ## 2. Scope
 
@@ -26,14 +29,17 @@ The scope of this implementation plan includes:
 
 ### 3.1 README.md Issues
 
-- Command inconsistency: References to `khive search` instead of the current `khive info search`
+- Command inconsistency: References to `khive search` instead of the current
+  `khive info search`
 - API key information placement: Currently in a non-prominent location
-- Project layout section: Lists individual Python files instead of describing directory structure at a higher level
+- Project layout section: Lists individual Python files instead of describing
+  directory structure at a higher level
 - Lack of clarity on `khive info` vs. `khive search`
 
 ### 3.2 LICENSE Issues
 
-- Copyright notice needs updating from "Copyright 2024 HaiyangLi" to reflect the project/organization and current year
+- Copyright notice needs updating from "Copyright 2024 HaiyangLi" to reflect the
+  project/organization and current year
 
 ### 3.3 CHANGELOG.md Issues
 

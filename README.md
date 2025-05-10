@@ -59,16 +59,19 @@ $ khive ci --check            # quick pre-commit gate
 
 ### API Keys
 
-To use the information retrieval and LLM consultation features, you'll need to set up the following API keys:
+To use the information retrieval and LLM consultation features, you'll need to
+set up the following API keys:
 
 - **PERPLEXITY_API_KEY** and **EXA_API_KEY** for `khive info search` to work
 - **OPENROUTER_API_KEY** for `khive info consult` to work
 
-You can set these as environment variables or add them to a `.env` file in your project root.
+You can set these as environment variables or add them to a `.env` file in your
+project root.
 
 ### Additional Dependencies
 
 For document reading capabilities:
+
 ```bash
 # Install reader dependencies
 $ pip install "khive[reader]"
@@ -207,6 +210,7 @@ khive/
 ```
 
 The architecture follows a modular design where:
+
 - `cli/` contains the command-line interfaces
 - `commands/` contains the business logic for each command
 - `services/` contains the core services that power the commands
@@ -224,4 +228,5 @@ The architecture follows a modular design where:
 We follow [Conventional Commits](https://www.conventionalcommits.org/) and
 semantic-release tagging.
 
-For more detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+For more detailed contribution guidelines, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
