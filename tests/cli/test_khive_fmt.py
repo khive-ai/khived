@@ -5,7 +5,7 @@ Tests for khive_fmt.py
 import argparse
 import subprocess
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import pytest
 from khive.cli.khive_fmt import (
@@ -492,7 +492,6 @@ def test_rust_skips_without_cargo_toml(tmp_path):
         assert "No Cargo.toml found" in result["message"]
         assert not mock_run_command.called
         mock_warn.assert_called_once()
-
 
 def test_continue_after_encoding_error():
     """Test that formatting continues after an encoding error."""

@@ -198,3 +198,4 @@ Add the following unit tests to `tests/cli/test_khive_fmt.py`:
   Cargo.toml
 - Day 2: Enhance error handling and add tests
 - Day 3: Manual testing and PR submission
+
