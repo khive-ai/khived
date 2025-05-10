@@ -1,7 +1,8 @@
-# Khive · Developer Toolkit for Polyglot Agent Monorepos
+# Khive: Autonomous software engineering department with github/roo
 
-[![CI Status](https://img.shields.io/github/actions/workflow/status/khive-dev/khive/ci.yml?branch=main&label=CI)](https://github.com/khive-dev/khive/actions)
-[![Coverage](https://img.shields.io/badge/coverage-80%2B-blue.svg)](#)
+[![PyPI version](https://img.shields.io/pypi/v/khive.svg)](https://pypi.org/project/khive/)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/khive?color=blue)
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 [![License](https://img.shields.io/badge/license-Apache--2.0-brightgreen.svg)](LICENSE)
 
 > **Khive** is an opinionated toolbox that keeps multi-language agent projects

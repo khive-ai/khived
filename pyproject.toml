@@ -1,7 +1,7 @@
 [project]
 name = "khive"
 version = "0.2.1"
-description = "Autonomous software development with github/roo"
+description = "Autonomous software engineering department"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
