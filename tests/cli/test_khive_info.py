@@ -6,6 +6,7 @@ import contextlib
 import json
 import sys
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import urlparse
 
 import pytest
 from khive.cli.khive_info import (
@@ -120,6 +121,45 @@ def test_parse_key_value_options_basic():
     assert parse_key_value_options(options) == expected
 
 
+def validate_domains(expected_domains, actual_domains):
+    """
+    Helper function to validate that domains match exactly.
+
+    Args:
+        expected_domains: List of expected domain names
+        actual_domains: List of actual domain names to validate
+
+    Returns:
+        bool: True if all actual domains match expected domains exactly
+    """
+    if not isinstance(actual_domains, list):
+        return False
+
+    # Normalize expected domains (remove any protocol, path, etc.)
+    normalized_expected = set()
+    for domain in expected_domains:
+        # Handle bare domain names and URLs
+        if "://" in domain:
+            parsed = urlparse(domain)
+            normalized_expected.add(parsed.netloc)
+        else:
+            normalized_expected.add(domain)
+
+    # Check each actual domain against the normalized expected domains
+    for domain in actual_domains:
+        # Handle bare domain names and URLs
+        if "://" in domain:
+            parsed = urlparse(domain)
+            actual_domain = parsed.netloc
+        else:
+            actual_domain = domain
+
+        if actual_domain not in normalized_expected:
+            return False
+
+    return True
+
+
 def test_parse_key_value_options_complex_values():
     """Test parsing options with complex values (JSON-like)"""
     options = [
@@ -129,6 +169,10 @@ def test_parse_key_value_options_complex_values():
     result = parse_key_value_options(options)
 
     assert isinstance(result["domains"], list)
+    # Use the domain validation helper to ensure exact matches
+    assert validate_domains(["example.com", "test.org"], result["domains"])
+    # Also verify the individual domains are present (but this is redundant with the above check)
+    assert len(result["domains"]) == 2
     assert "example.com" in result["domains"]
     assert "test.org" in result["domains"]
 
@@ -147,6 +191,36 @@ def test_parse_key_value_options_malformed():
     assert "malformed_no_equals" not in result
     assert "also_valid" in result
     assert result["also_valid"] == 42
+
+
+def test_domain_validation_helper():
+    """Test the domain validation helper function"""
+    # Test with exact matches
+    assert validate_domains(["example.com", "test.org"], ["example.com", "test.org"])
+
+    # Test with URLs (should extract domain correctly)
+    assert validate_domains(
+        ["example.com", "test.org"],
+        ["https://example.com/path", "http://test.org/page?query=1"],
+    )
+
+    # Test with subdomains (should fail unless explicitly allowed)
+    assert not validate_domains(
+        ["example.com", "test.org"], ["sub.example.com", "test.org"]
+    )
+
+    # Test with malicious domains containing allowed domains as substrings (should fail)
+    assert not validate_domains(
+        ["example.com", "test.org"], ["malicious-example.com", "test.org"]
+    )
+    assert not validate_domains(
+        ["example.com", "test.org"], ["example.com-malicious", "test.org"]
+    )
+
+    # Test with mixed valid and invalid domains
+    assert not validate_domains(
+        ["example.com", "test.org"], ["example.com", "evil.com"]
+    )
 
 
 def test_create_perplexity_messages():
