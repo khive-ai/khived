@@ -1,7 +1,8 @@
 # Khive Resources & Tooling Cheat-Sheet
 
 > **Use Khive’s own tools first.** Workflow order of preference: **Roo internal
-> helpers → Khive CLI → Essential CLI → MCP helpers → External CLI.**
+> helpers → Khive CLI → Essential CLI → MCP helpers → External CLI.** prefer
+> khive command over `gh`, `git`, and prefer cli over `mcp`
 
 ---
 
