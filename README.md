@@ -52,7 +52,7 @@ dependencies**, and delegates real work to best-of-breed tools like `ruff`,
 
 ```bash
 # 1 · clone & install
-$ git clone https://github.com/khive-dev/khive.git
+$ git clone https://github.com/khive-ai/khive.git
 $ cd khive
 $ uv pip install -e .        # editable install - puts `khive` on your PATH
 
