@@ -145,7 +145,15 @@ def load_fmt_config(
             cmd="ruff format {files}",
             check_cmd="ruff format --check {files}",
             include=["*.py"],
-            exclude=["*_generated.py"],
+            exclude=[
+                "*_generated.py",
+                ".venv/**",
+                "venv/**",
+                "env/**",
+                ".env/**",
+                "node_modules/**",
+                "target/**",
+            ],
         ),
         "rust": StackConfig(
             name="rust",
@@ -389,6 +397,14 @@ def format_stack(stack: StackConfig, config: FmtConfig) -> dict[str, Any]:
 
     # Special handling for different formatters
     if tool_name == "cargo":
+        # Check if Cargo.toml exists
+        cargo_toml_path = config.project_root / "Cargo.toml"
+        if not cargo_toml_path.exists():
+            result["status"] = "skipped"
+            result["message"] = f"Skipping Rust formatting: No Cargo.toml found at {cargo_toml_path}"
+            warn_msg(result["message"], console=not config.json_output)
+            return result
+            
         # Cargo fmt doesn't take file arguments, it formats the whole project
         cmd_parts = cmd_template.split()
         cmd = cmd_parts
@@ -467,18 +483,39 @@ def format_stack(stack: StackConfig, config: FmtConfig) -> dict[str, Any]:
             )
 
             # Process batch result
-            if isinstance(proc, int) and proc == 0:
-                files_processed += batch_size
-            elif isinstance(proc, subprocess.CompletedProcess):
-                if proc.returncode == 0:
+            try:
+                if isinstance(proc, int) and proc == 0:
                     files_processed += batch_size
-                else:
-                    all_success = False
-                    if proc.stderr:
-                        stderr_messages.append(proc.stderr)
-                    # If not in check_only mode, stop on first error
-                    if not config.check_only:
-                        break
+                elif isinstance(proc, subprocess.CompletedProcess):
+                    if proc.returncode == 0:
+                        files_processed += batch_size
+                    else:
+                        # Check if this is an encoding error
+                        if proc.stderr and ("UnicodeDecodeError" in proc.stderr or "encoding" in proc.stderr.lower()):
+                            warn_msg(
+                                f"Encoding error in batch {i // MAX_FILES_PER_BATCH + 1}, skipping affected files",
+                                console=not config.json_output
+                            )
+                            # We don't mark all_success as False for encoding errors
+                            # but we do record the message
+                            stderr_messages.append(f"[WARNING] Encoding issues in some files: {proc.stderr}")
+                            files_processed += batch_size
+                        else:
+                            all_success = False
+                            if proc.stderr:
+                                stderr_messages.append(proc.stderr)
+                            # If not in check_only mode, stop on first error
+                            if not config.check_only:
+                                break
+            except Exception as e:
+                warn_msg(
+                    f"Error processing batch {i // MAX_FILES_PER_BATCH + 1}: {str(e)}",
+                    console=not config.json_output
+                )
+                all_success = False
+                stderr_messages.append(str(e))
+                if not config.check_only:
+                    break
 
         # Set the final result based on all batches
         if all_success:
