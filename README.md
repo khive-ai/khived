@@ -11,7 +11,7 @@
 > hygiene and doc scaffolding, then gives them a coherent UX that works the same
 > on your laptop **and** inside CI.
 
---
+---
 
 - need PERPLEXITY_API_KEY and EXA_API_KEY for `khive info search` to work
 - need OPENROUTER_API_KEY for `khive info consult` to work
@@ -30,7 +30,6 @@
 6. [Prerequisites](#prerequisites)
 7. [Project Layout](#project-layout)
 8. [Contributing](#contributing)
-9. [License](#license)
 
 ---
 
