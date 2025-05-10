@@ -173,8 +173,8 @@ def test_parse_key_value_options_complex_values():
     assert validate_domains(["example.com", "test.org"], result["domains"])
     # Also verify the individual domains are present (but this is redundant with the above check)
     assert len(result["domains"]) == 2
-    assert "example.com" in result["domains"]
-    assert "test.org" in result["domains"]
+    # Use the domain validation helper to ensure exact matches
+    assert validate_domains(["example.com", "test.org"], result["domains"])
 
     assert isinstance(result["config"], dict)
     assert result["config"]["detail"] is True
