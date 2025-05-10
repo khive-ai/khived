@@ -493,6 +493,7 @@ def test_rust_skips_without_cargo_toml(tmp_path):
         assert not mock_run_command.called
         mock_warn.assert_called_once()
 
+
 def test_continue_after_encoding_error():
     """Test that formatting continues after an encoding error."""
     # This test verifies the logic in the try/except block that handles encoding errors
