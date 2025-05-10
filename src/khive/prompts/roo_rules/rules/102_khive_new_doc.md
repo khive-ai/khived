@@ -168,9 +168,3 @@ For example, using the RR template with identifier "16-feature" might create:
 
 - `0`: Document created successfully or templates listed
 - `1`: Error occurred (template not found, file already exists, etc.)
-
-## Notes
-
-- Custom variables can be used to override any front-matter field
-- The `--dry-run` option is useful for previewing the document before creation
-- Use `--verbose` with `--dry-run` to see the full document content

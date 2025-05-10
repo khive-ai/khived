@@ -172,13 +172,3 @@ be `"retrieved_existing"` or `"opened_in_browser"` if `--web` was specified.
 
 - `0`: PR creation or retrieval completed successfully
 - `1`: Error occurred during PR creation or retrieval
-
-## Notes
-
-- The command requires both `git` and `gh` CLI tools to be installed and
-  available in the PATH
-- The GitHub CLI (`gh`) must be authenticated with appropriate permissions
-- When no PR body is provided, the command will use the last commit body or
-  GitHub PR template if available
-- The command supports both human-readable output and structured JSON output for
-  agent consumption

@@ -12,5 +12,5 @@
 | Roo runtime           | Orchestration engine with `vscode` integration | allows for sub-task delegation, context injection, and agent orchestration |
 | Khive CLI (`khive …`) | Single entry-point for all local/dev/CI tasks  | keeps dev rituals uniform; CI calls the exact same code                    |
 | Essential CLI         | `uv`, `deno`, `pytest`, `docker`, etc.         | avoids tool sprawl; ensures the Golden Path stays authoritative            |
-| MCP helpers           | We have `github` and `internal` MCP helpers    | Integrations                                                               |
+| MCP helpers           | We have `github` MCP helpers                   | Integrations                                                               |
 | External CLI          | `git`, `gh`                                    | still available but invoked through Khive commands where possible.         |

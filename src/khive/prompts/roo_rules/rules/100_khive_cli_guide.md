@@ -31,11 +31,14 @@ description: >
 | `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                                                                                                                                                    |
 | `khive new-doc` | Scaffolds markdown docs from templates with enhanced template discovery, custom variables, and flexible placeholder substitution. Supports JSON output, dry-run, and force overwrite options.                                 |
 | `khive reader`  | Opens/reads arbitrary docs via `docling`; returns JSON over stdout.                                                                                                                                                           |
-| `khive info`    | executes Exa/Perplexity searches consult with expert models                                                                                                                                                                   |
-| `khive mcp`     | Runs configuration-driven MCP servers.                                                                                                                                                                                        |
+| `khive info`    | executes Exa/Perplexity searches; consult with peer experts                                                                                                                                                                   |
 
 Run `khive <command> --help` for full flag reference.
 
+- hint: if `khive init` didn't sync the full dependencies, you can run
+  `uv sync --extra xxx` to install the extra dependencies, sometimes they might
+  add an `all` group, which will be easy to sync via `uv sync --extra all`.
+- You must do `uv run pre-commit` until no errors, before commit.
 - for `khive commit`, usually the pre-commit hook might block it from
   successfully running. you can just run `khive commit` again and again until it
   succeeds. It solves all the issues, just needs to be run multiple times.
@@ -99,77 +102,6 @@ khive info consult --question "Compare Python vs Rust for system programming" --
 ```
 
 ---
-
-## Configuration
-
-Khive reads **TOML** from your project root. All keys are optional - keep the
-file minimal and override only what you need.
-
-### `pyproject.toml` snippets
-
-```toml
-[tool.khive fmt]
-# enable/disable stacks globally
-enable = ["python", "rust", "docs", "deno"]
-
-[tool.khive fmt.stacks.python]
-cmd = "ruff format {files}"   # custom formatter
-check_cmd = "ruff format --check {files}"
-include = ["*.py"]
-exclude = ["*_generated.py"]
-```
-
-```toml
-[tool.khive-init]
-# Configuration for khive init (.khive/init.toml)
-ignore_missing_optional_tools = false
-disable_auto_stacks = ["rust"]  # Disable auto-detection of Rust projects
-force_enable_steps = ["tools"]  # Always run the tools check
-
-# Custom step - runs after built-ins
-```
-
-```toml
-[tool.khive-commit]
-# Configuration for khive commit (.khive/commit.toml)
-default_push = false  # Don't push by default
-allow_empty_commits = false
-conventional_commit_types = ["feat", "fix", "docs", "chore", "test"]
-fallback_git_user_name = "khive-bot"
-fallback_git_user_email = "khive-bot@example.com"
-default_stage_mode = "patch"  # Use interactive staging by default
-[custom_steps.docs_build]
-cmd = "pnpm run docs:build"
-run_if = "file_exists:package.json"
-cwd = "."
-```
-
-```toml
-[tool.khive-new-doc]
-# Configuration for khive new-doc (.khive/new_doc.toml)
-default_destination_base_dir = "reports"
-custom_template_dirs = ["templates", "/abs/path/templates"]
-
-[tool.khive-new-doc.default_vars]
-author = "Your Name"
-project = "Project Name"
-```
-
----
-
-## Prerequisites
-
-Khive _helps_ you install tooling but cannot conjure it from thin air. Make sure
-these binaries are reachable via `PATH`:
-
-- **Python 3.11+** & [`uv`](https://github.com/astral-sh/uv)
-- **Rust toolchain** - `cargo`, `rustc`, `rustfmt`, optional `cargo-tarpaulin`
-- **Node + pnpm** - for JS/TS stacks & Husky hooks
-- **Deno ≥ 1.42** - used for Markdown & TS fmt
-- **Git** + **GitHub CLI `gh`** - Git ops & PR automation
-- **jq** - report post-processing, coverage merging
-
-Run `khive init -v` to verify everything at once with detailed output.
 
 For more detailed documentation on the various `khive` commands, see
 

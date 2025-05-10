@@ -197,13 +197,3 @@ khive info consult --question "Optimize this SQL query: SELECT * FROM users WHER
   processing error).
 - `2`: The requested info service action was executed but reported
   `success: false` (e.g., API error, rate limit, authentication failure).
-
-## Notes
-
-- The `khive info` command relies on the `khive.services.info.InfoService` and
-  its dependencies. Ensure these are correctly installed.
-- API keys for the various services (Exa, Perplexity, OpenRouter) should be set
-  in your environment variables or configured through the khive configuration
-  system.
-- All output is a single line of JSON printed to `stdout`. Diagnostic messages
-  or errors may go to `stderr`.
