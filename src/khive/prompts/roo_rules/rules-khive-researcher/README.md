@@ -48,9 +48,7 @@ workflow, the first stage before Design.
 **Golden 30-minute Loop (repeat until confident)**
 
 1. **Clarify the question** (→ bullet hypotheses & unknowns).
-2. **Run focused search**
-   - Preferred: `khive search` (Perplexity or exa)
-   - As fallback: `mcp: info_group`
+2. **Run focused search**: `khive info search` (Perplexity or exa)
 3. **Skim results → extract 3-5 concrete facts**
    - Copy the _raw JSON blob_ (Perplexity) into _Appendix A_ for provenance.
 4. **Write / update the report skeleton** (template section headings).
@@ -77,8 +75,8 @@ workflow, the first stage before Design.
 
 | Task                   | Primary (local)          | Fallback (MCP)                                                         |
 | ---------------------- | ------------------------ | ---------------------------------------------------------------------- |
-| Run searches           | `khive search`           | `mcp: info_group_perplexity_search`                                    |
-| Deep-dive papers / PDF | -                        | `mcp: info_group_exa_search` + `mcp: fetch`, perplexity deep research  |
+| Run searches           | `khive info`             | -                                                                      |
+| Deep-dive papers / PDF | `khive reader`           | `mcp: fetch`                                                           |
 | Read repo files        | editor, or `cat <path>`  | `mcp: github.get_file_contents`                                        |
 | Commit / PR            | `khive commit, khive pr` | `mcp: github.create_or_update_file`, `mcp: github.create_pull_request` |
 

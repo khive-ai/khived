@@ -1,4 +1,7 @@
-# project: khive
+# project: {{project}}
+
+- repo owner: {{repo_owner}}
+- repo name: {{repo_name}}
 
 # Team Memebers
 

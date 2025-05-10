@@ -14,6 +14,13 @@ The toolkit is written in pure Python (3.11+), has **zero runtime
 dependencies**, and delegates real work to best-of-breed tools like `ruff`,
 `cargo`, `deno`, and `pnpm`.
 
+--
+
+- need PERPLEXITY_API_KEY and EXA_API_KEY for `khive info search` to work
+- need OPENROUTER_API_KEY for `khive info consult` to work
+- to use reader, `pip install "khive[reader]"` or `pip install "khive[all]"` to
+  install all dependencies
+
 ---
 
 ## Table of Contents

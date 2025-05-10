@@ -174,3 +174,132 @@ interactions.
 **Remember:** Always run local validation before committing/pushing. Keep
 commits atomic and use Conventional Commit messages. Clean up branches after
 merging. Use the CLI!
+
+---
+
+## 7. Pull-Request Lifecycle Management
+
+### 7.1 Draft → Ready for Review
+
+| Action                | Command                                |
+| :-------------------- | :------------------------------------- |
+| Open a draft PR       | `gh pr create --draft --title "..."`   |
+| Mark draft **ready**  | `gh pr ready` ([GitHub CLI][1])        |
+| Convert back to draft | `gh pr ready --undo` ([GitHub CLI][1]) |
+
+### 7.2 Keep the PR “green”
+
+1. **Re-sync with `main` frequently**
+
+   ```bash
+   git fetch origin
+   git rebase origin/main     # preferred – linear history
+   # or use gh helper when conflicts are trivial
+   gh pr merge --rebase --auto
+   ```
+
+   The `--rebase`, `--squash`, or plain `--merge` flags control the merge mode.
+   ([GitHub CLI][2], [GitHub Docs][3])
+2. **Watch CI checks until they pass**
+
+   ````bash
+   gh pr checks <pr> --watch --fail-fast
+   ``` :contentReference[oaicite:3]{index=3}
+   ````
+
+### 7.3 Editing an Open PR (metadata, base, reviewers)
+
+```bash
+# Add labels, reviewers, or move to another milestone
+gh pr edit <pr> --add-label bug --add-reviewer @alice --milestone "Q3 Sprint 1"
+# Rename the PR
+gh pr edit <pr> --title "feat(api): streaming SSE endpoint"
+```
+
+All edit flags are in the manual. ([GitHub CLI][4])
+
+### 7.4 Merging & Auto-Merge
+
+```bash
+# Trigger an immediate merge when all required checks succeed
+gh pr merge <pr> --squash --auto --subject "feat(api): SSE endpoint"
+```
+
+Choose **squash** for one commit, **merge** to keep history, or **rebase** for
+linear history (team default). ([GitHub CLI][2])
+
+---
+
+## 8. Issue Management Workflow
+
+### 8.1 Creating Well-Formed Issues
+
+```bash
+gh issue create \
+  --title "dashboard UI: overflow on iPhone SE" \
+  --body "Steps to reproduce …" \
+  --label bug ui --assignee @me \
+  --milestone "Q3 Sprint 1"
+```
+
+All flags support labels, assignees, milestones, and projects. ([GitHub CLI][5])
+
+### 8.2 Listing, Filtering, and Triage
+
+| Need                       | Command                                                                    |
+| :------------------------- | :------------------------------------------------------------------------- |
+| All open bugs this sprint  | `gh issue list --label bug --milestone "Q3 Sprint 1"` ([GitHub CLI][6])    |
+| My closed issues last week | `gh issue list --state closed --assignee @me --since 1w` ([GitHub CLI][6]) |
+| Anything unlabeled         | `gh issue list --label ""`                                                 |
+
+GitHub’s search syntax (`state:open label:"good first issue"`) also works in CLI
+or web. ([GitHub Docs][7])
+
+### 8.3 Labels & Milestones
+
+- Use the default **`bug` `enhancement` `documentation`** labels plus custom
+  domain labels (e.g., `cli`, `api`).
+- `good first issue` populates the repository’s _Contribute_ page for newcomers.
+  ([GitHub Docs][8])
+
+### 8.4 Linking PRs ↔ Issues
+
+Include a closing keyword in PR description or commit message:
+
+```text
+Closes #42          # English
+Fixes khive#108     # Cross-repo
+Resolves #55
+```
+
+GitHub auto-closes the issue on merge. ([GitHub Docs][9], [GitHub Docs][10])
+
+---
+
+### Quick “Issue Hygiene” Checklist
+
+| When            | Action (CLI)                                                                               |
+| :-------------- | :----------------------------------------------------------------------------------------- |
+| New bug arrives | `gh issue edit <id> --label bug --assignee @responsible`                                   |
+| Clarify scope   | Comment asking for repro steps or log, then add `needs-info` label                         |
+| Ready for work  | Add milestone + `status:accepted` label                                                    |
+| Stale > 30 days | Ping assignee ➝ if no response `gh issue close <id> --comment "closing due to inactivity"` |
+
+---
+
+**Takeaway:** Treat PRs and Issues as **atomic, traceable work units**. Use `gh`
+to create, label, edit, and merge without leaving the terminal, keep CI green
+with `gh pr checks --watch`, and let closing keywords link the artifacts
+automatically. This enforces clean history and transparent project tracking
+while minimizing context switches.
+
+[1]: https://cli.github.com/manual/gh_pr_ready "gh pr ready - GitHub CLI"
+[2]: https://cli.github.com/manual/gh_pr_merge "gh pr merge - GitHub CLI"
+[3]: https://docs.github.com/articles/about-pull-request-merges "About pull request merges - GitHub Docs"
+[4]: https://cli.github.com/manual/gh_pr_edit "gh pr edit - GitHub CLI"
+[5]: https://cli.github.com/manual/gh_issue_create "gh issue create - GitHub CLI"
+[6]: https://cli.github.com/manual/gh_issue_list "gh issue list - GitHub CLI | Take GitHub to the command line"
+[7]: https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/filtering-and-searching-issues-and-pull-requests "Filtering and searching issues and pull requests - GitHub Docs"
+[8]: https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels "Managing labels - GitHub Docs"
+[9]: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests "Using keywords in issues and pull requests - GitHub Docs"
+[10]: https://docs.github.com/en/issues/tracking-your-work-with-issues/administering-issues/closing-an-issue "Closing an issue - GitHub Docs"

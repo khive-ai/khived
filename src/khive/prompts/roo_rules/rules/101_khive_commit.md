@@ -141,15 +141,3 @@ khive commit "docs: update README" --dry-run
 
 - `0`: Commit (and optional push) completed successfully, or nothing to commit
 - `1`: Error occurred during commit or push
-
-## Notes
-
-- The command automatically ensures Git identity is configured, using fallback
-  values if needed
-- Empty commits are skipped by default unless `--allow-empty` is specified
-- When using `--interactive`, you'll be guided through creating a conventional
-  commit
-- The `--json-output` option provides machine-readable results, useful for
-  scripting
-- The command supports both positional message and structured arguments
-- Search ID injection standardizes the format for evidence citation
