@@ -28,8 +28,8 @@
   EXA_API_KEY=your_exa_api_key
   ```
 - you can get the API keys from the respective websites
-- all api keys are optional, but you will need them in order to use features
-  like `khive info`
+- all API keys are optional, but you will need them in order to use features
+  like `khive info search` and `khive info consult`
 
 ### 3. Set up Roo
 

@@ -13,23 +13,17 @@
 
 ---
 
-- need PERPLEXITY_API_KEY and EXA_API_KEY for `khive info search` to work
-- need OPENROUTER_API_KEY for `khive info consult` to work
-- to use reader, `pip install "khive[reader]"` or `pip install "khive[all]"` to
-  install all dependencies
-
----
-
 ## Table of Contents
 
 1. [Core Philosophy](#core-philosophy)
 2. [Quick Start](#quick-start)
-3. [Command Catalogue](#command-catalogue)
-4. [Usage Examples](#usage-examples)
-5. [Configuration](#configuration)
-6. [Prerequisites](#prerequisites)
-7. [Project Layout](#project-layout)
-8. [Contributing](#contributing)
+3. [Setup](#setup)
+4. [Command Catalogue](#command-catalogue)
+5. [Usage Examples](#usage-examples)
+6. [Configuration](#configuration)
+7. [Prerequisites](#prerequisites)
+8. [Project Layout](#project-layout)
+9. [Contributing](#contributing)
 
 ---
 
@@ -61,6 +55,30 @@ $ khive ci --check            # quick pre-commit gate
 
 ---
 
+## Setup
+
+### API Keys
+
+To use the information retrieval and LLM consultation features, you'll need to set up the following API keys:
+
+- **PERPLEXITY_API_KEY** and **EXA_API_KEY** for `khive info search` to work
+- **OPENROUTER_API_KEY** for `khive info consult` to work
+
+You can set these as environment variables or add them to a `.env` file in your project root.
+
+### Additional Dependencies
+
+For document reading capabilities:
+```bash
+# Install reader dependencies
+$ pip install "khive[reader]"
+
+# Or install all optional dependencies
+$ pip install "khive[all]"
+```
+
+---
+
 ## Command Catalogue
 
 | Command         | What it does (TL;DR)                                                                       |
@@ -73,7 +91,7 @@ $ khive ci --check            # quick pre-commit gate
 | `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                 |
 | `khive new-doc` | Scaffolds markdown docs (ADR, RFC, IP…) from templates with front-matter placeholders.     |
 | `khive reader`  | Opens/reads arbitrary docs via `docling`; returns JSON over stdout.                        |
-| `khive search`  | Validates & (optionally) executes Exa/Perplexity searches.                                 |
+| `khive info`    | Information service for web search (`info search`) and LLM consultation (`info consult`).  |
 
 Run `khive <command> --help` for full flag reference.
 
@@ -106,6 +124,12 @@ khive new-doc RFC 001-streaming-api
 # open a PDF & read slice 0-500 chars
 DOC=$(khive reader open --source paper.pdf | jq -r .doc_id)
 khive reader read --doc "$DOC" --end 500
+
+# search the web using Exa
+khive info search --provider exa --query "Latest developments in rust programming language"
+
+# consult multiple LLMs
+khive info consult --question "Compare Python vs Rust for system programming" --models openai/gpt-o4-mini,anthropic/claude-3.7-sonnet
 ```
 
 ---
@@ -150,7 +174,7 @@ these binaries are reachable via `PATH`:
 - **Python 3.11+** & [`uv`](https://github.com/astral-sh/uv)
 - **Rust toolchain** - `cargo`, `rustc`, `rustfmt`, optional `cargo-tarpaulin`
 - **Node + pnpm** - for JS/TS stacks & Husky hooks
-- **Deno ≥ 1.42** - used for Markdown & TS fmt
+- **Deno ≥ 1.42** - used for Markdown & TS fmt
 - **Git** + **GitHub CLI `gh`** - Git ops & PR automation
 - **jq** - report post-processing, coverage merging
 
@@ -160,23 +184,33 @@ Run `khive init --check` to verify everything at once.
 
 ## Project Layout
 
+The khive project is organized into several key directories:
+
 ```
 khive/
-  khive_cli.py      # ← unified dispatcher
-  khive_init.py     # env bootstrapper
-  khive_fmt.py      # formatter orchestrator
-  khive_commit.py   # conventional commit helper
-  khive_pr.py       # PR automation via gh
-  khive_ci.py       # test / lint / coverage gate
-  khive_clean.py    # branch janitor
-  khive_new_doc.py  # markdown scaffolder
-  khive_reader.py   # docling wrapper CLI
-  khive_search.py   # Exa / Perplexity search CLI
-  utils.py          # shared ANSI & helpers
+├── src/khive/                # Main source code
+│   ├── cli/                  # CLI entry points and command implementations
+│   ├── commands/             # Command adapters and business logic
+│   ├── services/             # Core services (info, reader, etc.)
+│   │   ├── info/             # Information service (search, consult)
+│   │   └── reader/           # Document reader service
+│   ├── connections/          # API connection handling
+│   ├── providers/            # Provider-specific implementations
+│   ├── protocols/            # Interface definitions
+│   ├── prompts/              # Templates and prompts
+│   └── third_party/          # Third-party integrations
+├── docs/                     # Documentation
+│   ├── commands/             # Command-specific documentation
+│   └── ...                   # General documentation
+├── tests/                    # Test suite
+└── ...                       # Configuration files, etc.
 ```
 
-All scripts expose a `main()` entry-point; `khive_cli.py` maps sub-commands via
-its `COMMANDS` dict so extension is trivial.
+The architecture follows a modular design where:
+- `cli/` contains the command-line interfaces
+- `commands/` contains the business logic for each command
+- `services/` contains the core services that power the commands
+- Each command exposes a `cli_entry()` function that serves as its entry point
 
 ---
 
@@ -189,3 +223,5 @@ its `COMMANDS` dict so extension is trivial.
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/) and
 semantic-release tagging.
+
+For more detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
