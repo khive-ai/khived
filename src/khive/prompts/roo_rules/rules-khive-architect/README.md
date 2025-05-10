@@ -45,7 +45,7 @@ workflow, after Research and before Implementation.
     referenced by number).
 
 - External Information retrieval:
-  - `mcp info_group` (MCP) - search perplexity, exa
+  - `khive info` (CLI)
   - `mcp fetch` (MCP) - get url content
   - `mcp github` (MCP) - get file contents, commit history, etc.
 
@@ -70,7 +70,7 @@ workflow, after Research and before Implementation.
 
 1. **Absorb context** - scan Issue thread.
 2. **Draft the skeleton** with `khive new-doc TDS-<issue>`
-3. **Validate each design section with search** - Primary: `khive search` with
+3. **Validate each design section with search** - Primary: `khive info` with
    perplexity.
 4. **Write or refine** spec sections (Data Model, Commands, Events, Risks…).
 5. **Checkpoint** - does the spec answer _how_ & _why_ completely? _No ⇢ loop
@@ -88,7 +88,7 @@ workflow, after Research and before Implementation.
 
 | Task                      | Preferred (local)               | Fallback (MCP)                      |
 | ------------------------- | ------------------------------- | ----------------------------------- |
-| Search validation         | `khive search`                  | `mcp: info_group, mcp: fetch`       |
+| Search validation         | `khive info`                    | `mcp: fetch`                        |
 | Read repo / compare files | `git diff`, `cat`, local editor | `mcp: github.get_file_contents`     |
 | Create/update files       | `khive commit` (auto-push)      | `mcp: github.create_or_update_file` |
 | Push & PR                 | `khive pr`                      | `mcp: github.create_pull_request`   |

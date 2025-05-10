@@ -31,11 +31,14 @@ description: >
 | `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                                                                                                                                                    |
 | `khive new-doc` | Scaffolds markdown docs from templates with enhanced template discovery, custom variables, and flexible placeholder substitution. Supports JSON output, dry-run, and force overwrite options.                                 |
 | `khive reader`  | Opens/reads arbitrary docs via `docling`; returns JSON over stdout.                                                                                                                                                           |
-| `khive search`  | Validates & (optionally) executes Exa/Perplexity searches.                                                                                                                                                                    |
+| `khive info`    | executes Exa/Perplexity searches consult with expert models                                                                                                                                                                   |
 | `khive mcp`     | Runs configuration-driven MCP servers.                                                                                                                                                                                        |
-| `khive roo`     | Legacy ROO mode generator.                                                                                                                                                                                                    |
 
 Run `khive <command> --help` for full flag reference.
+
+- for `khive commit`, usually the pre-commit hook might block it from
+  successfully running. you can just run `khive commit` again and again until it
+  succeeds. It solves all the issues, just needs to be run multiple times.
 
 ---
 
@@ -87,6 +90,12 @@ khive new-doc IP 18-new-component --json-output
 # open a PDF & read slice 0-500 chars
 DOC=$(khive reader open --source paper.pdf | jq -r .doc_id)
 khive reader read --doc "$DOC" --end 500
+
+# search for info from Exa
+khive info search --provider exa --query "Latest developments in rust programming language"
+
+# Consult multiple LLMs
+khive info consult --question "Compare Python vs Rust for system programming" --models "openai/gpt-o4-mini,anthropic/claude-3.7-sonnet"
 ```
 
 ---

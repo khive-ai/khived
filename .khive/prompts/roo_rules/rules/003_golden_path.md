@@ -8,6 +8,13 @@ description: >
   Practical coding standards for khive. Designed to be easy to follow from the terminal with the khive helper scripts; enforced in Quality Review & CI.
 ---
 
+ALWAYS CHECK WHICH BRANCH YOU ARE ON !!! ALWAYS CHECK THE ISSUE YOU ARE WORKING
+ON !!!
+
+- `git branch` - check which branch you are on
+- `git checkout <branch>` - switch to the branch you want to work on
+- `git checkout -b <branch>` - create a new branch and switch to it
+
 ## 1 · Why another guide?
 
 Because **consistency beats cleverness.** If everyone writes code, commits, and
@@ -23,7 +30,7 @@ other's styles.
 | Readability & small functions                 | “One-liner wizardry”           |
 | **>80 pct test coverage**                     | 100 pct coverage perfectionism |
 | Conventional Commits                          | Exotic git workflows           |
-| Search-driven dev (cite results)              | Coding from memory             |
+| Info-driven dev (cite results)                | Coding from memory             |
 | Local CLI (`khive *`, `git`, `pnpm`, `cargo`) | Heavy bespoke shell wrappers   |
 | Tauri security basics                         | Premature micro-optimisation   |
 
@@ -31,7 +38,9 @@ other's styles.
 
 ## 4 · Golden-path workflow
 
-1. **Search** - `khive search` → paste IDs/links in docs.
+1. **Must Info** - `khive info search` → paste IDs/links in docs.
+   `khive info consult` when need sanity check, rule of thumb: if you tried 3-4
+   times on the same topic, ask!
 2. **Spec** - `khive new-doc`
 3. **Plan + Tests** - `khive new-doc`
 4. **Code + Green tests** - `khive init`, code, then local `pnpm test`,
@@ -49,12 +58,16 @@ That's it - nine steps, every time.
 
 ## 5 · Git & commit etiquette
 
+- must use `uv run pre-commit` until no problems before commit
 - One logical change per commit.
 - Conventional Commit format (`<type>(scope): subject`).
 - Commit with `khive commit` with structured input, use `--by` to set the author
   slug.
 
 ## 6 · Search-first rule (the only non-negotiable)
+
+always use `khive info` extensively for up to date best practcies and sanity
+check.
 
 If you introduce a new idea, lib, algorithm, or pattern **you must cite at least
 one search result ID** (exa-… or pplx-…) in the spec / plan / commit / PR. Tests

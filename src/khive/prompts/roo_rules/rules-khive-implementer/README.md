@@ -49,7 +49,7 @@ development workflow, after Design and before Quality Review.
 | - | ------------------- | ----------------------------------------------------------------- | -------------------------------------- |
 | 1 | _Branch_            | `git checkout -b feat/<issue>`                                    | a new branch                           |
 | 2 | _Setup_             | `khive init`                                                      | a clean dev environment                |
-| 3 | _Research_          | `khive search`                                                    | search results (raw json)              |
+| 3 | _Research_          | `khive info`                                                      | search results (raw json)              |
 | 4 | _Plan_              | `khive new-doc`                                                   | a path of created report from template |
 | 5 | _Implement + Tests_ | `uv run pytest tests` etc.                                        | green tests                            |
 | 6 | _Pre-flight_        | `uv run pre-commit run --all-files`                               | all checks pass locally                |

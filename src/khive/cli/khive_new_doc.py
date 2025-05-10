@@ -110,8 +110,8 @@ class NewDocConfig:
     default_search_paths_relative_to_root: list[str] = field(
         default_factory=lambda: [
             "docs/templates",
-            "dev/docs/templates",
             ".khive/templates",  # New standard location
+            ".khive/prompts/templates",
         ]
     )
     default_vars: dict[str, str] = field(default_factory=dict)

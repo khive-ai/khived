@@ -66,7 +66,7 @@ _You are the last step before merge; nothing ships undocumented._
 | Edit / create Markdown | Local editor                                 | `mcp`                                |
 | Commit                 | `khive commit` (auto add, push), `git`       | — _(use MCP only if no local shell)_ |
 | Push / PR update       | don't need if use `khive commit`, `git push` | `mcp: github.create_or_update_file`  |
-| Extra research (rare)  | -                                            | `mcp: info_group`                    |
+| Extra research         | `khive info`                                 | -                                    |
 
 ### Doc Structure Quick-Ref
 

@@ -1,8 +1,4 @@
-# project: khive
-
-human creator: `ocean`
-repo owner: `khive-ai`
-repo: `khive.d`
+# project: kazam
 
 # Team Memebers
 
