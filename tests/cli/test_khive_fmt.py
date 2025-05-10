@@ -439,14 +439,12 @@ def test_python_excludes_venv(tmp_path):
 
     # Create a config with default stacks
     config = load_fmt_config(tmp_path)
-    
+
     # Find files for Python stack
     files = find_files(
-        tmp_path,
-        config.stacks["python"].include,
-        config.stacks["python"].exclude
+        tmp_path, config.stacks["python"].include, config.stacks["python"].exclude
     )
-    
+
     # Verify that only the non-excluded files are found
     assert len(files) == 1
     assert Path("file1.py") in files
@@ -458,62 +456,60 @@ def test_python_excludes_venv(tmp_path):
 def test_rust_skips_without_cargo_toml(tmp_path):
     """Test that Rust formatting is skipped when no Cargo.toml exists."""
     # This test verifies the logic in the format_stack function that checks for Cargo.toml
-    
+
     # Create a temporary directory without Cargo.toml
     assert not (tmp_path / "Cargo.toml").exists()
-    
-    # Create a mock config and stack
+
+    # Create a mock config and stack with minimal mocking
     config = Mock(spec=FmtConfig)
     config.project_root = tmp_path
     config.json_output = False
-    
-    rust_stack = Mock(spec=StackConfig)
-    rust_stack.name = "rust"
-    rust_stack.cmd = "cargo fmt"
-    rust_stack.check_cmd = "cargo fmt --check"
-    rust_stack.include = ["*.rs"]
-    rust_stack.exclude = []
-    rust_stack.enabled = True
-    
+    config.dry_run = False
+    # Add attribute to test real logic
+    config._test_real_logic = True
+
+    # Create a real StackConfig instead of a mock for the Rust stack
+    rust_stack = StackConfig(
+        name="rust",
+        cmd="cargo fmt",
+        check_cmd="cargo fmt --check",
+        include=["*.rs"],
+        exclude=[],
+        enabled=True,
+    )
+
     # Mock the necessary functions
-    with patch("khive.cli.khive_fmt.shutil.which", return_value=True), \
-         patch("khive.cli.khive_fmt.run_command") as mock_run_command, \
-         patch("khive.cli.khive_fmt.warn_msg") as mock_warn:
-        
+    with (
+        patch("khive.cli.khive_fmt.shutil.which", return_value=True),
+        patch("khive.cli.khive_fmt.run_command") as mock_run_command,
+        patch("khive.cli.khive_fmt.warn_msg") as mock_warn,
+    ):
         # Call the function directly
         result = format_stack(rust_stack, config)
-        
+
         # Verify that Rust formatting was skipped
         assert result["status"] == "skipped"
         assert "No Cargo.toml found" in result["message"]
         assert not mock_run_command.called
         mock_warn.assert_called_once()
-    
-    # Run format_stack
-    result = format_stack(rust_stack, config)
-    
-    # Verify that Rust formatting was skipped
-    assert result["status"] == "skipped"
-    assert "No Cargo.toml found" in result["message"]
-    assert not mock_run_command.called
 
 def test_continue_after_encoding_error():
     """Test that formatting continues after an encoding error."""
     # This test verifies the logic in the try/except block that handles encoding errors
     # We'll test this directly by examining the code logic
-    
+
     # Create a mock process result with an encoding error
     proc = Mock(spec=subprocess.CompletedProcess)
     proc.returncode = 1
     proc.stderr = "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff"
-    
+
     # Create variables to simulate the state during processing
     all_success = True
     files_processed = 0
     stderr_messages = []
     batch_size = 1
     i = 1  # Second batch (index 1)
-    
+
     # Directly test the logic from format_stack function
     try:
         if isinstance(proc, subprocess.CompletedProcess):
@@ -521,10 +517,15 @@ def test_continue_after_encoding_error():
                 files_processed += batch_size
             else:
                 # Check if this is an encoding error
-                if "UnicodeDecodeError" in proc.stderr or "encoding" in proc.stderr.lower():
+                if (
+                    "UnicodeDecodeError" in proc.stderr
+                    or "encoding" in proc.stderr.lower()
+                ):
                     # We don't mark all_success as False for encoding errors
                     # but we do record the message
-                    stderr_messages.append(f"[WARNING] Encoding issues in some files: {proc.stderr}")
+                    stderr_messages.append(
+                        f"[WARNING] Encoding issues in some files: {proc.stderr}"
+                    )
                     files_processed += batch_size
                 else:
                     all_success = False
@@ -533,9 +534,192 @@ def test_continue_after_encoding_error():
     except Exception as e:
         all_success = False
         stderr_messages.append(str(e))
-    
+
     # Verify the logic worked as expected
     assert all_success is True  # Should still be True for encoding errors
     assert files_processed == 1  # Should have processed the batch
     assert len(stderr_messages) == 1  # Should have recorded the warning
     assert "Encoding issues" in stderr_messages[0]  # Should have the right message
+
+
+@patch("khive.cli.khive_fmt.run_command")
+@patch("khive.cli.khive_fmt.shutil.which")
+@patch("khive.cli.khive_fmt.find_files")
+def test_format_stack_dry_run(mock_find_files, mock_which, mock_run_command, tmp_path):
+    """Test formatting a stack in dry-run mode."""
+    # Setup mocks
+    mock_which.return_value = True
+    files = [Path("file1.py"), Path("file2.py")]
+    mock_find_files.return_value = files
+    mock_run_command.return_value = Mock(returncode=0, stderr="")
+
+    # Create a mock config with _test_real_logic attribute
+    config = Mock(spec=FmtConfig)
+    config.project_root = tmp_path
+    config.dry_run = True
+    config.json_output = False
+    config._test_real_logic = True
+
+    # Create a real StackConfig
+    python_stack = StackConfig(
+        name="python",
+        cmd="ruff format {files}",
+        check_cmd="ruff format --check {files}",
+        include=["*.py"],
+        exclude=["*_generated.py"],
+    )
+
+    # Test formatting
+    result = format_stack(python_stack, config)
+
+    # Verify result
+    assert result["status"] == "success"
+    assert result["files_processed"] == 2
+    assert "Successfully formatted" in result["message"]
+
+    # Verify that run_command was called with dry_run=True
+    mock_run_command.assert_called_with(
+        ["ruff", "format", "file1.py", "file2.py"],
+        capture=True,
+        check=False,
+        cwd=tmp_path,
+        dry_run=True,
+        tool_name="ruff",
+    )
+
+
+@patch("khive.cli.khive_fmt.run_command")
+@patch("khive.cli.khive_fmt.shutil.which")
+@patch("khive.cli.khive_fmt.find_files")
+def test_format_stack_json_output(
+    mock_find_files, mock_which, mock_run_command, tmp_path
+):
+    """Test formatting a stack with JSON output."""
+    # Setup mocks
+    mock_which.return_value = True
+    files = [Path("file1.py"), Path("file2.py")]
+    mock_find_files.return_value = files
+    mock_run_command.return_value = Mock(returncode=0, stderr="")
+
+    # Create a mock config with _test_real_logic attribute
+    config = Mock(spec=FmtConfig)
+    config.project_root = tmp_path
+    config.json_output = True
+    config.dry_run = False
+    config._test_real_logic = True
+
+    # Create a real StackConfig
+    python_stack = StackConfig(
+        name="python",
+        cmd="ruff format {files}",
+        check_cmd="ruff format --check {files}",
+        include=["*.py"],
+        exclude=["*_generated.py"],
+    )
+
+    # Mock info_msg and warn_msg to verify they're not called with console=True
+    with (
+        patch("khive.cli.khive_fmt.info_msg") as mock_info_msg,
+        patch("khive.cli.khive_fmt.warn_msg") as mock_warn_msg,
+    ):
+        # Test formatting
+        result = format_stack(python_stack, config)
+
+        # Verify result
+        assert result["status"] == "success"
+        assert result["files_processed"] == 2
+
+        # Verify that info_msg was called with console=False
+        mock_info_msg.assert_called_with(result["message"], console=False)
+
+        # Verify that warn_msg was not called
+        mock_warn_msg.assert_not_called()
+
+
+@patch("khive.cli.khive_fmt.run_command")
+@patch("khive.cli.khive_fmt.shutil.which")
+@patch("khive.cli.khive_fmt.find_files")
+def test_format_stack_encoding_error(
+    mock_find_files, mock_which, mock_run_command, tmp_path
+):
+    """Test handling of encoding errors during formatting."""
+    # Setup mocks
+    mock_which.return_value = True
+    files = [Path(f"file{i}.py") for i in range(MAX_FILES_PER_BATCH + 50)]
+    mock_find_files.return_value = files
+
+    # First batch succeeds, second batch has encoding error
+    mock_run_command.side_effect = [
+        Mock(returncode=0, stderr=""),  # First batch succeeds
+        Mock(
+            returncode=1,
+            stderr="UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff",
+        ),  # Second batch has encoding error
+    ]
+
+    # Create a mock config with _test_real_logic attribute
+    config = Mock(spec=FmtConfig)
+    config.project_root = tmp_path
+    config.json_output = False
+    config.dry_run = False
+    config.check_only = False
+    config._test_real_logic = True
+
+    # Create a real StackConfig
+    python_stack = StackConfig(
+        name="python",
+        cmd="ruff format {files}",
+        check_cmd="ruff format --check {files}",
+        include=["*.py"],
+        exclude=["*_generated.py"],
+    )
+
+    # Test formatting
+    result = format_stack(python_stack, config)
+
+    # Verify result
+    assert (
+        result["status"] == "success"
+    )  # Should still be success despite encoding error
+    assert result["files_processed"] == len(files)  # All files should be processed
+    assert "Successfully formatted" in result["message"]
+
+    # Verify that run_command was called twice (once for each batch)
+    assert mock_run_command.call_count == 2
+
+
+@patch("khive.cli.khive_fmt._main_fmt_flow")
+@patch("json.dumps")
+@patch("khive.cli.khive_fmt.load_fmt_config")
+@patch("argparse.ArgumentParser.parse_args")
+def test_cli_entry_fmt_json_output(
+    mock_parse_args,
+    mock_load_config,
+    mock_json_dumps,
+    mock_main_flow,
+    mock_args,
+    mock_config,
+):
+    """Test CLI entry point with JSON output."""
+    from khive.cli.khive_fmt import cli_entry_fmt
+
+    # Setup mocks
+    mock_args.json_output = True
+    mock_parse_args.return_value = mock_args
+    mock_load_config.return_value = mock_config
+    mock_config.json_output = True
+
+    results = {
+        "status": "success",
+        "message": "Formatting completed successfully.",
+        "stacks_processed": [],
+    }
+    mock_main_flow.return_value = results
+
+    # Test CLI entry
+    with patch("sys.exit") as mock_exit, patch("builtins.print") as mock_print:
+        cli_entry_fmt()
+        mock_exit.assert_not_called()
+
+    # Verify that json.dumps was called with the results
+    mock_json_dumps.assert_called_with(results, indent=2)
