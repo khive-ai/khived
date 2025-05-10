@@ -41,7 +41,7 @@
 
 ```bash
 # 1 · clone & install
-$ git clone https://github.com/khive-ai/khive.git
+$ git clone https://github.com/khive-ai/khive.d.git
 $ cd khive
 $ uv pip install -e .        # editable install - puts `khive` on your PATH
 
