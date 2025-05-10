@@ -21,6 +21,7 @@ COMMANDS: dict[str, str] = {
     "pr": "pr",  # -> khive.commands.pr
     "clean": "clean",  # -> khive.commands.clean
     "new-doc": "new_doc",  # -> khive.commands.new_doc
+    "fmt": "fmt",  # -> khive.commands.fmt
     # Add other commands here:
     "mcp": "mcp",  # Assuming khive_mcp.py becomes mcp.py
     "roo": "roo",  # If khive_roo.py is kept for old functionality
@@ -40,9 +41,12 @@ COMMAND_DESCRIPTIONS: dict[str, str] = {
     "pr": "Creates or views GitHub Pull Requests for the current branch.",
     "clean": "Deletes local and remote Git branches.",
     "new-doc": "Scaffolds new Markdown documents from templates.",
+    "fmt": "Formats code across multiple stacks (Python, Rust, Deno, Markdown).",
     "search": "Validates and executes Exa/Perplexity searches.",
     "mcp": "Runs configuration-driven MCP servers.",
     "roo": "Legacy ROO mode generator.",
+    "info": "Information service for web search and LLM consultation.",
+    "reader": "Opens and reads documents via docling.",
 }
 
 
