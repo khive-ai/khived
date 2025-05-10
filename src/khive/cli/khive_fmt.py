@@ -27,6 +27,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
 from unittest.mock import Mock  # For testing purposes
 
 try:
@@ -117,6 +118,7 @@ class FmtConfig:
         default_factory=lambda: ["python", "rust", "docs", "deno"]
     )
     stacks: dict[str, StackConfig] = field(default_factory=dict)
+
 
     # CLI args / internal state
     json_output: bool = False
@@ -358,6 +360,7 @@ def format_stack(stack: StackConfig, config: FmtConfig) -> dict[str, Any]:
         or isinstance(stack, Mock)
         or isinstance(config, Mock)
     ):
+
         # This is a test mock, return success
         result["status"] = "success"
         result["message"] = f"Successfully formatted files for stack '{stack.name}'."
@@ -487,7 +490,6 @@ def _main_fmt_flow(args: argparse.Namespace, config: FmtConfig) -> dict[str, Any
 # --- CLI Entrypoint ---
 def cli_entry_fmt() -> None:
     parser = argparse.ArgumentParser(description="khive code formatter.")
-
     parser.add_argument(
         "--stack",
         help="Comma-separated list of stacks to format (e.g., python,rust,docs).",
@@ -497,7 +499,6 @@ def cli_entry_fmt() -> None:
         action="store_true",
         help="Check formatting without modifying files.",
     )
-
     # General
     parser.add_argument(
         "--project-root",
@@ -546,7 +547,6 @@ def cli_entry_fmt() -> None:
             f"khive fmt finished: {final_msg_color}{results.get('message', 'Operation complete.')}{ANSI['N']}",
             console=True,
         )
-
     if results.get("status") in ["failure", "check_failed"]:
         sys.exit(1)
 

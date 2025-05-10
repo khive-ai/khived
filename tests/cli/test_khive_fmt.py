@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -185,6 +186,7 @@ def test_format_stack_check_failed(
             "stderr": "Formatting issues found",
         },
     ):
+
         # Test formatting
         result = {
             "stack_name": "python",
