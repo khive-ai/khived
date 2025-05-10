@@ -30,6 +30,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 from unittest.mock import Mock  # For testing purposes
 
+# Maximum number of files to process in a single batch to avoid "Argument list too long" errors
+MAX_FILES_PER_BATCH = 500
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover
@@ -375,7 +378,6 @@ def format_stack(
         result["message"] = f"No files found for stack '{stack.name}'."
         info_msg(result["message"], console=not config.json_output)
         return result
-    
     # Prepare command
     cmd_template = stack.check_cmd if config.check_only else stack.cmd
     
@@ -384,47 +386,107 @@ def format_stack(
         # Cargo fmt doesn't take file arguments, it formats the whole project
         cmd_parts = cmd_template.split()
         cmd = cmd_parts
-    else:
-        # Replace {files} with the actual file list
-        file_str = " ".join(str(f) for f in files)
-        cmd = cmd_template.replace("{files}", file_str).split()
-    
-    # Run the formatter
-    proc = run_command(
-        cmd,
-        capture=True,
-        check=False,
-        cwd=config.project_root,
-        dry_run=config.dry_run,
-        tool_name=tool_name,
-    )
-    
-    # Process result
-    if isinstance(proc, int) and proc == 0:
-        result["status"] = "success"
-        result["message"] = f"Successfully formatted {len(files)} files for stack '{stack.name}'."
-        result["files_processed"] = len(files)
-        info_msg(result["message"], console=not config.json_output)
-    elif isinstance(proc, subprocess.CompletedProcess):
-        if proc.returncode == 0:
+        
+        # Run the formatter
+        proc = run_command(
+            cmd,
+            capture=True,
+            check=False,
+            cwd=config.project_root,
+            dry_run=config.dry_run,
+            tool_name=tool_name,
+        )
+        
+        # Process result for cargo
+        if isinstance(proc, int) and proc == 0:
             result["status"] = "success"
-            result["message"] = f"Successfully formatted {len(files)} files for stack '{stack.name}'."
+            result["message"] = f"Successfully formatted files for stack '{stack.name}'."
             result["files_processed"] = len(files)
+            info_msg(result["message"], console=not config.json_output)
+        elif isinstance(proc, subprocess.CompletedProcess):
+            if proc.returncode == 0:
+                result["status"] = "success"
+                result["message"] = f"Successfully formatted files for stack '{stack.name}'."
+                result["files_processed"] = len(files)
+                info_msg(result["message"], console=not config.json_output)
+            else:
+                if config.check_only:
+                    result["status"] = "check_failed"
+                    result["message"] = f"Formatting check failed for stack '{stack.name}'."
+                    result["stderr"] = proc.stderr
+                    warn_msg(result["message"], console=not config.json_output)
+                    if proc.stderr:
+                        print(proc.stderr)
+                else:
+                    result["status"] = "error"
+                    result["message"] = f"Formatting failed for stack '{stack.name}'."
+                    result["stderr"] = proc.stderr
+                    error_msg(result["message"], console=not config.json_output)
+                    if proc.stderr:
+                        print(proc.stderr)
+    else:
+        # For formatters that accept file arguments, process in batches to avoid "Argument list too long" errors
+        total_files = len(files)
+        files_processed = 0
+        all_success = True
+        stderr_messages = []
+        
+        # Process files in batches
+        for i in range(0, total_files, MAX_FILES_PER_BATCH):
+            batch_files = files[i:i + MAX_FILES_PER_BATCH]
+            batch_size = len(batch_files)
+            
+            # Replace {files} with the batch file list
+            file_str = " ".join(str(f) for f in batch_files)
+            cmd = cmd_template.replace("{files}", file_str).split()
+            
+            log_msg(f"Processing batch {i//MAX_FILES_PER_BATCH + 1} of {(total_files-1)//MAX_FILES_PER_BATCH + 1} ({batch_size} files)")
+            
+            # Run the formatter for this batch
+            proc = run_command(
+                cmd,
+                capture=True,
+                check=False,
+                cwd=config.project_root,
+                dry_run=config.dry_run,
+                tool_name=tool_name,
+            )
+            
+            # Process batch result
+            if isinstance(proc, int) and proc == 0:
+                files_processed += batch_size
+            elif isinstance(proc, subprocess.CompletedProcess):
+                if proc.returncode == 0:
+                    files_processed += batch_size
+                else:
+                    all_success = False
+                    if proc.stderr:
+                        stderr_messages.append(proc.stderr)
+                    # If not in check_only mode, stop on first error
+                    if not config.check_only:
+                        break
+        
+        # Set the final result based on all batches
+        if all_success:
+            result["status"] = "success"
+            result["message"] = f"Successfully formatted {files_processed} files for stack '{stack.name}'."
+            result["files_processed"] = files_processed
             info_msg(result["message"], console=not config.json_output)
         else:
             if config.check_only:
                 result["status"] = "check_failed"
                 result["message"] = f"Formatting check failed for stack '{stack.name}'."
-                result["stderr"] = proc.stderr
+                result["stderr"] = "\n".join(stderr_messages)
                 warn_msg(result["message"], console=not config.json_output)
-                if proc.stderr:
-                    print(proc.stderr)
+                if stderr_messages:
+                    print("\n".join(stderr_messages))
             else:
                 result["status"] = "error"
                 result["message"] = f"Formatting failed for stack '{stack.name}'."
-                result["stderr"] = proc.stderr
+                result["stderr"] = "\n".join(stderr_messages)
                 error_msg(result["message"], console=not config.json_output)
-                if proc.stderr:
+                if stderr_messages:
+                    print("\n".join(stderr_messages))
                     print(proc.stderr)
     
     return result
