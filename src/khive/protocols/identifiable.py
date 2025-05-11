@@ -3,9 +3,11 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
+__all__ = ("Identifiable",)
+
 
 class Identifiable(BaseModel):
-    """Base class for objects with a unique identifier and timestamps."""
+    """Base class for objects with a unique identifier and creation timestamp."""
 
     model_config = ConfigDict(
         extra="forbid",
@@ -19,19 +21,12 @@ class Identifiable(BaseModel):
         description="Unique identifier for the element.",
         frozen=True,
     )
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="Creation timestamp for the element.",
         frozen=True,
     )
-    updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Last updated timestamp for the element.",
-    )
-
-    def update_timestamp(self) -> None:
-        """Update the last updated timestamp to the current time."""
-        self.updated_at = datetime.now(timezone.utc)
 
     @field_serializer("id")
     def _serialize_ids(self, v: UUID) -> str:
@@ -47,12 +42,12 @@ class Identifiable(BaseModel):
             error_msg = "Input value for field <id> should be a `uuid.UUID` object or a valid `uuid` representation"
             raise ValueError(error_msg) from e
 
-    @field_serializer("created_at", "updated_at")
-    def _serialize_created_updated(self, v: datetime) -> str:
+    @field_serializer("created_at")
+    def _serialize_datetime_obj(self, v: datetime) -> str:
         return v.isoformat()
 
-    @field_validator("created_at", "updated_at", mode="before")
-    def _validate_created_updated(cls, v: str | datetime) -> datetime:
+    @field_validator("created_at", mode="before")
+    def _validate_datetime_obj(cls, v: str | datetime) -> datetime:
         """Validate and convert a string or datetime to a datetime."""
         if isinstance(v, datetime):
             return v

@@ -42,7 +42,7 @@ try:
         ReaderRequest,  # Main request model
         ReaderResponse,  # Main response model
     )
-    from khive.services.reader.reader_service import ReaderService
+    from khive.services.reader.service import ReaderService
 except ModuleNotFoundError as e:
     sys.stderr.write(
         f"❌ Required modules not found. Ensure khive.services.reader is in PYTHONPATH.\nError: {e}\n"

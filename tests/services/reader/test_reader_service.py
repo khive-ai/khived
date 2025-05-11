@@ -29,7 +29,7 @@ from khive.services.reader.parts import (
     ReaderRequest,
     ReaderResponse,
 )
-from khive.services.reader.reader_service import ReaderService
+from khive.services.reader.service import ReaderService
 
 
 @pytest.fixture

@@ -5,6 +5,15 @@ from pydantic import BaseModel, Field, field_validator
 
 from .identifiable import Identifiable
 
+__all__ = (
+    "Resource",
+    "ResourceType",
+    "ResourceMeta",
+    "Document",
+    "Prompt",
+    "Memory",
+)
+
 
 class ResourceType(str, Enum):
     """Resource types for tracking action execution progress."""

@@ -38,13 +38,32 @@ class ConsultModel(str, Enum):
     - anthropic/claude-3.7-sonnet
     """
 
-    GPT_O4_MINI = "openai/gpt-o4-mini"
-    GEMINI_2_5_PRO = "google/gemini-2.5-pro-preview"
-    CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
+    OPENAI = "gpt"
+    GEMINI = "gemini"
+    CLAUDE = "claude"
+
+    @classmethod
+    def get_model_slug(cls, v) -> str:
+        """Returns the open router model slug for the given ConsultModel."""
+
+        if isinstance(v, str):
+            try:
+                v = ConsultModel(v)
+            except ValueError:
+                raise ValueError(f"Invalid model slug: {v}")
+        if not isinstance(v, ConsultModel):
+            raise TypeError(f"Invalid model type: {v}")
+        if v == ConsultModel.OPENAI:
+            return "openai/gpt-o4-mini"
+        if v == ConsultModel.gemini:
+            return "google/gemini-2.5-pro-preview"
+        if v == ConsultModel.CLAUDE:
+            return "anthropic/claude-3.7-sonnet"
+        raise ValueError(f"Invalid model slug: {v}")
 
 
 class InfoSearchParams(BaseModel):
-    provider: SearchProvider = SearchProvider.PERPLEXITY
+    provider: str = SearchProvider.PERPLEXITY
     provider_params: ExaSearchRequest | PerplexityChatRequest
 
 
@@ -57,23 +76,15 @@ class InfoConsultParams(BaseModel):
     question: str = Field(
         ..., description="The specific question or topic to consult the LLM(s) about."
     )
-    models: list[ConsultModel] = Field(
-        default=[ConsultModel.GPT_O4_MINI],
+    models: list[str] = Field(
+        default=["gpt"],
         description="A list of one or more LLMs to consult.",
     )
 
     @field_validator("models", mode="before")
     def check_models(cls, v):
         v = [v] if not isinstance(v, list) else v
-        models = []
-        for m in v:
-            if isinstance(m, str):
-                models.append(ConsultModel(m))
-            elif isinstance(m, ConsultModel):
-                models.append(m)
-            else:
-                raise TypeError(f"Invalid model type: {m}")
-        return models
+        return [ConsultModel.get_model_slug(m) for m in v]
 
 
 class InfoRequest(BaseModel):

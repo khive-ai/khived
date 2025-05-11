@@ -37,7 +37,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 try:
-    from khive.services.info.info_service import InfoService
     from khive.services.info.parts import (
         ConsultModel,
         ExaSearchRequest,
@@ -48,6 +47,7 @@ try:
         PerplexityChatRequest,
         SearchProvider,
     )
+    from khive.services.info.service import InfoService
     from khive.third_party.pplx_models import PerplexityMessage
 except ModuleNotFoundError as e:
     sys.stderr.write(

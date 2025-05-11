@@ -34,7 +34,7 @@ DOCLING_SUPPORTED_FORMATS = {
 }
 
 
-__all__ = ("ReaderRequest", "ReaderService", "global_reader_service")
+__all__ = ("ReaderRequest", "ReaderService")
 
 
 class ReaderService:
@@ -166,6 +166,3 @@ class ReaderService:
                 )
             ),
         )
-
-
-global_reader_service = ReaderService()

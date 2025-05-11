@@ -1,10 +1,10 @@
-from abc import abstractmethod
 from enum import Enum
-from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
-from .identifiable import Identifiable
+from khive.protocols.utils import validate_model_to_dict
+
+from .identifiable import Identifiable, Temporal
 
 __all__ = (
     "Event",
@@ -28,34 +28,27 @@ class EventStatus(str, Enum):
     FAILED = "failed"
 
 
-class Event(Identifiable):
-    """Extends Element with an execution state.
+class EventRequest(Identifiable):
+    service_name: str
+    action: str
+    options: dict
 
-    Attributes:
-        execution (Execution): The execution state of this event.
-    """
+    @field_validator("options", mode="before")
+    def _serialize_options(cls, v: dict | BaseModel) -> dict:
+        return validate_model_to_dict(v)
 
-    request: dict | None = None
-    response: Any = None
+
+class Execution(Temporal):
+    response: dict | None = None
+    error: str | None = None
     status: EventStatus = EventStatus.PENDING
     duration: float | None = None
-    error: str | None = None
-    response_obj: Any = Field(None, exclude=True)
 
-    @field_validator("request", mode="before")
-    def _validate_request(cls, v):
-        """Serialize a Pydantic model to a dictionary. kwargs are passed to model_dump."""
+    @field_validator("response", mode="before")
+    def _serialize_response(cls, v: dict | BaseModel) -> dict:
+        return validate_model_to_dict(v)
 
-        if isinstance(v, BaseModel):
-            return v.model_dump()
-        if v is None:
-            return {}
-        if isinstance(v, dict):
-            return v
 
-        error_msg = "Input value for field <model> should be a `pydantic.BaseModel` object or a `dict`"
-        raise ValueError(error_msg)
-
-    @abstractmethod
-    async def invoke(self, *args, **kwargs):
-        pass
+class Event(Identifiable):
+    request: EventRequest
+    execution: Execution | None = None
