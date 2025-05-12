@@ -5,7 +5,7 @@ Tests for khive_fmt.py
 import argparse
 import subprocess
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import pytest
 from khive.cli.khive_fmt import (
