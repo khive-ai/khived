@@ -1,14 +1,13 @@
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from pydantic import BaseModel
 
 from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.utils import is_package_installed
 
-_HAS_OLLAMA = True
-
-try:
-    import ollama  # type: ignore[import]
-except ModuleNotFoundError:
-    _HAS_OLLAMA = False
-
+_HAS_OLLAMA = is_package_installed("ollama")
 
 OLLAMA_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     name="ollama_chat",
@@ -30,7 +29,7 @@ class OllamaChatEndpoint(Endpoint):
     def __init__(self, config=OLLAMA_CHAT_ENDPOINT_CONFIG, **kwargs):
         if not _HAS_OLLAMA:
             raise ModuleNotFoundError(
-                "ollama is not installed, please install it with `pip install ollama`"
+                "ollama is not installed, please install it with `pip install khive[ollama]`"
             )
         super().__init__(config, **kwargs)
 
@@ -77,5 +76,5 @@ class OllamaChatEndpoint(Endpoint):
             current_digest = digest
 
     def _check_model(self, model: str):
-        if model not in list(i.model for i in self._list().models):
+        if model not in [i.model for i in self._list().models]:
             self._pull_model(model)

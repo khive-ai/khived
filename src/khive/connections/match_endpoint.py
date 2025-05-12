@@ -9,45 +9,38 @@ def match_endpoint(
     provider: str,
     endpoint: str,
 ) -> Endpoint:
-
     if provider == "openai":
         if "chat" in endpoint:
-            from ..providers.oai_ import OpenaiChatEndpoint
+            from khive.providers.oai_ import OpenaiChatEndpoint
 
             return OpenaiChatEndpoint()
         if "response" in endpoint:
-            from ..providers.oai_ import OpenaiResponseEndpoint
+            from khive.providers.oai_ import OpenaiResponseEndpoint
 
             return OpenaiResponseEndpoint()
-    if provider == "openrouter":
-        if "chat" in endpoint:
-            from ..providers.oai_ import OpenrouterChatEndpoint
+    if provider == "openrouter" and "chat" in endpoint:
+        from khive.providers.oai_ import OpenrouterChatEndpoint
 
-            return OpenrouterChatEndpoint()
-    if provider == "ollama":
-        if "chat" in endpoint:
-            from ..providers.oai_ import OllamaChatEndpoint
+        return OpenrouterChatEndpoint()
+    if provider == "ollama" and "chat" in endpoint:
+        from khive.providers.ollama_ import OllamaChatEndpoint
 
-            return OllamaChatEndpoint()
-    if provider == "exa":
-        if "search" in endpoint:
-            from ..providers.exa_ import ExaSearchEndpoint
+        return OllamaChatEndpoint()
+    if provider == "exa" and "search" in endpoint:
+        from khive.providers.exa_ import ExaSearchEndpoint
 
-            return ExaSearchEndpoint()
-    if provider == "anthropic":
-        if "messages" in endpoint:
-            from ..providers.anthropic_ import AnthropicMessagesEndpoint
+        return ExaSearchEndpoint()
+    if provider == "anthropic" and ("messages" in endpoint or "chat" in endpoint):
+        from khive.providers.anthropic_ import AnthropicMessagesEndpoint
 
-            return AnthropicMessagesEndpoint()
-    if provider == "groq":
-        if "chat" in endpoint:
-            from ..providers.oai_ import GroqChatEndpoint
+        return AnthropicMessagesEndpoint()
+    if provider == "groq" and "chat" in endpoint:
+        from khive.providers.oai_ import GroqChatEndpoint
 
-            return GroqChatEndpoint()
-    if provider == "perplexity":
-        if "chat" in endpoint:
-            from ..providers.perplexity_ import PerplexityChatEndpoint
+        return GroqChatEndpoint()
+    if provider == "perplexity" and "chat" in endpoint:
+        from khive.providers.perplexity_ import PerplexityChatEndpoint
 
-            return PerplexityChatEndpoint()
+        return PerplexityChatEndpoint()
 
     return None

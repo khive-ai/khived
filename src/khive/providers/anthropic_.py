@@ -1,4 +1,4 @@
-# Copyright (c) 2023 - 2025, HaiyangLi <quantocean.li at gmail dot com>
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -19,7 +19,6 @@ ANTHROPIC_MESSAGES_ENDPOINT_CONFIG = EndpointConfig(
 
 
 class AnthropicMessagesEndpoint(Endpoint):
-
     def __init__(self, config: dict = ANTHROPIC_MESSAGES_ENDPOINT_CONFIG):
         super().__init__(config)
 

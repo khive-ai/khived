@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """
 khive_new_doc.py - spawn a Markdown doc from a template.
 
