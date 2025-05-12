@@ -1,5 +1,6 @@
-# khive_init.py
-# (Continuing from the previous Config and helper code)
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
 

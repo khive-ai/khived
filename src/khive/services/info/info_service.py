@@ -1,3 +1,7 @@
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import asyncio
 
 from pydantic import BaseModel
@@ -75,7 +79,10 @@ class InfoService:
             self._openrouter = OpenrouterChatEndpoint()
         try:
             models = params.models
-            system_prompt = params.system_prompt or "You are a helpful assistant."
+            system_prompt = (
+                params.system_prompt
+                or "You are a diligent technical expert who is good at critical thinking and problem solving."
+            )
 
             tasks = {}
             for m in models:
@@ -85,7 +92,6 @@ class InfoService:
                         {"role": "user", "content": params.question},
                     ],
                     "temperature": 0.7,
-                    "max_tokens": 400,
                     "model": m,
                 }
                 tasks[m] = asyncio.create_task(self._openrouter.call(payload))

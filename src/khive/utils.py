@@ -1,3 +1,7 @@
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from typing import TypeVar
 
 Import = TypeVar("I")
@@ -35,6 +39,12 @@ def import_module(
     except ImportError as e:
         error_msg = f"Failed to import module {full_import_path}: {e}"
         raise ImportError(error_msg) from e
+
+
+def is_package_installed(package_name: str):
+    from importlib.util import find_spec
+
+    return find_spec(package_name) is not None
 
 
 def get_bins(input_: list[HasLen], /, upper: int) -> list[Bin]:

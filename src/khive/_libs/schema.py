@@ -1,3 +1,7 @@
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import importlib.util
 import json
 import string
@@ -7,15 +11,9 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, PydanticUserError
 
-_HAS_DATAMODEL_CODE_GENERATOR = False
-try:
-    # Check if datamodel_code_generator is available without importing it directly
-    import importlib.util
+from khive.utils import is_package_installed
 
-    if importlib.util.find_spec("datamodel_code_generator") is not None:
-        _HAS_DATAMODEL_CODE_GENERATOR = True
-except ImportError:
-    _HAS_DATAMODEL_CODE_GENERATOR = False
+_HAS_DATAMODEL_CODE_GENERATOR = is_package_installed("datamodel-code-generator")
 
 
 B = TypeVar("B", bound=BaseModel)

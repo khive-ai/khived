@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+# Copyright (c) 2025, HaiyangLi <quantocean.li at gmail dot com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """
 pr.py - Create or view GitHub Pull Requests for the current branch.
 
