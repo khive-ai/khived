@@ -6,10 +6,6 @@ import asyncio
 
 from pydantic import BaseModel
 
-from khive.providers.exa_ import ExaSearchEndpoint, ExaSearchRequest
-from khive.providers.oai_ import OpenrouterChatEndpoint
-from khive.providers.perplexity_ import PerplexityChatEndpoint, PerplexityChatRequest
-
 from .parts import (
     InfoAction,
     InfoConsultParams,
@@ -21,9 +17,9 @@ from .parts import (
 
 class InfoService:
     def __init__(self):
-        self._perplexity: PerplexityChatEndpoint = None
-        self._exa: ExaSearchEndpoint = None
-        self._openrouter: OpenrouterChatEndpoint = None
+        self._perplexity = None
+        self._exa = None
+        self._openrouter = None
 
     async def handle_request(self, request: InfoRequest) -> InfoResponse:
         if request.action == InfoAction.SEARCH:
@@ -40,8 +36,13 @@ class InfoService:
             error="Invalid action or parameters.",
         )
 
-    async def _perplexity_search(self, params: PerplexityChatRequest) -> InfoResponse:
+    async def _perplexity_search(self, params) -> InfoResponse:
+        from khive.providers.perplexity_ import PerplexityChatRequest
+
+        params: PerplexityChatRequest
         if self._perplexity is None:
+            from khive.providers.perplexity_ import PerplexityChatEndpoint
+
             self._perplexity = PerplexityChatEndpoint()
         try:
             response = await self._perplexity.call(params, cache_control=True)
@@ -57,8 +58,13 @@ class InfoService:
                 action_performed=InfoAction.SEARCH,
             )
 
-    async def _exa_search(self, params: ExaSearchRequest) -> InfoResponse:
+    async def _exa_search(self, params) -> InfoResponse:
+        from khive.providers.exa_ import ExaSearchRequest
+
+        params: ExaSearchRequest
         if self._exa is None:
+            from khive.providers.exa_ import ExaSearchEndpoint
+
             self._exa = ExaSearchEndpoint()
         try:
             response = await self._exa.call(params, cache_control=True)
@@ -76,12 +82,14 @@ class InfoService:
 
     async def _consult(self, params: InfoConsultParams) -> InfoResponse:
         if self._openrouter is None:
-            self._openrouter = OpenrouterChatEndpoint()
+            from khive.providers.oai_ import OpenrouterChatEndpoint
+
+            self._openrouter: OpenrouterChatEndpoint = OpenrouterChatEndpoint()
         try:
             models = params.models
             system_prompt = (
                 params.system_prompt
-                or "You are a diligent technical expert who is good at critical thinking and problem solving."
+                or "You are a technical expert good at critical thinking and problem solving."
             )
 
             tasks = {}
@@ -91,7 +99,6 @@ class InfoService:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": params.question},
                     ],
-                    "temperature": 0.7,
                     "model": m,
                 }
                 tasks[m] = asyncio.create_task(self._openrouter.call(payload))
