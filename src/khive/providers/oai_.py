@@ -50,6 +50,18 @@ OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     request_options=CreateChatCompletionRequest,
 )
 
+GROQ_CHAT_ENDPOINT_CONFIG = EndpointConfig(
+    name="groq_chat",
+    provider="groq",
+    base_url="https://api.groq.com/v1",
+    endpoint="chat/completions",
+    openai_compatible=True,
+    api_key="GROQ_API_KEY",
+    auth_type="bearer",
+    content_type="application/json",
+    transport_type="sdk",
+)
+
 
 class OpenaiChatEndpoint(Endpoint):
     def __init__(self, config=OPENAI_CHAT_ENDPOINT_CONFIG, **kwargs):
@@ -63,4 +75,9 @@ class OpenaiResponseEndpoint(Endpoint):
 
 class OpenrouterChatEndpoint(Endpoint):
     def __init__(self, config=OPENROUTER_CHAT_ENDPOINT_CONFIG, **kwargs):
+        super().__init__(config, **kwargs)
+
+
+class GroqChatEndpoint(Endpoint):
+    def __init__(self, config=GROQ_CHAT_ENDPOINT_CONFIG, **kwargs):
         super().__init__(config, **kwargs)
