@@ -2,8 +2,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import asyncio
 import contextlib
 from datetime import datetime
+from functools import cache
 from typing import TypeVar
 from uuid import UUID
 
@@ -127,3 +129,9 @@ def validate_model_to_dict(v):
 
     error_msg = "Input value for field <model> should be a `pydantic.BaseModel` object or a `dict`"
     raise ValueError(error_msg)
+
+
+@cache
+def is_coroutine_function(func):
+    """Check if a function is a coroutine function."""
+    return asyncio.iscoroutinefunction(func)
