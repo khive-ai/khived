@@ -5,7 +5,7 @@
 from pydantic import BaseModel
 
 from khive.config import settings
-from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.api.endpoint import Endpoint, EndpointConfig
 
 ANTHROPIC_MESSAGES_ENDPOINT_CONFIG = EndpointConfig(
     provider="anthropic",

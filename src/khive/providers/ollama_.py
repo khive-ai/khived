@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel
 
-from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.api.endpoint import Endpoint, EndpointConfig
 from khive.utils import is_package_installed
 
 _HAS_OLLAMA = is_package_installed("ollama")

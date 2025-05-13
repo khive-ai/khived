@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from khive.config import settings
-from khive.connections.endpoint import Endpoint, EndpointConfig
+from khive.connections.api.endpoint import Endpoint, EndpointConfig
 
 __all__ = (
     "OpenaiChatEndpoint",
@@ -51,6 +51,19 @@ OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     transport_type="sdk",
 )
 
+OPENAI_EMBEDDING_ENDPOINT_CONFIG = EndpointConfig(
+    name="openai_embed",
+    provider="openai",
+    base_url=None,
+    endpoint="embeddings",
+    kwargs={"model": "text-embedding-3-small"},
+    openai_compatible=True,
+    api_key=settings.OPENAI_API_KEY,
+    auth_type="bearer",
+    content_type="application/json",
+    transport_type="sdk",
+)
+
 GROQ_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     name="groq_chat",
     provider="groq",
@@ -81,4 +94,9 @@ class OpenrouterChatEndpoint(Endpoint):
 
 class GroqChatEndpoint(Endpoint):
     def __init__(self, config=GROQ_CHAT_ENDPOINT_CONFIG, **kwargs):
+        super().__init__(config, **kwargs)
+
+
+class OpenaiEmbedEndpoint(Endpoint):
+    def __init__(self, config=OPENAI_EMBEDDING_ENDPOINT_CONFIG, **kwargs):
         super().__init__(config, **kwargs)
