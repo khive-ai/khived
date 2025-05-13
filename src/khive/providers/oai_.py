@@ -2,8 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from khive.config import settings
 from khive.connections.endpoint import Endpoint, EndpointConfig
-from khive.third_party.openai_models import CreateChatCompletionRequest, CreateResponse
 
 __all__ = (
     "OpenaiChatEndpoint",
@@ -19,11 +19,10 @@ OPENAI_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key="OPENAI_API_KEY",
+    api_key=settings.OPENAI_API_KEY,
     auth_type="bearer",
     content_type="application/json",
     transport_type="sdk",
-    request_options=CreateChatCompletionRequest,
 )
 
 OPENAI_RESPONSE_ENDPOINT_CONFIG = EndpointConfig(
@@ -33,11 +32,10 @@ OPENAI_RESPONSE_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="response",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key="OPENAI_API_KEY",
+    api_key=settings.OPENAI_API_KEY,
     auth_type="bearer",
     content_type="application/json",
     transport_type="sdk",
-    request_options=CreateResponse,
 )
 
 OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
@@ -47,11 +45,10 @@ OPENROUTER_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     kwargs={"model": "gpt-4o"},
     openai_compatible=True,
-    api_key="OPENROUTER_API_KEY",
+    api_key=settings.OPENROUTER_API_KEY,
     auth_type="bearer",
     content_type="application/json",
     transport_type="sdk",
-    request_options=CreateChatCompletionRequest,
 )
 
 GROQ_CHAT_ENDPOINT_CONFIG = EndpointConfig(
@@ -60,7 +57,7 @@ GROQ_CHAT_ENDPOINT_CONFIG = EndpointConfig(
     base_url="https://api.groq.com/v1",
     endpoint="chat/completions",
     openai_compatible=True,
-    api_key="GROQ_API_KEY",
+    api_key=settings.GROQ_API_KEY,
     auth_type="bearer",
     content_type="application/json",
     transport_type="sdk",

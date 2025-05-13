@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from khive.config import settings
 from khive.connections.endpoint import Endpoint, EndpointConfig
 from khive.third_party.pplx_models import PerplexityChatRequest
 
@@ -15,7 +16,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="chat/completions",
     method="POST",
     kwargs={"model": "sonar"},
-    api_key="PERPLEXITY_API_KEY",
+    api_key=settings.PERPLEXITY_API_KEY,
     auth_type="bearer",
     content_type="application/json",
     request_options=PerplexityChatRequest,

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from khive.config import settings
 from khive.connections.endpoint import Endpoint, EndpointConfig
 from khive.third_party.exa_models import ExaSearchRequest
 
@@ -17,7 +18,7 @@ ENDPOINT_CONFIG = EndpointConfig(
     endpoint="search",
     method="POST",
     request_options=ExaSearchRequest,
-    api_key="EXA_API_KEY",
+    api_key=settings.EXA_API_KEY,
     timeout=120,
     max_retries=3,
     auth_type="x-api-key",
