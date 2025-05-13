@@ -35,7 +35,7 @@ def run(
     # Add other CLI options if needed, e.g., --transport=sse
 ) -> None:
     """Loads configuration and runs the khivemcp server using FastMCP."""
-    from khive.connections.mcp_server import load_config, run_khivemcp_server
+    from khive.connections.mcp.mcp_server import load_config, run_khivemcp_server
 
     try:
         config = load_config(config_file)

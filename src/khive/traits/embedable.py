@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from collections.abc import Callable
 from typing import ClassVar
 
 import orjson as json
@@ -30,7 +29,7 @@ class Embedable(BaseModel):
     @field_validator("embedding", mode="before")
     def _parse_embedding(cls, value: list[float] | str | None) -> Embedding | None:
         if value is None:
-            return None
+            return []
         if isinstance(value, str):
             try:
                 loaded = json.loads(value)
@@ -45,25 +44,50 @@ class Embedable(BaseModel):
         raise ValueError("Invalid embedding type; must be list or JSON-encoded string.")
 
     async def generate_embedding(self) -> Self:
-        if self.__class__.embed_endpoint is None:
-            endpoint, parse_func = get_default_embed_endpoint()
+        endpoint = self.__class__.embed_endpoint or _get_default_embed_endpoint()
 
         response = await endpoint.call({"input": self.content})
-        self.embedding = parse_func(response)
+        self.embedding = _parse_embedding_response(response)
         return self
 
 
-def get_default_embed_endpoint() -> tuple[Endpoint, Callable[..., list[float]]]:
-    from khive.providers.oai_ import OpenaiEmbedEndpoint
+def _parse_embedding_response(x):
+    # parse openai response
+    if (
+        isinstance(x, BaseModel)
+        and hasattr(x, "data")
+        and len(x.data) > 0
+        and hasattr(x.data[0], "embedding")
+    ):
+        return x.data[0].embedding
 
-    endpoint = None
-    parse_func = None
+    if isinstance(x, list | tuple):
+        if len(x) > 0 and all(isinstance(i, float) for i in x):
+            return x
+        if len(x) == 1 and isinstance(x[0], dict | BaseModel):
+            return _parse_embedding_response(x[0])
+
+    # parse dict response
+    if isinstance(x, dict):
+        # parse openai format response
+
+        if "data" in x:
+            data = x.get("data")
+            if data is not None and len(data) > 0 and isinstance(data[0], dict):
+                return _parse_embedding_response(data[0])
+
+        # parse {"embedding": []} response
+        if "embedding" in x:
+            return _parse_embedding_response(x["embedding"])
+
+    return x
+
+
+def _get_default_embed_endpoint() -> Endpoint:
     if settings.DEFAULT_EMBEDDING_PROVIDER == "openai":
-        endpoint = OpenaiEmbedEndpoint(model=settings.DEFAULT_EMBEDDING_MODEL)
+        from khive.providers.oai_ import OpenaiEmbedEndpoint
 
-        def _parse(x):
-            return x.data[0].embedding
-
-        parse_func = _parse
-
-    return endpoint, parse_func
+        return OpenaiEmbedEndpoint(model=settings.DEFAULT_EMBEDDING_MODEL)
+    raise ValueError(
+        f"Unsupported embedding provider: {settings.DEFAULT_EMBEDDING_PROVIDER}"
+    )
