@@ -4,7 +4,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_serializer, field_validator
 
 from khive.utils import validate_model_to_dict
 
@@ -35,3 +35,19 @@ class Execution(BaseModel):
     @field_validator("response", mode="before")
     def _validate_response(cls, v: BaseModel | dict | None):
         return validate_model_to_dict(v)
+
+    @field_serializer("status")
+    def _serialize_status(self, v: ExecutionStatus) -> str:
+        return v.value
+
+
+class Log(BaseModel):
+    id: str
+    created_at: str
+    updated_at: str
+    event_type: str
+    content: str | None = None
+    embedding: Embedding = []
+    duration: float | None = None
+    status: str
+    error: str | None = None
