@@ -20,9 +20,7 @@ class Embedable(BaseModel):
         return len(self.embedding)
 
     @field_validator("embedding", mode="before")
-    def _parse_embedding(
-        cls, value: list[float] | str | None
-    ) -> Embedding | None:
+    def _parse_embedding(cls, value: list[float] | str | None) -> Embedding | None:
         if value is None:
             return None
         if isinstance(value, str):
@@ -36,6 +34,4 @@ class Embedable(BaseModel):
                 return [float(x) for x in value]
             except Exception as e:
                 raise ValueError("Invalid embedding list.") from e
-        raise ValueError(
-            "Invalid embedding type; must be list or JSON-encoded string."
-        )
+        raise ValueError("Invalid embedding type; must be list or JSON-encoded string.")
