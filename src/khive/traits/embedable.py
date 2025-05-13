@@ -30,7 +30,7 @@ class Embedable(BaseModel):
     @field_validator("embedding", mode="before")
     def _parse_embedding(cls, value: list[float] | str | None) -> Embedding | None:
         if value is None:
-            return None
+            return []
         if isinstance(value, str):
             try:
                 loaded = json.loads(value)
