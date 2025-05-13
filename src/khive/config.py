@@ -44,7 +44,6 @@ class AppSettings(BaseSettings, frozen=True):
     """Application settings with environment variable support."""
 
     model_config = SettingsConfigDict(
-        env_prefix="KHIVE_",
         env_file=(".env", ".env.local", ".secrets.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
@@ -56,12 +55,13 @@ class AppSettings(BaseSettings, frozen=True):
     )
 
     # secrets
-    # secrets
     OPENAI_API_KEY: SecretStr | None = None
     OPENROUTER_API_KEY: SecretStr | None = None
     EXA_API_KEY: SecretStr | None = None
     PERPLEXITY_API_KEY: SecretStr | None = None
-    OLLAMA_API_KEY: SecretStr | None = None
+    GROQ_API_KEY: SecretStr | None = None
+    ANTHROPIC_API_KEY: SecretStr | None = None
+
     # Class variable to store the singleton instance
     _instance: ClassVar[Any] = None
 

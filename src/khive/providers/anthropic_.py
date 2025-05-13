@@ -4,6 +4,7 @@
 
 from pydantic import BaseModel
 
+from khive.config import settings
 from khive.connections.endpoint import Endpoint, EndpointConfig
 
 ANTHROPIC_MESSAGES_ENDPOINT_CONFIG = EndpointConfig(
@@ -15,6 +16,7 @@ ANTHROPIC_MESSAGES_ENDPOINT_CONFIG = EndpointConfig(
     auth_type="x-api-key",
     default_headers={"api_version": "2023-06-01"},
     transport_type="http",
+    api_key=settings.ANTHROPIC_API_KEY,
 )
 
 
