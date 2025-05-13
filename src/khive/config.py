@@ -62,6 +62,15 @@ class AppSettings(BaseSettings, frozen=True):
     GROQ_API_KEY: SecretStr | None = None
     ANTHROPIC_API_KEY: SecretStr | None = None
 
+    # defaults
+    DEFAULT_EMBEDDING_PROVIDER: str = "openai"
+    DEFAULT_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+    DEFAULT_CHAT_PROVIDER: str = "anthropic"
+    DEFAULT_CHAT_MODEL: str = "claude-3-7-sonnet-20250219"
+
+    DEFAULT_QDRANT_URL: str = "http://localhost:6333"
+
     # Class variable to store the singleton instance
     _instance: ClassVar[Any] = None
 

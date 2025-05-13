@@ -2,15 +2,20 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import asyncio
 from abc import abstractmethod
+from asyncio.log import logger
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from .types import Execution
+from khive.traits.temporal import Temporal
+from khive.utils import validate_model_to_dict
+
+from .types import Execution, ExecutionStatus
 
 
-class Invokable(BaseModel):
+class Invokable(Temporal):
     """An executable can be invoked with a request"""
 
     request: dict | None = None
@@ -18,5 +23,33 @@ class Invokable(BaseModel):
     response_obj: Any = Field(None, exclude=True)
 
     @abstractmethod
-    async def invoke(self):
+    async def _invoke(self):
         pass
+
+    async def invoke(self) -> None:
+        start = asyncio.get_event_loop().time()
+        response = None
+        e1 = None
+
+        try:
+            # Use the endpoint as a context manager
+            response = await self._invoke()
+
+        except asyncio.CancelledError as ce:
+            e1 = ce
+            logger.warning("invoke() canceled by external request.")
+            raise
+        except Exception as ex:
+            e1 = ex
+
+        finally:
+            self.execution.duration = asyncio.get_event_loop().time() - start
+            if response is None and e1 is not None:
+                self.execution.error = str(e1)
+                self.execution.status = ExecutionStatus.FAILED
+                logger.error(f"invoke() failed for event {str(self.id)[:6]}...")
+            else:
+                self.response_obj = response
+                self.execution.response = validate_model_to_dict(response)
+                self.execution.status = ExecutionStatus.COMPLETED
+            self.update_timestamp()

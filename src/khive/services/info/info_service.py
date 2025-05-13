@@ -17,7 +17,7 @@ from .parts import (
 
 class InfoService:
     def __init__(self):
-        from khive.connections.endpoint import Endpoint
+        from khive.connections.api.endpoint import Endpoint
 
         self._perplexity: Endpoint = None
         self._exa: Endpoint = None

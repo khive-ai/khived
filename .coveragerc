@@ -3,6 +3,10 @@ source = src/khive
 omit =
     tests/*
     .github/*
+    src/khive/third_party/*
+    docs/*
+    notebook/*
+    reports/*
 
 [report]
 exclude_lines =
