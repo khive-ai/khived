@@ -4,13 +4,7 @@
 
 from uuid import UUID, uuid4
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_serializer,
-    field_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from khive.utils import validate_uuid
 
