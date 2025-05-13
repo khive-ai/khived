@@ -6,10 +6,6 @@ import asyncio
 
 from pydantic import BaseModel
 
-from khive.providers.exa_ import ExaSearchEndpoint, ExaSearchRequest
-from khive.providers.oai_ import OpenrouterChatEndpoint
-from khive.providers.perplexity_ import PerplexityChatEndpoint, PerplexityChatRequest
-
 from .parts import (
     InfoAction,
     InfoConsultParams,
@@ -21,9 +17,11 @@ from .parts import (
 
 class InfoService:
     def __init__(self):
-        self._perplexity: PerplexityChatEndpoint = None
-        self._exa: ExaSearchEndpoint = None
-        self._openrouter: OpenrouterChatEndpoint = None
+        from khive.connections.endpoint import Endpoint
+
+        self._perplexity: Endpoint = None
+        self._exa: Endpoint = None
+        self._openrouter: Endpoint = None
 
     async def handle_request(self, request: InfoRequest) -> InfoResponse:
         if request.action == InfoAction.SEARCH:
@@ -40,7 +38,14 @@ class InfoService:
             error="Invalid action or parameters.",
         )
 
-    async def _perplexity_search(self, params: PerplexityChatRequest) -> InfoResponse:
+    async def _perplexity_search(self, params) -> InfoResponse:
+        from khive.providers.perplexity_ import (
+            PerplexityChatEndpoint,
+            PerplexityChatRequest,
+        )
+
+        params: PerplexityChatRequest
+
         if self._perplexity is None:
             self._perplexity = PerplexityChatEndpoint()
         try:
@@ -57,7 +62,11 @@ class InfoService:
                 action_performed=InfoAction.SEARCH,
             )
 
-    async def _exa_search(self, params: ExaSearchRequest) -> InfoResponse:
+    async def _exa_search(self, params) -> InfoResponse:
+        from khive.providers.exa_ import ExaSearchEndpoint, ExaSearchRequest
+
+        params: ExaSearchRequest
+
         if self._exa is None:
             self._exa = ExaSearchEndpoint()
         try:
@@ -75,6 +84,8 @@ class InfoService:
             )
 
     async def _consult(self, params: InfoConsultParams) -> InfoResponse:
+        from khive.providers.oai_ import OpenrouterChatEndpoint
+
         if self._openrouter is None:
             self._openrouter = OpenrouterChatEndpoint()
         try:
