@@ -17,7 +17,7 @@ from .types import Embedding
 class Embedable(BaseModel):
     """Embedable trait, contains embedding and content"""
 
-    content: str
+    content: str | None = None
     embedding: Embedding = Field(default_factory=list)
     embed_endpoint: ClassVar[Endpoint] = None
 

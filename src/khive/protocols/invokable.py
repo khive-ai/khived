@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-from abc import abstractmethod
 from asyncio.log import logger
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import Field, PrivateAttr
 
@@ -41,14 +41,11 @@ class Invokable(Temporal):
             return await self._invoke_function(
                 *self._invoke_args, **self._invoke_kwargs
             )
-        else:
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
-                None,
-                lambda: self._invoke_function(
-                    *self._invoke_args, **self._invoke_kwargs
-                ),
-            )
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self._invoke_function(*self._invoke_args, **self._invoke_kwargs),
+        )
 
     async def invoke(self) -> None:
         start = asyncio.get_event_loop().time()

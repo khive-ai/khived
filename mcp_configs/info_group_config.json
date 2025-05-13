@@ -1,0 +1,6 @@
+{
+  "name": "khive-info",
+  "class_path": "src.khive.services.info.info_service:InfoServiceGroup",
+  "description": "A group for searching information online and consult with experts.",
+  "env_vars": {}
+}

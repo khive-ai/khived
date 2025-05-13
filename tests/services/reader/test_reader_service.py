@@ -29,7 +29,7 @@ from khive.services.reader.parts import (
     ReaderRequest,
     ReaderResponse,
 )
-from khive.services.reader.reader_service import ReaderService
+from khive.services.reader.reader_service import ReaderServiceGroup
 
 
 @pytest.fixture
@@ -68,13 +68,13 @@ def reader_service_instance(mock_docling_converter):
     with patch(
         "khive.services.reader.reader_service.calculate_text_tokens", return_value=5
     ):
-        return ReaderService(converter=mock_docling_converter)
+        return ReaderServiceGroup(converter=mock_docling_converter)
 
 
 # --- Tests for ReaderService initialization ---
 def test_reader_service_init(mock_docling_converter):
     """Test ReaderService initialization."""
-    service = ReaderService(converter=mock_docling_converter)
+    service = ReaderServiceGroup(converter=mock_docling_converter)
     assert hasattr(service, "converter")
     assert hasattr(service, "documents")
     assert isinstance(service.documents, dict)
