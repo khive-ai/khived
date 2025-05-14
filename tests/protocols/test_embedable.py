@@ -307,6 +307,7 @@ def test_parse_embedding_response_passthrough():
     # Assert
     assert result == response
 
+
 def test_get_default_embed_endpoint_unsupported(monkeypatch):
     """Test _get_default_embed_endpoint with unsupported provider."""
 
