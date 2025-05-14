@@ -76,7 +76,7 @@ coordinating transitions between all stages and ensuring quality gates are met.
 | Review    | Reviewer has `approval commented` in GitHub UI (**can't self approve**) |
 | Document  | Docs updated & committed                                                |
 | Merge     | PR merged                                                               |
-| Cleanup   | orchestrator run `khive clean <branch>` to clean up         |
+| Cleanup   | orchestrator run `khive clean <branch>` to clean up                     |
 
 **Essential MCP Tools (`mcp: github.*`)**
 
@@ -103,6 +103,18 @@ coordinating transitions between all stages and ensuring quality gates are met.
    requested.
 
 **Notes:**
+
+when subtask is reported back to you, you MUST CHECK
+
+- current branch, if we are working on a feature, make sure it is a branch and
+  not c ommited to main,
+- if your teammate forgot to branch, commit, branch for them, fix their
+  mistakes, you are the manager, and ultimately responsible for the project
+- ALWAYS CHECK pre-commit, if any errors, delegate to your teammate to fix, do
+  not ever edit codes yourself.
+- If your team member forget to commit, you can fix for them by running,
+  `uv run pre-commit run --all-files`, after no errors, use `khive commit` with
+  sufficient context.
 
 0. **Remember to provide necessary context/rationale when assigning tasks, as
    modes do not share conversational history.** Use file references (`INPUT=`)

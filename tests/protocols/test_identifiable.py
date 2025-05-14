@@ -3,10 +3,10 @@ Tests for khive.protocols.identifiable module.
 """
 
 import uuid
-import pytest
-from pydantic import ValidationError
 
+import pytest
 from khive.protocols.identifiable import Identifiable
+from pydantic import ValidationError
 
 
 # --- Tests for Identifiable class ---
@@ -56,11 +56,11 @@ def test_identifiable_id_immutability():
     """Test that the id field is immutable (frozen)."""
     obj = Identifiable()
     original_id = obj.id
-    
+
     # Attempting to change the id should raise an error
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         obj.id = uuid.uuid4()  # type: ignore
-    
+
     # Verify the id hasn't changed
     assert obj.id == original_id
 
@@ -70,7 +70,7 @@ def test_identifiable_model_config():
     # Test extra="forbid"
     with pytest.raises(ValidationError):
         Identifiable(extra_field="value")  # type: ignore
-    
+
     # Test that valid initialization works
     obj = Identifiable()
     assert obj is not None

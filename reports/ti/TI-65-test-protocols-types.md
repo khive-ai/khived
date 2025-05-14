@@ -16,7 +16,9 @@ date: 2025-05-14
 
 ### 1.1 Component Under Test
 
-This document outlines the test implementation for the `khive/protocols/types.py` module, which defines core type definitions, enums, and models used throughout the khive project. The module includes:
+This document outlines the test implementation for the
+`khive/protocols/types.py` module, which defines core type definitions, enums,
+and models used throughout the khive project. The module includes:
 
 - `Embedding` type (list of floats)
 - `Metadata` type (dictionary)
@@ -26,7 +28,8 @@ This document outlines the test implementation for the `khive/protocols/types.py
 
 ### 1.2 Test Approach
 
-The test approach is primarily unit testing, as the module consists of type definitions and models without external dependencies. The tests verify:
+The test approach is primarily unit testing, as the module consists of type
+definitions and models without external dependencies. The tests verify:
 
 1. Type definitions behave as expected
 2. Enum values are correct
@@ -59,7 +62,8 @@ pytest-mock
 
 ### 2.3 Test Database
 
-No database is required for these tests as the module doesn't interact with databases.
+No database is required for these tests as the module doesn't interact with
+databases.
 
 ## 3. Unit Tests
 
@@ -67,7 +71,8 @@ No database is required for these tests as the module doesn't interact with data
 
 #### 3.1.1 Test Case: Embedding Type
 
-**Purpose:** Verify that the Embedding type is a list of floats and behaves as expected.
+**Purpose:** Verify that the Embedding type is a list of floats and behaves as
+expected.
 
 **Test Implementation:**
 
@@ -86,7 +91,8 @@ def test_embedding_type():
 
 #### 3.1.2 Test Case: Metadata Type
 
-**Purpose:** Verify that the Metadata type is a dictionary and behaves as expected.
+**Purpose:** Verify that the Metadata type is a dictionary and behaves as
+expected.
 
 **Test Implementation:**
 
@@ -170,7 +176,8 @@ def test_execution_with_values():
 
 #### 3.3.3 Test Case: Pydantic Model Response
 
-**Purpose:** Verify that the Execution class correctly handles Pydantic models as response.
+**Purpose:** Verify that the Execution class correctly handles Pydantic models
+as response.
 
 **Test Implementation:**
 
@@ -182,9 +189,9 @@ def test_execution_with_pydantic_model_response():
         field2: int
 
     sample_response = SampleResponse(field1="test", field2=123)
-    
+
     execution = Execution(response=sample_response)
-    
+
     # The response should be converted to a dict
     assert isinstance(execution.response, dict)
     assert execution.response == {"field1": "test", "field2": 123}
@@ -200,7 +207,7 @@ def test_execution_with_pydantic_model_response():
 def test_execution_status_serialization():
     """Test that ExecutionStatus is serialized to its string value."""
     execution = Execution(status=ExecutionStatus.COMPLETED)
-    
+
     # Convert to dict to test serialization
     serialized = execution.model_dump()
     assert serialized["status"] == "completed"
@@ -208,7 +215,8 @@ def test_execution_status_serialization():
 
 #### 3.3.5 Test Case: Invalid Status
 
-**Purpose:** Verify that the Execution class raises a validation error for invalid status.
+**Purpose:** Verify that the Execution class raises a validation error for
+invalid status.
 
 **Test Implementation:**
 
@@ -256,7 +264,7 @@ def test_log_with_valid_values():
         error=None,
         sha256="abc123",
     )
-    
+
     assert log.id == "log123"
     assert log.created_at == "2025-05-14T12:00:00Z"
     assert log.updated_at == "2025-05-14T12:01:00Z"
@@ -285,7 +293,7 @@ def test_log_default_values():
         event_type="test_event",
         status="completed",
     )
-    
+
     assert log.content is None
     assert log.embedding == []
     assert log.duration is None
@@ -310,28 +318,34 @@ def test_log_with_empty_embedding():
         status="completed",
         embedding=[],
     )
-    
+
     assert log.embedding == []
 ```
 
 ## 4. Integration Tests
 
-No integration tests are required for this module as it consists of type definitions and models without external dependencies.
+No integration tests are required for this module as it consists of type
+definitions and models without external dependencies.
 
 ## 5. API Tests
 
-No API tests are required for this module as it doesn't expose any API endpoints.
+No API tests are required for this module as it doesn't expose any API
+endpoints.
 
 ## 6. Error Handling Tests
 
-Error handling tests are included in the unit tests for each class, particularly:
+Error handling tests are included in the unit tests for each class,
+particularly:
 
-- `test_execution_invalid_status`: Tests that an invalid status raises a validation error
-- `test_log_required_fields`: Tests that missing required fields raise a validation error
+- `test_execution_invalid_status`: Tests that an invalid status raises a
+  validation error
+- `test_log_required_fields`: Tests that missing required fields raise a
+  validation error
 
 ## 7. Performance Tests
 
-No specific performance tests are required for this module as it consists of simple type definitions and models.
+No specific performance tests are required for this module as it consists of
+simple type definitions and models.
 
 ## 8. Mock Implementation Details
 
@@ -368,9 +382,11 @@ uv run pytest tests/protocols/test_types.py --cov=khive.protocols.types --cov-re
 
 ### 13.1 Known Limitations
 
-- Tests focus on the public interface of the module and don't test internal implementation details.
+- Tests focus on the public interface of the module and don't test internal
+  implementation details.
 
 ### 13.2 Future Improvements
 
-- Add property-based testing using hypothesis to test with a wider range of inputs.
+- Add property-based testing using hypothesis to test with a wider range of
+  inputs.
 - Add more edge cases for the Pydantic models.
