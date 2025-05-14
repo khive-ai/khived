@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any
 
 import aiofiles
-from khivemcp import ServiceGroup, operation
 
-from .parts import (
+from khive.protocols.service import Service
+from khive.services.reader.parts import (
     DocumentInfo,
     ReaderAction,
     ReaderListDirParams,
@@ -19,7 +19,11 @@ from .parts import (
     ReaderRequest,
     ReaderResponse,
 )
-from .utils import calculate_text_tokens
+from khive.services.reader.utils import calculate_text_tokens
+from khive.utils import is_package_installed
+
+_HAS_DOCLING = is_package_installed("docling")
+
 
 DOCLING_SUPPORTED_FORMATS = {
     ".pdf",  # Document formats
@@ -47,7 +51,7 @@ __all__ = (
 )
 
 
-class ReaderServiceGroup(ServiceGroup):
+class ReaderServiceGroup(Service):
     """
     A tool that can:
       - open a doc (File/URL) -> returns doc_id, doc length
@@ -66,6 +70,11 @@ class ReaderServiceGroup(ServiceGroup):
             Inject a converter for easier testing; falls back to Docling's
             default when omitted.
         """
+        if not _HAS_DOCLING:
+            raise ModuleNotFoundError(
+                "Docling is not installed. Please install it with `pip install docling`."
+            )
+
         from docling.document_converter import DocumentConverter  # type: ignore[import]
 
         self.converter = converter or DocumentConverter()
@@ -80,10 +89,6 @@ class ReaderServiceGroup(ServiceGroup):
         # Load existing index or create a new one
         self.documents_index = self._load_index()
 
-    @operation(
-        name="handle_request",
-        schema=ReaderRequest,
-    )
     async def handle_request(self, request: ReaderRequest) -> ReaderResponse:
         if request.action == ReaderAction.OPEN:
             return await self._open_doc(request.params)

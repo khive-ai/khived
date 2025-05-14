@@ -5,6 +5,10 @@
 import logging
 from pathlib import Path
 
+from khive.utils import is_package_installed
+
+_HAS_TIKTOKEN = is_package_installed("tiktoken")
+
 
 def dir_to_files(
     directory: str | Path,
@@ -71,6 +75,12 @@ def dir_to_files(
 
 def calculate_text_tokens(s_: str | None = None, /) -> int:
     """Calculate the number of tokens in a string using the tiktoken library."""
+    if not _HAS_TIKTOKEN:
+        raise ModuleNotFoundError(
+            "tiktoken is not installed. Please install it to use this function."
+            "`pip install tiktoken` or `pip install 'khive[reader]' to also install docling"
+        )
+
     import tiktoken
 
     if not s_:
