@@ -316,6 +316,7 @@ def test_get_default_embed_endpoint_openai(monkeypatch):
     class MockSettings:
         DEFAULT_EMBEDDING_PROVIDER = "openai"
         DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+        OPENAI_API_KEY = "test_api_key"
 
     class MockOpenaiEmbedEndpoint:
         def __init__(self, model):
