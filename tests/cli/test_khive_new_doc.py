@@ -131,7 +131,7 @@ def test_default_config(tmp_path):
     config = load_new_doc_config(project_root)
 
     # Assert
-    assert config.default_destination_base_dir == "reports"
+    assert config.default_destination_base_dir == ".khive/reports"
     assert config.custom_template_dirs == []
     assert config.default_vars == {}
 
@@ -327,7 +327,7 @@ def test_create_document(tmp_path, mock_template):
 
     # Assert
     assert result["status"] == "success"
-    output_path = tmp_path / "reports" / "tests" / "TEST-test-id.md"
+    output_path = tmp_path / ".khive/reports" / "tests" / "TEST-test-id.md"
     assert output_path.exists()
     content = output_path.read_text()
     assert "Hello John" in content
@@ -342,7 +342,7 @@ def test_create_document_file_exists(tmp_path, mock_template):
     custom_vars = {"NAME": "John"}
 
     # Create initial document
-    output_dir = tmp_path / "reports" / "tests"
+    output_dir = tmp_path / ".khive/reports" / "tests"
     output_dir.mkdir(parents=True)
     output_path = output_dir / "TEST-test-id.md"
     output_path.write_text("Original content")
@@ -370,7 +370,7 @@ def test_create_document_force_overwrite(tmp_path, mock_template):
     custom_vars = {"NAME": "John"}
 
     # Create initial document
-    output_dir = tmp_path / "reports" / "tests"
+    output_dir = tmp_path / ".khive/reports" / "tests"
     output_dir.mkdir(parents=True)
     output_path = output_dir / "TEST-test-id.md"
     output_path.write_text("Original content")
@@ -411,7 +411,7 @@ def test_create_document_dry_run(tmp_path, mock_template):
 
     # Assert
     assert result["status"] == "success_dry_run"
-    output_path = tmp_path / "reports" / "tests" / "TEST-test-id.md"
+    output_path = tmp_path / ".khive/reports" / "tests" / "TEST-test-id.md"
     assert not output_path.exists()
 
 
@@ -486,7 +486,7 @@ def test_cli_create_document(tmp_path):
 
     # Assert
     assert result["status"] == "success"
-    output_path = tmp_path / "reports" / "tests" / "TEST-test-id.md"
+    output_path = tmp_path / ".khive/reports" / "tests" / "TEST-test-id.md"
     assert output_path.exists()
     content = output_path.read_text()
     assert "Hello John" in content
@@ -515,8 +515,8 @@ def test_cli_json_output(
 
     mock_create.return_value = {
         "status": "success",
-        "message": "Document created: reports/tests/TEST-test-id.md",
-        "created_file_path": "reports/tests/TEST-test-id.md",
+        "message": "Document created: .khive/reports/tests/TEST-test-id.md",
+        "created_file_path": ".khive/reports/tests/TEST-test-id.md",
         "template_used": "template.md",
     }
 
@@ -527,7 +527,7 @@ def test_cli_json_output(
     captured = capsys.readouterr()
     json_output = json.loads(captured.out)
     assert json_output["status"] == "success"
-    assert json_output["created_file_path"] == "reports/tests/TEST-test-id.md"
+    assert json_output["created_file_path"] == ".khive/reports/tests/TEST-test-id.md"
     assert json_output["template_used"] == "template.md"
 
 
