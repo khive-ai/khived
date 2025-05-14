@@ -81,7 +81,7 @@ class ReaderServiceGroup(ServiceGroup):
         self.documents_index = self._load_index()
 
     @operation(
-        name="handle_reader_request",
+        name="handle_request",
         schema=ReaderRequest,
     )
     async def handle_request(self, request: ReaderRequest) -> ReaderResponse:

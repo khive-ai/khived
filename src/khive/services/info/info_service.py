@@ -25,7 +25,7 @@ class InfoServiceGroup(ServiceGroup):
         self._openrouter: Endpoint = None
 
     @operation(
-        name="handle_info_request",
+        name="handle_request",
         schema=InfoRequest,
     )
     async def handle_request(self, request: InfoRequest) -> InfoResponse:
