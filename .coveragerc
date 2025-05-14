@@ -4,6 +4,8 @@ omit =
     tests/*
     .github/*
     src/khive/third_party/*
+    src/khive/prompts/*
+    src/khive/commands/*
     docs/*
     notebook/*
     reports/*
