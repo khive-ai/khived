@@ -57,6 +57,7 @@ class AppSettings(BaseSettings, frozen=True):
     # secrets
     OPENAI_API_KEY: SecretStr | None = None
     OPENROUTER_API_KEY: SecretStr | None = None
+    OLLAMA_API_KEY: SecretStr | None = None
     EXA_API_KEY: SecretStr | None = None
     PERPLEXITY_API_KEY: SecretStr | None = None
     GROQ_API_KEY: SecretStr | None = None
@@ -97,6 +98,8 @@ class AppSettings(BaseSettings, frozen=True):
             ValueError: If the key exists but is None
         """
         if not hasattr(self, key_name):
+            if "ollama" in key_name.lower():
+                return "ollama"
             raise AttributeError(f"Secret key '{key_name}' not found in settings")
 
         secret = getattr(self, key_name)
