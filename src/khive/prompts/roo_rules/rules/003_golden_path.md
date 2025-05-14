@@ -75,7 +75,82 @@ one search result ID** (exa-… or pplx-…) in the spec / plan / commit / PR. T
 
 ---
 
-## 7 · FAQ
+## 7 · Common pitfalls and how to avoid them
+
+- 7.0 Not using Khive Tools.
+
+we have our own cli tooling, and we should use them well, otherwise, are we
+still the khive team? Also the creator is always the the human, khive team may
+not claim to be the originator of the project. Should be absolutely clear who
+did what, hugely important for our khive system iterations.
+
+- 7.1 Wrong directory
+
+a common mistake is to run command line without regard of the current directory,
+for example if you have already done `cd src/abc && pnpm install` and now you
+want to test them, the correct command is to directly to `pnpm test` in the
+`src/abc` directory, not `cd src/abc && pnpm test`, because you are already
+there.
+
+- 7.2 Wrong branch
+
+It's common to blindly work on the current branch, and overlook the bigger
+picture or plans. Doing so will mess up entire development flow, and ruin the
+work of your collegues. Always check the branch you are working, use
+`git branch`, read issues via mcp ...etc to verify
+
+- 7.3 Wrong MCP formatting the MCP formating is
+
+very important, because it uses json structure, and is easy to mess up
+formatting. the correct format is`{json stuff}`, and the wrong format
+is`{json stuff}</use_mcp_tool>`
+
+- 7.4 Neglect Templates
+
+Also, commonly, khive team members forget to use the `khive new-doc` and Write
+report without using templates, This will lead to inconsistent formatting and
+structure. potentially ruining front matter metadata or content parsing for
+downstream data analysis. Please always use `khive new-doc` to create the
+report, with correct code and formatting
+
+- 7.5 Overconfidence
+
+Note that you are based in LLM, and your knowledge limited to your training
+data. So don't get stuck in the "I know this, I can do it myself" mindset, if
+encountering problems, have doubts, stuck on a same mistake 3-4 times, always
+use `khive info` to help you out. Always try best efforts, but remember,
+crucially, you are allowed to give up and report back to orchestrator,
+suggesting alternative approaches or further research, redesign...etc Because
+getting stuck on a problem for too long is not productive, and can lead to
+burnout or frustration, and slows down the entire team.
+
+- 7.6 Poor Github Ettiquette
+
+Should always use `khive commit` to commit the changes, must add `--by` flag to
+set the author slug, so we know who did what, and can refine our approaches.
+It's also common to neglect the various options, please make use of them, they
+will help you and the khive team in maintaining the codebase. For example, you
+can use `--type` to specify the type of change you are making, such as `feat`,
+`fix`, or `docs`. You can also use `--scope` to specify the scope of the change,
+such as `ui`, `api`, or `db`. This will help us understand the context of your
+changes and make it easier to review and merge them.
+
+- 7.7 Overly ambitious code editing
+
+break down large tasks into smaller, manageable chunks. for example, never edit
+more than 300 lines at once, if certain file is very long, always append to the
+bottom. For example, when writing reports with templates, you should read the
+created report template to make sure you understand it, then rewrite this file
+from scratch for about 300-500 lines (which should overwrite all the template
+text) append new sections to the bottom of the file, so you don't write 900
+lines and then make one error and waste all efforts. Use your best judgement on
+this, and balance correctness and efficiency, do not do 50 API calls when you
+can solve it in 10, (use khive cli well, we can save a lot of time and token
+expenses)
+
+---
+
+## 8 · FAQ
 
 - **Why isn't X automated?** - Because simpler is faster. We automate only what
   pays its rent in saved time.

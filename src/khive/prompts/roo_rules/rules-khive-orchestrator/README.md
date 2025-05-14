@@ -76,7 +76,7 @@ coordinating transitions between all stages and ensuring quality gates are met.
 | Review    | Reviewer has `approval commented` in GitHub UI (**can't self approve**) |
 | Document  | Docs updated & committed                                                |
 | Merge     | PR merged                                                               |
-| Cleanup   | Implementer confirms feature branch (remote and local) cleaned          |
+| Cleanup   | orchestrator run `khive clean <branch>` to clean up         |
 
 **Essential MCP Tools (`mcp: github.*`)**
 

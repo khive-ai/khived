@@ -9,10 +9,11 @@ creating well-formatted commits with proper metadata.
 
 ## Usage
 
+- mandatory flag, --by "@khive-abc"
+
 ```bash
-khive commit [message] [options]
-khive commit --type <type> --scope <scope> --subject <subject> [options]
-khive commit --interactive [options]
+khive commit [message] [options] --by "@khive-abc"
+khive commit --type <type> --scope <scope> --subject <subject> [options] --by "@khive-abc"
 ```
 
 ## Options
@@ -27,7 +28,6 @@ khive commit --interactive [options]
 | `--breaking-change-description`, `--bc` | Description of the breaking change. Implies '!' in header.                                 |
 | `--closes`                              | Issue number this commit closes (e.g., 123).                                               |
 | `--search-id`                           | Search ID for evidence citation (e.g., pplx-abc).                                          |
-| `--interactive`, `-i`                   | Interactively build commit message and stage files.                                        |
 | `--patch-stage`, `-p`                   | Use 'git add -p' for interactive staging. Overrides default_stage_mode.                    |
 | `--all-stage`, `-A`                     | Use 'git add -A' to stage all. Overrides default_stage_mode.                               |
 | `--amend`                               | Amend the previous commit.                                                                 |

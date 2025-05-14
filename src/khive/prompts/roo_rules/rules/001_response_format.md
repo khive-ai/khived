@@ -36,14 +36,14 @@ description: >
 
 | Tag                                  | Use-case                           | Sample prompt stub           |
 | ------------------------------------ | ---------------------------------- | ---------------------------- |
-| **\[^Spec]**                         | clarify requirements & constraints | “What does _done_ mean?”     |
-| **\[^Impl]**                         | algorithms, code shape             | “How will we build it?”      |
-| **\[^Validation]**                   | tests & edge cases                 | “How will we know it works?” |
+| **[^Spec]**                          | clarify requirements & constraints | “What does _done_ mean?”     |
+| **[^Impl]**                          | algorithms, code shape             | “How will we build it?”      |
+| **[^Validation]**                    | tests & edge cases                 | “How will we know it works?” |
 | **Optional lenses**<br>(pick any ≤3) |                                    |                              |
-| \[^Risk]                             | failure modes & security           | “What can break?”            |
-| \[^System]                           | external deps & feedback loops     | “How does it fit in?”        |
-| \[^Efficiency]                       | speed / cost trim                  | “Can we do it leaner?”       |
-| \[^User]                             | human impact & UX                  | “Who touches this?”          |
+| [^Risk]                              | failure modes & security           | “What can break?”            |
+| [^System]                            | external deps & feedback loops     | “How does it fit in?”        |
+| [^Efficiency]                        | speed / cost trim                  | “Can we do it leaner?”       |
+| [^User]                              | human impact & UX                  | “Who touches this?”          |
 
 > Minimum: **Spec + Impl + Validation**. Feel free to swap or add up to **three
 > optional lenses**.
@@ -55,20 +55,20 @@ description: >
 Use these if the task demands deeper exploration; otherwise ignore to save
 tokens.
 
-| Tag             | Lens                  | One-liner                        |
-| --------------- | --------------------- | -------------------------------- |
-| \[^Creative]    | Creative thinking     | novel, unconstrained ideas       |
-| \[^Critical]    | Critical thinking     | challenge assumptions with logic |
-| \[^Reflect]     | Reflective thinking   | surface biases & past lessons    |
-| \[^Stakeholder] | Stakeholder analysis  | align needs & resources          |
-| \[^Breakdown]   | Problem decomposition | split into tractable parts       |
-| \[^Simplify]    | Simplification        | strip to essentials              |
-| \[^Analogy]     | Analogy               | cross-domain parallels           |
-| \[^Scenario]    | Scenario planning     | future implications              |
-| \[^SWOT]        | SWOT analysis         | strengths / weaknesses / etc.    |
-| \[^Design]      | Design thinking       | empathise-ideate-prototype cycle |
-| \[^Lean]        | Lean thinking         | waste reduction                  |
-| \[^Agile]       | Agile thinking        | iterative adaptability           |
+| Tag            | Lens                  | One-liner                        |
+| -------------- | --------------------- | -------------------------------- |
+| [^Creative]    | Creative thinking     | novel, unconstrained ideas       |
+| [^Critical]    | Critical thinking     | challenge assumptions with logic |
+| [^Reflect]     | Reflective thinking   | surface biases & past lessons    |
+| [^Stakeholder] | Stakeholder analysis  | align needs & resources          |
+| [^Breakdown]   | Problem decomposition | split into tractable parts       |
+| [^Simplify]    | Simplification        | strip to essentials              |
+| [^Analogy]     | Analogy               | cross-domain parallels           |
+| [^Scenario]    | Scenario planning     | future implications              |
+| [^SWOT]        | SWOT analysis         | strengths / weaknesses / etc.    |
+| [^Design]      | Design thinking       | empathise-ideate-prototype cycle |
+| [^Lean]        | Lean thinking         | waste reduction                  |
+| [^Agile]       | Agile thinking        | iterative adaptability           |
 
 _(Risk/System already covered above; removed duplicates for brevity.)_
 
