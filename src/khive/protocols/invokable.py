@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import Field, PrivateAttr
 
 from khive.protocols.temporal import Temporal
-from khive.utils import is_coroutine_function, validate_model_to_dict
+from khive.utils import as_async_fn, validate_model_to_dict
 
 from .types import Execution, ExecutionStatus
 
@@ -35,17 +35,8 @@ class Invokable(Temporal):
     async def _invoke(self):
         if self._invoke_function is None:
             raise ValueError("Event invoke function is not set.")
-
-        is_async = is_coroutine_function(self._invoke_function)
-        if is_async:
-            return await self._invoke_function(
-                *self._invoke_args, **self._invoke_kwargs
-            )
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None,
-            lambda: self._invoke_function(*self._invoke_args, **self._invoke_kwargs),
-        )
+        async_fn = as_async_fn(self._invoke_function)
+        return await async_fn(*self._invoke_args, **self._invoke_kwargs)
 
     async def invoke(self) -> None:
         start = asyncio.get_event_loop().time()
