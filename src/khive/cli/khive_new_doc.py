@@ -105,7 +105,7 @@ def die_doc(
 @dataclass
 class NewDocConfig:
     project_root: Path
-    default_destination_base_dir: str = "reports"
+    default_destination_base_dir: str = ".khive/reports"
     custom_template_dirs: list[str] = field(
         default_factory=list
     )  # Relative to project_root or absolute

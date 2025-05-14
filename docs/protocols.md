@@ -133,7 +133,7 @@ from khive.protocols.embedable import Embedable
 class MyEmbedable(Embedable):
     name: str
     description: str = None
-    
+
     def create_content(self):
         """Override to provide custom content creation logic."""
         return f"{self.name}: {self.description}"
@@ -163,7 +163,7 @@ from khive.protocols.temporal import Temporal
 class MyCustomObject(Temporal):
     name: str = Field(..., description="The name of the object")
     description: str = Field(None, description="Optional description")
-    
+
     def process(self):
         """Process the object and update its timestamp."""
         # Do processing...
@@ -191,15 +191,15 @@ from khive.protocols.embedable import Embedable
 
 class EnhancedEmbedable(Embedable):
     """Enhanced embedable with additional capabilities."""
-    
+
     async def generate_embedding(self) -> "EnhancedEmbedable":
         """Override to add pre/post processing."""
         # Pre-processing
         self.content = self.content.lower()
-        
+
         # Call parent implementation
         await super().generate_embedding()
-        
+
         # Post-processing
         self.embedding = [x * 0.5 for x in self.embedding]
         return self
@@ -233,18 +233,18 @@ from khive.protocols.service import Service
 
 class MyService(Service):
     """Custom service implementation."""
-    
+
     async def handle_request(self, request, ctx=None):
         """Process the request with optional context."""
         ctx = ctx or {}
         user_id = ctx.get("user_id")
-        
+
         # Process request
         result = {"status": "success", "data": request}
-        
+
         if user_id:
             result["user_id"] = user_id
-            
+
         return result
 ```
 
@@ -277,7 +277,7 @@ async def test_my_embedable_create_content():
     obj = MyEmbedable(name="Test", description="Description")
     content = obj.create_content()
     assert content == "Test: Description"
-    
+
     # Test with missing description
     obj2 = MyEmbedable(name="Test")
     content2 = obj2.create_content()
@@ -295,7 +295,7 @@ async def test_my_embedable_with_event():
     @as_event(embed_content=True)
     async def test_function(request):
         return MyEmbedable(name=request["name"])
-    
+
     event = await test_function({"name": "Test"})
     assert isinstance(event.response_obj, MyEmbedable)
     assert event.response_obj.name == "Test"
@@ -312,7 +312,7 @@ async def test_my_embedable_with_empty_values():
     obj = MyEmbedable(name="")
     content = obj.create_content()
     assert content == ": None"
-    
+
     # Test embedding generation with empty content
     await obj.generate_embedding()
     assert isinstance(obj.embedding, list)

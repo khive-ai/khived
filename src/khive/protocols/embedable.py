@@ -88,10 +88,10 @@ def _parse_embedding_response(x):
 
 
 def _get_default_embed_endpoint() -> Endpoint:
-    if settings.DEFAULT_EMBEDDING_PROVIDER == "openai":
+    if settings.KHIVE_EMBEDDING_PROVIDER == "openai":
         from khive.providers.oai_ import OpenaiEmbedEndpoint
 
-        return OpenaiEmbedEndpoint(model=settings.DEFAULT_EMBEDDING_MODEL)
+        return OpenaiEmbedEndpoint(model=settings.KHIVE_EMBEDDING_MODEL)
     raise ValueError(
-        f"Unsupported embedding provider: {settings.DEFAULT_EMBEDDING_PROVIDER}"
+        f"Unsupported embedding provider: {settings.KHIVE_EMBEDDING_PROVIDER}"
     )

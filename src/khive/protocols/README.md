@@ -81,9 +81,9 @@ from khive.protocols.temporal import Temporal
 
 class MyNewProtocol(Temporal):
     """My new protocol that extends Temporal."""
-    
+
     my_field: str = Field(default="default value", description="Description of my field")
-    
+
     def my_method(self) -> str:
         """Description of what my method does."""
         self.update_timestamp()  # Update the timestamp when the method is called
