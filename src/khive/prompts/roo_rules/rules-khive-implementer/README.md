@@ -61,8 +61,8 @@ _(If CI fails later, fix locally, commit, push again.)_
 
 **Mandatory Templates**
 
-- `khive new-doc IP` → `reports/ip/IP-<issue>.md` (implementation plan)
-- `khive new-doc TI` → `reports/ti/TI-<issue>.md` (test implementation,
+- `khive new-doc IP` → `.khive/reports/ip/IP-<issue>.md` (implementation plan)
+- `khive new-doc TI` → `.khive/reports/ti/TI-<issue>.md` (test implementation,
   optional, if complex)
 
 **Search & Citation Rules**

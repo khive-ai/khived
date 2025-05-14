@@ -43,45 +43,6 @@ khive pr [options]
 | `--dry-run`, `-n`       | Show what would be done without actually running commands.                              |
 | `--verbose`, `-v`       | Enable verbose logging.                                                                 |
 
-## Configuration
-
-`khive pr` can be configured using a TOML file located at `.khive/pr.toml` in
-your project root. All configuration options are optional and will use sensible
-defaults if not specified.
-
-### Configuration Options
-
-```toml
-# .khive/pr.toml
-
-# Default base branch for PRs (default: "main")
-default_base_branch = "main"
-
-# Whether to create PRs as drafts by default (default: false)
-default_to_draft = false
-
-# Default reviewers to add to PRs
-default_reviewers = ["reviewer1", "reviewer2"]
-
-# Default assignees to add to PRs
-default_assignees = ["assignee1"]
-
-# Default labels to add to PRs
-default_labels = ["label1", "label2"]
-
-# Whether to use GitHub PR templates if available (default: true)
-prefer_github_template = true
-
-# Whether to automatically push the branch before PR creation (default: true)
-auto_push_branch = true
-```
-
-### Configuration Precedence
-
-CLI arguments override configuration file settings. For example, if
-`auto_push_branch = true` is set in the configuration file, but `--no-push` is
-passed as a CLI argument, the command will not push before creating the PR.
-
 ## PR Creation Workflow
 
 1. **Branch Detection**: Automatically detects the current branch and target
@@ -134,39 +95,6 @@ khive pr --dry-run
 # Output results in JSON format (for agent consumption)
 khive pr --json-output
 ```
-
-## JSON Output Format
-
-When using `--json-output`, the command returns a structured JSON object with
-the following fields:
-
-```json
-{
-  "status": "success",
-  "message": "Pull request created successfully.",
-  "pr_url": "https://github.com/owner/repo/pull/123",
-  "pr_number": 123,
-  "pr_title": "feat: add dark mode",
-  "pr_base_branch": "main",
-  "pr_head_branch": "feature/dark-mode",
-  "is_draft": false,
-  "pr_state": "OPEN",
-  "action_taken": "created"
-}
-```
-
-For existing PRs, the `status` field will be `"exists"` and `action_taken` will
-be `"retrieved_existing"` or `"opened_in_browser"` if `--web` was specified.
-
-## Error Handling
-
-`khive pr` provides detailed error messages when things go wrong:
-
-- Missing Git or GitHub CLI tools
-- Detached HEAD state
-- Branch push failures
-- PR creation failures
-- Configuration parsing errors
 
 ## Exit Codes
 

@@ -66,8 +66,8 @@ Templates & Aids
 ⸻
 
 **Reminder:** Judge, comment, review, evalaute. your role is review-only, you
-can only push review document to `reports/crr/CRR-{issue_number}.md`, and you
-need to leave comment on pr/issues indicating the location of review .
+can only push review document to `.khive/reports/crr/CRR-{issue_number}.md`, and
+you need to leave comment on pr/issues indicating the location of review .
 
 - If you spot a trivial fix, ask the Implementer to commit it.
 

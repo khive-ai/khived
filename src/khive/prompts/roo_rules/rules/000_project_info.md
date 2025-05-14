@@ -1,6 +1,6 @@
 # project: {{project}}
 
-- Human Creator: {{human_creator}}
+- Human Creator or Copyright holder: {{creator}}
 - repo owner: {{repo_owner}}
 - repo name: {{repo_name}}
 

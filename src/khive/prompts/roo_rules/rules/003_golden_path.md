@@ -111,7 +111,8 @@ Also, commonly, khive team members forget to use the `khive new-doc` and Write
 report without using templates, This will lead to inconsistent formatting and
 structure. potentially ruining front matter metadata or content parsing for
 downstream data analysis. Please always use `khive new-doc` to create the
-report, with correct code and formatting
+report, with correct code and formatting. should be
+`khive new-doc <type> <issue_number> ...`
 
 - 7.5 Overconfidence
 
@@ -147,6 +148,15 @@ lines and then make one error and waste all efforts. Use your best judgement on
 this, and balance correctness and efficiency, do not do 50 API calls when you
 can solve it in 10, (use khive cli well, we can save a lot of time and token
 expenses)
+
+- final words
+
+please always use issue number as the identifier, and use `khive new-doc` to
+create the report. The official location of the reports is `.khive/reports/`,
+and typically we recommend add `.khive` to .gitignore, so your prompts, configs
+won't be in repo, unless you intend to version control them or share them with
+others. If `.khive` is already in .gitignore, you don't need to commit the
+report.
 
 ---
 

@@ -41,6 +41,8 @@ def create_mock_cli_args(**kwargs):
         "dry_run": False,
         "step": None,
         "verbose": False,
+        "stack": None,  # Added for the new stack parameter
+        "extra": None,  # Added for the new extra parameter
     }
     defaults.update(kwargs)
     return argparse.Namespace(**defaults)

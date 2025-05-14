@@ -39,41 +39,6 @@ khive commit --type <type> --scope <scope> --subject <subject> [options] --by "@
 | `--dry-run`, `-n`                       | Show what would be done without actually running commands.                                 |
 | `--verbose`, `-v`                       | Enable verbose logging.                                                                    |
 
-## Configuration
-
-`khive commit` can be configured using a TOML file located at
-`.khive/commit.toml` in your project root. All configuration options are
-optional and will use sensible defaults if not specified.
-
-### Configuration Options
-
-```toml
-# .khive/commit.toml
-
-# Whether to push after commit by default (default: true)
-default_push = true
-
-# Whether to allow empty commits by default (default: false)
-allow_empty_commits = false
-
-# List of valid conventional commit types
-conventional_commit_types = [
-    "feat", "fix", "build", "chore", "ci", "docs",
-    "perf", "refactor", "revert", "style", "test"
-]
-
-# Optional custom regex pattern for conventional commits
-# If not specified, a pattern is generated from conventional_commit_types
-# conventional_commit_regex_pattern = "^(feat|fix|docs)(\([\w-]+\))?(!)?:\ .+"
-
-# Fallback Git user identity if not configured
-fallback_git_user_name = "khive-bot"
-fallback_git_user_email = "khive-bot@example.com"
-
-# Default staging mode: "all" or "patch" (default: "all")
-default_stage_mode = "all"
-```
-
 ### Configuration Precedence
 
 CLI arguments override configuration file settings. For example, if
@@ -124,18 +89,7 @@ khive commit "chore!: bump API to v2" --amend -v
 
 # Commit with breaking change
 khive commit --type feat --scope api --subject "redesign auth flow" --breaking-change-description "Changes token format" --closes 123
-
-# Dry run to see what would happen
-khive commit "docs: update README" --dry-run
 ```
-
-## Error Handling
-
-`khive commit` provides detailed error messages when things go wrong:
-
-- Invalid commit messages are rejected with helpful error messages
-- Git command failures include exit codes and error messages
-- Configuration errors are reported with helpful context
 
 ## Exit Codes
 
