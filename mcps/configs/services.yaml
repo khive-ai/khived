@@ -1,0 +1,13 @@
+name: KhiveServices
+description: A service for multiple groups.
+
+groups:
+  info_service:
+    name: "khive-info"
+    class_path: "mcps.groups.info_group:InfoServiceGroup"
+    description: "A group for searching information online and consult with experts."
+
+  reader_service:
+    name: "khive-reader"
+    class_path: "mcps.groups.reader_group:ReaderServiceGroup"
+    description: "A group for reading, parsing urls structured and unstructured files"
