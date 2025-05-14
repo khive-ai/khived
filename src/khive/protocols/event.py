@@ -6,12 +6,12 @@ from typing import Any
 from pydapter import AsyncAdapter
 
 from khive.config import settings
-from khive.utils import validate_model_to_dict
+from khive.utils import as_async_fn, validate_model_to_dict
 
 from .embedable import Embedable
 from .identifiable import Identifiable
 from .invokable import Invokable
-from .types import Log
+from .types import Embedding, Log
 
 
 class Event(Identifiable, Embedable, Invokable):
@@ -34,7 +34,7 @@ class Event(Identifiable, Embedable, Invokable):
         self.content = json.dumps(event, default=str, ensure_ascii=False)
         return self.content
 
-    def to_log(self, event_type: str | None = None) -> Log:
+    def to_log(self, event_type: str | None = None, hash_content: bool = False) -> Log:
         if self.content is None:
             self.create_content()
 
@@ -47,6 +47,11 @@ class Event(Identifiable, Embedable, Invokable):
                 execution = {k: v for k, v in v.items() if k in Log.model_fields}
                 log_params.update(execution)
 
+        if hash_content:
+            from khive.utils import sha256_of_dict
+
+            log_params["sha256"] = sha256_of_dict(self.content)
+
         return Log(**log_params)
 
 
@@ -54,28 +59,29 @@ def as_event(
     *,
     request_arg: str | None = None,
     embed_content: bool = settings.KHIVE_AUTO_EMBED_LOG,
-    store: bool = settings.KHIVE_AUTO_STORE_EVENT,
-    storage_adapter: type[AsyncAdapter] | None = None,
+    embed_function: Callable[..., Embedding] | None = None,
+    adapt: bool = settings.KHIVE_AUTO_STORE_EVENT,
+    adapter: type[AsyncAdapter] | None = None,
     event_type: str | None = None,
-    **storage_kw,
+    **kw,
 ):
     def decorator(func: Callable):
-        adapter = storage_adapter
-        if store is True and storage_adapter is None:
+        _adapter = adapter
+        if adapt is True and _adapter is None:
             if (_a := settings.KHIVE_STORAGE_PROVIDER) is not None:
                 if _a == "async_qdrant":
                     from pydapter.extras.async_qdrant_ import AsyncQdrantAdapter
 
-                    adapter = AsyncQdrantAdapter
+                    _adapter = AsyncQdrantAdapter
                 if _a == "async_mongodb":
                     from pydapter.extras.async_mongo_ import AsyncMongoAdapter
 
-                    adapter = AsyncMongoAdapter
+                    _adapter = AsyncMongoAdapter
                 if _a == "async_postgres_":
                     from pydapter.extras.async_postgres_ import AsyncPostgresAdapter
 
-                    adapter = AsyncPostgresAdapter
-            if adapter is None:
+                    _adapter = AsyncPostgresAdapter
+            if _adapter is None:
                 raise ValueError(
                     f"Storage adapter {_a} is not supported. "
                     "Please provide a valid storage adapter."
@@ -83,17 +89,22 @@ def as_event(
 
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Event:
-            args = args[1:] if args and hasattr(args[0], "__class__") else args
+            request_obj = kwargs.get(request_arg) if request_arg else None
+            if len(args) > 2 and hasattr(args[0], "__class__"):
+                args = args[1:]
+            request_obj = args[0] if request_obj is None else request_obj
             event = Event(func, args, kwargs)
-
-            request_obj = kwargs.get(request_arg) if request_arg else args[0]
             event.request = validate_model_to_dict(request_obj)
             await event.invoke()
             if embed_content:
-                event = await event.generate_embedding()
+                if embed_function is not None:
+                    async_embed = as_async_fn(embed_function)
+                    event.embedding = await async_embed(event.content)
+                else:
+                    event = await event.generate_embedding()
 
-            if store:
-                await adapter.to_obj(event.to_log(event_type=event_type), **storage_kw)
+            if adapt:
+                await _adapter.to_obj(event.to_log(event_type=event_type), **kw)
 
             return event
 
