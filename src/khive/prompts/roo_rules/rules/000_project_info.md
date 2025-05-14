@@ -1,5 +1,6 @@
 # project: {{project}}
 
+- Human Creator: {{human_creator}}
 - repo owner: {{repo_owner}}
 - repo name: {{repo_name}}
 
