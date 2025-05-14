@@ -119,6 +119,8 @@ class InitConfig:
     dry_run: bool = False
     steps_to_run_explicitly: list[str] | None = None
     verbose: bool = False  # Added for verbosity control
+    stack: str | None = None  # Specific stack to initialize
+    extra: str | None = None  # Extra dependencies to include
 
     @property
     def khive_config_dir(self) -> Path:
@@ -205,6 +207,8 @@ def load_init_config(
         cfg.dry_run = cli_args.dry_run
         cfg.steps_to_run_explicitly = cli_args.step
         cfg.verbose = cli_args.verbose
+        cfg.stack = cli_args.stack
+        cfg.extra = cli_args.extra
         global verbose_mode
         verbose_mode = cli_args.verbose
 
@@ -373,6 +377,27 @@ async def step_python(config: InitConfig) -> dict[str, Any]:
             "message": "uv tool not found (required for python step).",
         }
 
+    # Handle stack-specific initialization
+    if config.stack == "uv":
+        cmd = ["uv", "sync"]
+
+        # Handle extra dependencies
+        if config.extra:
+            if config.extra == "all":
+                # Include all optional dependency groups
+                cmd.extend(["--all-extras"])
+            else:
+                # Include specific dependency group
+                cmd.extend(["--extra", config.extra])
+
+        return await sh(
+            cmd,
+            cwd=config.project_root,
+            step_name=f"{step_name}_uv",
+            console=not config.json_output,
+        )
+
+    # Default behavior
     return await sh(
         ["uv", "sync"],
         cwd=config.project_root,
@@ -396,6 +421,38 @@ async def step_npm(config: InitConfig) -> dict[str, Any]:
             "message": "pnpm tool not found (required for npm step).",
         }
 
+    # Handle stack-specific initialization
+    if config.stack == "pnpm":
+        cmd = ["pnpm", "install"]
+
+        # Handle extra dependencies
+        if config.extra:
+            if config.extra == "all":
+                # Install all dependencies including dev
+                cmd.append("--production=false")
+            elif config.extra == "dev":
+                # Install dev dependencies
+                cmd.append("--dev")
+            elif config.extra == "prod":
+                # Install only production dependencies
+                cmd.append("--production")
+            else:
+                # Install specific dependency group if supported
+                warn(
+                    f"Unknown extra option '{config.extra}' for pnpm. Using default install.",
+                    console=not config.json_output,
+                )
+        else:
+            # Default to frozen lockfile for regular installs
+            cmd.append("--frozen-lockfile")
+
+        return await sh(
+            cmd,
+            cwd=config.project_root,
+            step_name=f"{step_name}_pnpm",
+            console=not config.json_output,
+        )
+    # Default behavior
     return await sh(
         ["pnpm", "install", "--frozen-lockfile"],
         cwd=config.project_root,
@@ -419,6 +476,36 @@ async def step_rust(config: InitConfig) -> dict[str, Any]:
             "message": "cargo tool not found (required for rust step).",
         }
 
+    # Handle stack-specific initialization
+    if config.stack == "cargo":
+        cmd = ["cargo"]
+
+        # Handle extra dependencies or features
+        if config.extra:
+            if config.extra == "all":
+                # Build with all features
+                cmd.extend(["build", "--all-features", "--workspace"])
+            elif config.extra == "dev":
+                # Run cargo check with dev profile
+                cmd.extend(["check", "--workspace", "--profile", "dev"])
+            elif config.extra == "test":
+                # Run tests
+                cmd.extend(["test", "--workspace"])
+            else:
+                # Assume extra is a specific feature to enable
+                cmd.extend(["check", "--workspace", "--features", config.extra])
+        else:
+            # Default behavior
+            cmd.extend(["check", "--workspace"])
+
+        return await sh(
+            cmd,
+            cwd=config.project_root,
+            step_name=f"{step_name}_cargo",
+            console=not config.json_output,
+        )
+
+    # Default behavior
     return await sh(
         ["cargo", "check", "--workspace"],
         cwd=config.project_root,
@@ -528,6 +615,42 @@ def determine_steps_to_run(config: InitConfig) -> OrderedDictType[str, tuple[str
                     f"Explicitly requested step '{step_name}' is unknown.",
                     console=not config.json_output,
                 )
+        return steps
+
+    # If a specific stack is specified, prioritize it
+    if config.stack:
+        # Always include tools check
+        steps["tools"] = ("builtin", BUILTIN_STEPS["tools"])
+
+        # Map stack name to step name
+        stack_to_step = {
+            "uv": "python",
+            "pnpm": "npm",
+            "cargo": "rust",
+        }
+
+        if config.stack in stack_to_step:
+            step_name = stack_to_step[config.stack]
+            steps[step_name] = ("builtin", BUILTIN_STEPS[step_name])
+
+            # Include husky if npm/pnpm is selected
+            if (
+                config.stack == "pnpm"
+                and (config.project_root / "package.json").exists()
+            ):
+                steps["husky"] = ("builtin", BUILTIN_STEPS["husky"])
+
+        else:
+            warn(
+                f"Unknown stack '{config.stack}'. Valid options are: uv, pnpm, cargo.",
+                console=not config.json_output,
+            )
+
+        # Add custom steps
+        for name, custom_cfg in config.custom_steps.items():
+            if name not in steps:
+                steps[name] = ("custom", custom_cfg)
+
         return steps
 
     # Auto-detection logic
@@ -729,6 +852,19 @@ def main() -> None:
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging."
+    )
+    parser.add_argument(
+        "--stack",
+        type=str,
+        help="Specify which stack to initialize. Options: 'uv' (Python), 'pnpm' (Node.js), 'cargo' (Rust).",
+    )
+    parser.add_argument(
+        "--extra",
+        type=str,
+        help="""Extra dependencies or options to include:
+        - For 'uv': 'all' (all extras), or a specific extra group name
+        - For 'pnpm': 'all' (all deps), 'dev' (dev deps), 'prod' (production deps)
+        - For 'cargo': 'all' (all features), 'dev' (dev profile), 'test' (run tests), or a specific feature name""",
     )
     args = parser.parse_args()
 

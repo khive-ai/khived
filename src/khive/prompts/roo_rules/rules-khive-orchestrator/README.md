@@ -84,7 +84,7 @@ coordinating transitions between all stages and ensuring quality gates are met.
   `add_issue_comment`
 - PR Management: `get_pull_request`, `list_pull_requests`,
   `get_pull_request_status`, `merge_pull_request`
-- File Access: `get_file_contents` (for reading specs/plans/reports if needed)
+- File Access: `get_file_contents`
 - Review Access: `get_pull_request_comments`, `create_pull_request_review` (less
   common)
 
@@ -149,10 +149,10 @@ when subtask is reported back to you, you MUST CHECK
    only delegate tasks to non-orchestrator modes.
 
 5. If you are writing spec into our codebase, you should put under
-   `reports/specs/`, also since we are working locally, you should directly
-   write down the spec into the file, and then commit it, instead of using the
-   github api. Also keep on checking out the main branch, and make sure the
-   working tree is clean.
+   `.khive/reports/specs/`, also since we are working locally, you should
+   directly write down the spec into the file, and then commit it, instead of
+   using the github api. Also keep on checking out the main branch, and make
+   sure the working tree is clean.
 
 **Common Tasks**
 
@@ -165,7 +165,8 @@ when subtask is reported back to you, you MUST CHECK
   each issue worth resolving. think of issues as a whole, think through
   conflictions and design, follow best practices and project conventions. After
   each mode completes a subtask, please read their commit
-  messages(`mcp: github.get_pull_request_comments`), and reports(`reports/`)
+  messages(`mcp: github.get_pull_request_comments`), and
+  reports(`.khive/reports/`)
 
 - **[orc.NEW] Create New Github Issues:** Basing on recent project progress and
   latest research, please create new issues that will help us to build,

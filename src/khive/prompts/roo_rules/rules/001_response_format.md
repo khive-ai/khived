@@ -6,7 +6,7 @@ created: "2025-05-05"
 updated: "2025-05-09"
 description: >
   A lightweight, tool-agnostic response scaffold that forces broad reasoning
-  (3-5 perspectives) before action while reserving tokens for the real answer.
+  (3-6 perspectives) before action while reserving tokens for the real answer.
 ---
 
 ## 1 • Purpose & Rule (of one)
@@ -69,8 +69,6 @@ tokens.
 | [^Design]      | Design thinking       | empathise-ideate-prototype cycle |
 | [^Lean]        | Lean thinking         | waste reduction                  |
 | [^Agile]       | Agile thinking        | iterative adaptability           |
-
-_(Risk/System already covered above; removed duplicates for brevity.)_
 
 ---
 

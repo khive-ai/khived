@@ -31,10 +31,10 @@ workflow, after Research and before Implementation.
 **Inputs:**
 
 - Research and Reports:
-  - `reports/deep/` : deep research reports, typically from expert external
-    sources, good references for design ideas, (may not be best suited for
-    projects, read with a grain of salt)
-  - `reports/rr/` : research reports from @khive-researcher
+  - `.khive/reports/deep/` : deep research reports, typically from expert
+    external sources, good references for design ideas, (may not be best suited
+    for projects, read with a grain of salt)
+  - `.khive/reports/rr/` : research reports from @khive-researcher
 
 - Project progress:
   - existing architecture/code.

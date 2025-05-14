@@ -38,8 +38,8 @@ workflow, the first stage before Design.
 
 > **Translate an open technical question into a concise, citable knowledge base
 > for the team**\
-> Output = a single Markdown file (`reports/rr/RR-<issue>.md`) that can be read
-> in < 5 min and acted on.
+> Output = a single Markdown file (`.khive/reports/rr/RR-<issue>.md`) that can
+> be read in < 5 min and acted on.
 
 ---
 

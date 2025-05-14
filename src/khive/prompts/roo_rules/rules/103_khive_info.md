@@ -77,28 +77,6 @@ For Perplexity (`--provider perplexity`):
   `--query`)
 - And other Perplexity-specific options
 
-**Output (on success):**
-
-```json
-{
-  "success": true,
-  "action_performed": "search",
-  "content": {
-    "provider": "exa",
-    "provider_response": {
-      "results": [
-        {
-          "title": "Example Search Result",
-          "url": "https://example.com/page1",
-          "text": "Snippet of content from the page..."
-        }
-        // More results...
-      ]
-    }
-  }
-}
-```
-
 ### `consult`
 
 Ask a question to one or more LLMs.
@@ -120,35 +98,6 @@ khive info consult --question <question> --models <model1,model2,...> [--system_
 - `anthropic/claude-3.7-sonnet`
 - `google/gemini-2.5-pro-preview`
 - Any valid OpenRouter model identifier
-
-**Output (on success):**
-
-```json
-{
-  "success": true,
-  "action_performed": "consult",
-  "content": {
-    "openai/gpt-o4-mini": {
-      "model": "openai/gpt-o4-mini",
-      "response": "Answer from GPT-4o Mini...",
-      "usage": {
-        "prompt_tokens": 42,
-        "completion_tokens": 128,
-        "total_tokens": 170
-      }
-    },
-    "anthropic/claude-3.7-sonnet": {
-      "model": "anthropic/claude-3.7-sonnet",
-      "response": "Answer from Claude 3.7 Sonnet...",
-      "usage": {
-        "prompt_tokens": 42,
-        "completion_tokens": 135,
-        "total_tokens": 177
-      }
-    }
-  }
-}
-```
 
 ## Examples
 
@@ -174,21 +123,6 @@ khive info consult --question "Compare Python vs Rust for system programming" --
 # Consult with a system prompt
 khive info consult --question "Optimize this SQL query: SELECT * FROM users WHERE created_at > '2025-01-01'" --models openai/gpt-o4-mini --system_prompt "You are a database optimization expert. Keep your answers concise."
 ```
-
-## Error Handling
-
-- If an action fails, the output JSON will have `success: false` and an `error`
-  field describing the issue.
-  ```json
-  {
-    "success": false,
-    "error": "Invalid search provider: 'unknown'. Valid options are: ['perplexity', 'exa']",
-    "content": null
-  }
-  ```
-- Errors can occur at various stages: CLI argument parsing, request validation,
-  API communication, or service processing.
-- The CLI exits with a non-zero status code on failure.
 
 ## Exit Codes
 
