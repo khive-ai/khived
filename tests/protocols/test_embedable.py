@@ -314,13 +314,14 @@ def test_get_default_embed_endpoint_openai(monkeypatch):
 
     # Arrange
     class MockSettings:
-        DEFAULT_EMBEDDING_PROVIDER = "openai"
-        DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+        KHIVE_EMBEDDING_PROVIDER = "openai"
+        KHIVE_EMBEDDING_MODEL = "text-embedding-3-small"
         OPENAI_API_KEY = "test_api_key"
 
     class MockOpenaiEmbedEndpoint:
         def __init__(self, model):
             self.model = model
+            self.api_key = MockSettings.OPENAI_API_KEY
 
     monkeypatch.setattr("khive.protocols.embedable.settings", MockSettings())
     monkeypatch.setattr(
