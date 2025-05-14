@@ -4,10 +4,10 @@
 
 import asyncio
 
-from khivemcp import ServiceGroup, operation
 from pydantic import BaseModel
 
-from .parts import (
+from khive.protocols.service import Service
+from khive.services.info.parts import (
     InfoAction,
     InfoConsultParams,
     InfoRequest,
@@ -16,7 +16,7 @@ from .parts import (
 )
 
 
-class InfoServiceGroup(ServiceGroup):
+class InfoServiceGroup(Service):
     def __init__(self):
         from khive.connections.api.endpoint import Endpoint
 
@@ -24,10 +24,6 @@ class InfoServiceGroup(ServiceGroup):
         self._exa: Endpoint = None
         self._openrouter: Endpoint = None
 
-    @operation(
-        name="handle_request",
-        schema=InfoRequest,
-    )
     async def handle_request(self, request: InfoRequest) -> InfoResponse:
         """Handle an info request."""
         if isinstance(request, str):

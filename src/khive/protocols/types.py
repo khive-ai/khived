@@ -51,3 +51,4 @@ class Log(BaseModel):
     duration: float | None = None
     status: str
     error: str | None = None
+    sha256: str | None = None

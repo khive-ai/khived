@@ -4,6 +4,9 @@
 
 import asyncio
 import contextlib
+import functools
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import cache
 from typing import TypeVar
@@ -15,8 +18,19 @@ Import = TypeVar("I")
 
 HasLen = TypeVar("HasLen")
 Bin = list[int]
+T = TypeVar("T")
 
-__all__ = ("get_bins", "import_module", "sha256_of_dict")
+__all__ = (
+    "get_bins",
+    "import_module",
+    "sha256_of_dict",
+    "convert_to_datetime",
+    "validate_uuid",
+    "validate_model_to_dict",
+    "is_package_installed",
+    "is_coroutine_function",
+    "as_async_fn",
+)
 
 
 def import_module(
@@ -132,6 +146,26 @@ def validate_model_to_dict(v):
 
 
 @cache
-def is_coroutine_function(func):
+def is_coroutine_function(fn, /) -> bool:
     """Check if a function is a coroutine function."""
-    return asyncio.iscoroutinefunction(func)
+    return asyncio.iscoroutinefunction(fn)
+
+
+def force_async(fn: Callable[..., T], /) -> Callable[..., Callable[..., T]]:
+    """force a function to be async."""
+    pool = ThreadPoolExecutor()
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        future = pool.submit(fn, *args, **kwargs)
+        return asyncio.wrap_future(future)  # Make it awaitable
+
+    return wrapper
+
+
+@cache
+def as_async_fn(fn, /):
+    """forcefully get the async call of a function"""
+    if is_coroutine_function(fn):
+        return fn
+    return force_async(fn)
