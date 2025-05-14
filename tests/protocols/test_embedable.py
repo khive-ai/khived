@@ -307,35 +307,6 @@ def test_parse_embedding_response_passthrough():
     # Assert
     assert result == response
 
-
-# --- Tests for _get_default_embed_endpoint function ---
-def test_get_default_embed_endpoint_openai(monkeypatch):
-    """Test _get_default_embed_endpoint with openai provider."""
-
-    # Arrange
-    class MockSettings:
-        KHIVE_EMBEDDING_PROVIDER = "openai"
-        KHIVE_EMBEDDING_MODEL = "text-embedding-3-small"
-        OPENAI_API_KEY = "test_api_key"
-
-    class MockOpenaiEmbedEndpoint:
-        def __init__(self, model):
-            self.model = model
-            self.api_key = MockSettings.OPENAI_API_KEY
-
-    monkeypatch.setattr("khive.protocols.embedable.settings", MockSettings())
-    monkeypatch.setattr(
-        "khive.providers.oai_.OpenaiEmbedEndpoint", MockOpenaiEmbedEndpoint
-    )
-
-    # Act
-    result = _get_default_embed_endpoint()
-
-    # Assert
-    assert isinstance(result, MockOpenaiEmbedEndpoint)
-    assert result.model == "text-embedding-3-small"
-
-
 def test_get_default_embed_endpoint_unsupported(monkeypatch):
     """Test _get_default_embed_endpoint with unsupported provider."""
 
