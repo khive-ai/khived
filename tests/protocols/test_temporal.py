@@ -111,7 +111,7 @@ def test_created_at_immutability():
     original_created_at = obj.created_at
 
     # Attempting to change created_at should raise an error
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         obj.created_at = datetime.now(timezone.utc)  # type: ignore
 
     # Verify created_at hasn't changed

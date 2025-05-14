@@ -3,28 +3,27 @@ Tests for khive.protocols.embedable module.
 """
 
 import pytest
-from pydantic import BaseModel, ValidationError
-
 from khive.protocols.embedable import (
     Embedable,
     _get_default_embed_endpoint,
     _parse_embedding_response,
 )
+from pydantic import BaseModel
 
 
 # --- Mock classes for testing ---
 class MockData(BaseModel):
     """Mock data class with embedding attribute."""
+
     embedding: list[float]
 
 
 class MockResponse(BaseModel):
     """Mock response model with data attribute."""
+
     data: list[MockData]
 
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
+    model_config = {"arbitrary_types_allowed": True}
 
 
 class MockEndpoint:
@@ -102,14 +101,14 @@ def test_parse_embedding_none():
 
 def test_parse_embedding_valid_string():
     """Test that _parse_embedding correctly parses valid JSON string."""
-    result = Embedable._parse_embedding('[0.1, 0.2, 0.3]')
+    result = Embedable._parse_embedding("[0.1, 0.2, 0.3]")
     assert result == [0.1, 0.2, 0.3]
 
 
 def test_parse_embedding_invalid_string():
     """Test that _parse_embedding raises ValueError for invalid JSON string."""
     with pytest.raises(ValueError, match="Invalid embedding string"):
-        Embedable._parse_embedding('not a valid json')
+        Embedable._parse_embedding("not a valid json")
 
 
 def test_parse_embedding_valid_list():
@@ -156,12 +155,12 @@ async def test_generate_embedding():
     # Arrange
     mock_endpoint = MockEndpoint(return_value=[0.1, 0.2, 0.3])
     TestEmbedable.embed_endpoint = mock_endpoint
-    
+
     obj = TestEmbedable(content="test content")
-    
+
     # Act
     result = await obj.generate_embedding()
-    
+
     # Assert
     assert result is obj  # Returns self
     assert obj.embedding == [0.1, 0.2, 0.3]
@@ -173,18 +172,18 @@ async def test_generate_embedding_custom_content():
     """Test that generate_embedding uses create_content result."""
     # Arrange
     mock_endpoint = MockEndpoint(return_value=[0.1, 0.2, 0.3])
-    
+
     class CustomContentEmbedable(Embedable):
         embed_endpoint = mock_endpoint
-        
+
         def create_content(self):
             return "custom content"
-    
+
     obj = CustomContentEmbedable(content="original content")
-    
+
     # Act
     result = await obj.generate_embedding()
-    
+
     # Assert
     assert result is obj
     assert obj.embedding == [0.1, 0.2, 0.3]
@@ -196,20 +195,20 @@ async def test_generate_embedding_default_endpoint(monkeypatch):
     """Test that generate_embedding uses default endpoint when class endpoint is None."""
     # Arrange
     mock_default_endpoint = MockEndpoint(return_value=[0.1, 0.2, 0.3])
-    
+
     def mock_get_default_embed_endpoint():
         return mock_default_endpoint
-    
+
     monkeypatch.setattr(
         "khive.protocols.embedable._get_default_embed_endpoint",
-        mock_get_default_embed_endpoint
+        mock_get_default_embed_endpoint,
     )
-    
+
     obj = Embedable(content="test content")
-    
+
     # Act
     result = await obj.generate_embedding()
-    
+
     # Assert
     assert result is obj
     assert obj.embedding == [0.1, 0.2, 0.3]
@@ -219,16 +218,17 @@ async def test_generate_embedding_default_endpoint(monkeypatch):
 @pytest.mark.asyncio
 async def test_generate_embedding_endpoint_error():
     """Test that generate_embedding handles endpoint errors."""
+
     # Arrange
     class ErrorEndpoint:
-        async def call(self, params):
+        async def call(self, _):
             raise ValueError("Endpoint error")
-    
+
     class TestErrorEmbedable(Embedable):
         embed_endpoint = ErrorEndpoint()
-    
+
     obj = TestErrorEmbedable(content="test content")
-    
+
     # Act & Assert
     with pytest.raises(ValueError, match="Endpoint error"):
         await obj.generate_embedding()
@@ -240,10 +240,10 @@ def test_parse_embedding_response_basemodel():
     # Arrange
     mock_data = MockData(embedding=[0.1, 0.2, 0.3])
     mock_response = MockResponse(data=[mock_data])
-    
+
     # Act
     result = _parse_embedding_response(mock_response)
-    
+
     # Assert
     assert result == [0.1, 0.2, 0.3]
 
@@ -252,10 +252,10 @@ def test_parse_embedding_response_list_of_floats():
     """Test _parse_embedding_response with list of floats."""
     # Arrange
     embedding = [0.1, 0.2, 0.3]
-    
+
     # Act
     result = _parse_embedding_response(embedding)
-    
+
     # Assert
     assert result == embedding
 
@@ -264,10 +264,10 @@ def test_parse_embedding_response_list_with_dict():
     """Test _parse_embedding_response with list containing a dict."""
     # Arrange
     embedding = [{"embedding": [0.1, 0.2, 0.3]}]
-    
+
     # Act
     result = _parse_embedding_response(embedding)
-    
+
     # Assert
     assert result == [0.1, 0.2, 0.3]
 
@@ -275,15 +275,11 @@ def test_parse_embedding_response_list_with_dict():
 def test_parse_embedding_response_dict_data_format():
     """Test _parse_embedding_response with dict in data format."""
     # Arrange
-    response = {
-        "data": [
-            {"embedding": [0.1, 0.2, 0.3]}
-        ]
-    }
-    
+    response = {"data": [{"embedding": [0.1, 0.2, 0.3]}]}
+
     # Act
     result = _parse_embedding_response(response)
-    
+
     # Assert
     assert result == [0.1, 0.2, 0.3]
 
@@ -292,10 +288,10 @@ def test_parse_embedding_response_dict_embedding_format():
     """Test _parse_embedding_response with dict in embedding format."""
     # Arrange
     response = {"embedding": [0.1, 0.2, 0.3]}
-    
+
     # Act
     result = _parse_embedding_response(response)
-    
+
     # Assert
     assert result == [0.1, 0.2, 0.3]
 
@@ -304,10 +300,10 @@ def test_parse_embedding_response_passthrough():
     """Test _parse_embedding_response passes through unrecognized formats."""
     # Arrange
     response = "not a recognized format"
-    
+
     # Act
     result = _parse_embedding_response(response)
-    
+
     # Assert
     assert result == response
 
@@ -315,24 +311,24 @@ def test_parse_embedding_response_passthrough():
 # --- Tests for _get_default_embed_endpoint function ---
 def test_get_default_embed_endpoint_openai(monkeypatch):
     """Test _get_default_embed_endpoint with openai provider."""
+
     # Arrange
     class MockSettings:
         DEFAULT_EMBEDDING_PROVIDER = "openai"
         DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
-    
+
     class MockOpenaiEmbedEndpoint:
         def __init__(self, model):
             self.model = model
-    
+
     monkeypatch.setattr("khive.protocols.embedable.settings", MockSettings())
     monkeypatch.setattr(
-        "khive.providers.oai_.OpenaiEmbedEndpoint",
-        MockOpenaiEmbedEndpoint
+        "khive.providers.oai_.OpenaiEmbedEndpoint", MockOpenaiEmbedEndpoint
     )
-    
+
     # Act
     result = _get_default_embed_endpoint()
-    
+
     # Assert
     assert isinstance(result, MockOpenaiEmbedEndpoint)
     assert result.model == "text-embedding-3-small"
@@ -340,13 +336,14 @@ def test_get_default_embed_endpoint_openai(monkeypatch):
 
 def test_get_default_embed_endpoint_unsupported(monkeypatch):
     """Test _get_default_embed_endpoint with unsupported provider."""
+
     # Arrange
     class MockSettings:
         DEFAULT_EMBEDDING_PROVIDER = "unsupported"
         DEFAULT_EMBEDDING_MODEL = "model"
-    
+
     monkeypatch.setattr("khive.protocols.embedable.settings", MockSettings())
-    
+
     # Act & Assert
     with pytest.raises(ValueError, match="Unsupported embedding provider"):
         _get_default_embed_endpoint()

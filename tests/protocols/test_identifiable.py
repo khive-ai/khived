@@ -58,7 +58,7 @@ def test_identifiable_id_immutability():
     original_id = obj.id
 
     # Attempting to change the id should raise an error
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         obj.id = uuid.uuid4()  # type: ignore
 
     # Verify the id hasn't changed

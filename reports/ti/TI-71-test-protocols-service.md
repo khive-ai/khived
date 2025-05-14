@@ -16,11 +16,15 @@ date: 2025-05-14
 
 ### 1.1 Component Under Test
 
-The Service protocol (`src/khive/protocols/service.py`) is an abstract base class that defines the contract for all service implementations in the khive system. It requires concrete implementations to provide an async `handle_request` method with a specific signature.
+The Service protocol (`src/khive/protocols/service.py`) is an abstract base
+class that defines the contract for all service implementations in the khive
+system. It requires concrete implementations to provide an async
+`handle_request` method with a specific signature.
 
 ### 1.2 Test Approach
 
 The test approach will be primarily unit testing, focusing on:
+
 - Verifying the abstract nature of the Service class
 - Testing that concrete implementations must implement the required methods
 - Ensuring the method signature is enforced correctly
@@ -56,7 +60,8 @@ unittest.mock   # For mocking dependencies if needed
 
 #### 3.1.1 Test Case: Service is an Abstract Base Class
 
-**Purpose:** Verify that Service is an abstract base class and cannot be instantiated directly.
+**Purpose:** Verify that Service is an abstract base class and cannot be
+instantiated directly.
 
 **Test Implementation:**
 
@@ -84,14 +89,15 @@ def test_handle_request_is_abstract_method():
 
 #### 3.2.1 Test Case: Valid Service Implementation
 
-**Purpose:** Verify that a concrete class implementing handle_request can be instantiated.
+**Purpose:** Verify that a concrete class implementing handle_request can be
+instantiated.
 
 **Test Implementation:**
 
 ```python
 class ValidService(Service):
     """Valid implementation of Service protocol."""
-    
+
     async def handle_request(self, request, ctx=None):
         """Handle a request with the correct signature."""
         return {"status": "success", "data": request}
@@ -105,7 +111,8 @@ def test_valid_service_implementation():
 
 #### 3.2.2 Test Case: Invalid Service Implementation
 
-**Purpose:** Verify that a concrete class not implementing handle_request cannot be instantiated.
+**Purpose:** Verify that a concrete class not implementing handle_request cannot
+be instantiated.
 
 **Test Implementation:**
 
@@ -131,7 +138,7 @@ def test_invalid_service_implementation():
 ```python
 class NonAsyncService(Service):
     """Invalid implementation with non-async handle_request."""
-    
+
     def handle_request(self, request, ctx=None):
         """Non-async implementation of handle_request."""
         return {"status": "success", "data": request}
@@ -140,7 +147,7 @@ class NonAsyncService(Service):
 async def test_non_async_handle_request():
     """Test that handle_request must be an async method."""
     service = NonAsyncService()
-    
+
     # This should fail because handle_request is not async
     with pytest.raises(TypeError, match="object is not callable"):
         await service.handle_request({"query": "test"})
@@ -155,7 +162,7 @@ async def test_non_async_handle_request():
 ```python
 class MissingParamService(Service):
     """Invalid implementation with missing required parameters."""
-    
+
     async def handle_request(self):
         """Implementation missing required parameters."""
         return {"status": "success"}
@@ -164,7 +171,7 @@ class MissingParamService(Service):
 async def test_missing_required_parameters():
     """Test that handle_request must accept the required parameters."""
     service = MissingParamService()
-    
+
     # This should fail because handle_request doesn't accept the required parameters
     with pytest.raises(TypeError, match="missing 1 required positional argument"):
         await service.handle_request({"query": "test"})
@@ -172,14 +179,15 @@ async def test_missing_required_parameters():
 
 #### 3.3.3 Test Case: Extra Required Parameters
 
-**Purpose:** Verify that handle_request with extra required parameters works correctly.
+**Purpose:** Verify that handle_request with extra required parameters works
+correctly.
 
 **Test Implementation:**
 
 ```python
 class ExtraParamService(Service):
     """Implementation with extra required parameters."""
-    
+
     async def handle_request(self, request, ctx=None, extra_param=None):
         """Implementation with extra parameters."""
         return {"status": "success", "data": request, "extra": extra_param}
@@ -188,13 +196,13 @@ class ExtraParamService(Service):
 async def test_extra_parameters():
     """Test that handle_request can have extra parameters with defaults."""
     service = ExtraParamService()
-    
+
     # This should work because the extra parameter has a default value
     result = await service.handle_request({"query": "test"})
     assert result["status"] == "success"
     assert result["data"] == {"query": "test"}
     assert result["extra"] is None
-    
+
     # This should also work when providing the extra parameter
     result = await service.handle_request({"query": "test"}, None, "extra_value")
     assert result["extra"] == "extra_value"
@@ -214,9 +222,9 @@ async def test_handle_request_functionality():
     """Test that handle_request functions correctly in a valid implementation."""
     service = ValidService()
     request = {"query": "test"}
-    
+
     result = await service.handle_request(request)
-    
+
     assert result["status"] == "success"
     assert result["data"] == request
 ```
@@ -230,7 +238,7 @@ async def test_handle_request_functionality():
 ```python
 class ContextAwareService(Service):
     """Service implementation that uses the context parameter."""
-    
+
     async def handle_request(self, request, ctx=None):
         """Handle a request using the context parameter."""
         ctx = ctx or {}
@@ -246,11 +254,11 @@ async def test_context_parameter():
     service = ContextAwareService()
     request = {"query": "test"}
     ctx = {"user_id": "123"}
-    
+
     # Test with context provided
     result = await service.handle_request(request, ctx)
     assert result["context"] == ctx
-    
+
     # Test with default context
     result = await service.handle_request(request)
     assert result["context"] == {}
@@ -262,7 +270,7 @@ async def test_context_parameter():
 # Valid Service implementation
 class ValidService(Service):
     """Valid implementation of Service protocol."""
-    
+
     async def handle_request(self, request, ctx=None):
         """Handle a request with the correct signature."""
         return {"status": "success", "data": request}
@@ -275,7 +283,7 @@ class InvalidService(Service):
 # Service with non-async handle_request
 class NonAsyncService(Service):
     """Invalid implementation with non-async handle_request."""
-    
+
     def handle_request(self, request, ctx=None):
         """Non-async implementation of handle_request."""
         return {"status": "success", "data": request}
@@ -283,7 +291,7 @@ class NonAsyncService(Service):
 # Service with missing required parameters
 class MissingParamService(Service):
     """Invalid implementation with missing required parameters."""
-    
+
     async def handle_request(self):
         """Implementation missing required parameters."""
         return {"status": "success"}
@@ -291,7 +299,7 @@ class MissingParamService(Service):
 # Service with extra parameters
 class ExtraParamService(Service):
     """Implementation with extra required parameters."""
-    
+
     async def handle_request(self, request, ctx=None, extra_param=None):
         """Implementation with extra parameters."""
         return {"status": "success", "data": request, "extra": extra_param}
@@ -299,7 +307,7 @@ class ExtraParamService(Service):
 # Service that uses the context parameter
 class ContextAwareService(Service):
     """Service implementation that uses the context parameter."""
-    
+
     async def handle_request(self, request, ctx=None):
         """Handle a request using the context parameter."""
         ctx = ctx or {}
@@ -321,7 +329,8 @@ class ContextAwareService(Service):
 ### 6.1 Known Limitations
 
 - The tests focus on the protocol contract rather than specific implementations
-- Some edge cases in method signature enforcement may be difficult to test comprehensively
+- Some edge cases in method signature enforcement may be difficult to test
+  comprehensively
 
 ### 6.2 Future Improvements
 

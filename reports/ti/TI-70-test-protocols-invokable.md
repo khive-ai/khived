@@ -17,9 +17,13 @@ author: @khive-implementer
 
 ### 1.1 Component Under Test
 
-The `Invokable` protocol (`khive.protocols.invokable.Invokable`) is a core protocol in the khive framework that extends the `Temporal` protocol. It provides functionality for objects that can be invoked with a request, execute some operation, and track the execution status and results.
+The `Invokable` protocol (`khive.protocols.invokable.Invokable`) is a core
+protocol in the khive framework that extends the `Temporal` protocol. It
+provides functionality for objects that can be invoked with a request, execute
+some operation, and track the execution status and results.
 
 Key features to test:
+
 - Initialization with default and custom values
 - The `has_invoked` property behavior
 - The `_invoke` method with different function types
@@ -28,7 +32,9 @@ Key features to test:
 
 ### 1.2 Test Approach
 
-We will use a unit testing approach with pytest and pytest-asyncio for testing the asynchronous behavior of the Invokable protocol. We'll create mock implementations to simulate different execution scenarios.
+We will use a unit testing approach with pytest and pytest-asyncio for testing
+the asynchronous behavior of the Invokable protocol. We'll create mock
+implementations to simulate different execution scenarios.
 
 ### 1.3 Key Testing Goals
 
@@ -58,7 +64,8 @@ pytest-monkeypatch
 
 ### 2.3 Test Database
 
-Not applicable for this protocol test suite as it doesn't interact with databases.
+Not applicable for this protocol test suite as it doesn't interact with
+databases.
 
 ## 3. Unit Tests
 
@@ -74,7 +81,7 @@ Not applicable for this protocol test suite as it doesn't interact with database
 def test_invokable_default_initialization():
     """Test that Invokable initializes with default values."""
     obj = Invokable()
-    
+
     # Check default values
     assert obj.request is None
     assert obj.execution is not None
@@ -83,7 +90,7 @@ def test_invokable_default_initialization():
     assert obj.execution.response is None
     assert obj.execution.error is None
     assert obj.response_obj is None
-    
+
     # Check private attributes
     assert obj._invoke_function is None
     assert obj._invoke_args == []
@@ -102,13 +109,13 @@ def test_invokable_custom_initialization():
     request = {"param": "value"}
     execution = Execution(status=ExecutionStatus.PROCESSING)
     response_obj = {"result": "data"}
-    
+
     obj = Invokable(
         request=request,
         execution=execution,
         response_obj=response_obj
     )
-    
+
     assert obj.request == request
     assert obj.execution == execution
     assert obj.response_obj == response_obj
@@ -116,7 +123,8 @@ def test_invokable_custom_initialization():
 
 #### 3.1.3 Test Case: has_invoked Property
 
-**Purpose:** Verify that the has_invoked property returns the correct boolean value based on execution status.
+**Purpose:** Verify that the has_invoked property returns the correct boolean
+value based on execution status.
 
 **Test Implementation:**
 
@@ -126,15 +134,15 @@ def test_has_invoked_property():
     # Test with PENDING status
     obj = Invokable(execution=Execution(status=ExecutionStatus.PENDING))
     assert obj.has_invoked is False
-    
+
     # Test with PROCESSING status
     obj = Invokable(execution=Execution(status=ExecutionStatus.PROCESSING))
     assert obj.has_invoked is False
-    
+
     # Test with COMPLETED status
     obj = Invokable(execution=Execution(status=ExecutionStatus.COMPLETED))
     assert obj.has_invoked is True
-    
+
     # Test with FAILED status
     obj = Invokable(execution=Execution(status=ExecutionStatus.FAILED))
     assert obj.has_invoked is True
@@ -144,7 +152,8 @@ def test_has_invoked_property():
 
 #### 3.2.1 Test Case: _invoke with None Function
 
-**Purpose:** Verify that _invoke raises ValueError when _invoke_function is None.
+**Purpose:** Verify that _invoke raises ValueError when _invoke_function is
+None.
 
 **Test Implementation:**
 
@@ -153,14 +162,15 @@ def test_has_invoked_property():
 async def test_invoke_with_none_function():
     """Test that _invoke raises ValueError when _invoke_function is None."""
     obj = Invokable()
-    
+
     with pytest.raises(ValueError, match="Event invoke function is not set."):
         await obj._invoke()
 ```
 
 #### 3.2.2 Test Case: _invoke with Synchronous Function
 
-**Purpose:** Verify that _invoke correctly converts a synchronous function to asynchronous.
+**Purpose:** Verify that _invoke correctly converts a synchronous function to
+asynchronous.
 
 **Test Implementation:**
 
@@ -171,23 +181,24 @@ async def test_invoke_with_sync_function():
     # Define a synchronous function
     def sync_fn(a, b, c=None):
         return f"{a}-{b}-{c}"
-    
+
     # Create Invokable with the sync function
     obj = Invokable()
     obj._invoke_function = sync_fn
     obj._invoke_args = [1, 2]
     obj._invoke_kwargs = {"c": 3}
-    
+
     # Call _invoke
     result = await obj._invoke()
-    
+
     # Verify result
     assert result == "1-2-3"
 ```
 
 #### 3.2.3 Test Case: _invoke with Asynchronous Function
 
-**Purpose:** Verify that _invoke correctly calls an asynchronous function directly.
+**Purpose:** Verify that _invoke correctly calls an asynchronous function
+directly.
 
 **Test Implementation:**
 
@@ -198,16 +209,16 @@ async def test_invoke_with_async_function():
     # Define an asynchronous function
     async def async_fn(a, b, c=None):
         return f"{a}-{b}-{c}"
-    
+
     # Create Invokable with the async function
     obj = Invokable()
     obj._invoke_function = async_fn
     obj._invoke_args = [1, 2]
     obj._invoke_kwargs = {"c": 3}
-    
+
     # Call _invoke
     result = await obj._invoke()
-    
+
     # Verify result
     assert result == "1-2-3"
 ```
@@ -226,18 +237,18 @@ async def test_invoke_successful_execution():
     """Test that invoke handles successful execution correctly."""
     # Create a mock response
     mock_response = {"result": "success"}
-    
+
     # Create a mock async function
     async def mock_fn():
         return mock_response
-    
+
     # Create Invokable with the mock function
     obj = Invokable()
     obj._invoke_function = mock_fn
-    
+
     # Call invoke
     await obj.invoke()
-    
+
     # Verify execution state
     assert obj.execution.status == ExecutionStatus.COMPLETED
     assert obj.execution.error is None
@@ -260,14 +271,14 @@ async def test_invoke_failed_execution():
     # Create a mock function that raises an exception
     async def mock_fn():
         raise ValueError("Test error")
-    
+
     # Create Invokable with the mock function
     obj = Invokable()
     obj._invoke_function = mock_fn
-    
+
     # Call invoke
     await obj.invoke()
-    
+
     # Verify execution state
     assert obj.execution.status == ExecutionStatus.FAILED
     assert "Test error" in obj.execution.error
@@ -290,15 +301,15 @@ async def test_invoke_cancelled_execution():
     # Create a mock function that raises CancelledError
     async def mock_fn():
         raise asyncio.CancelledError()
-    
+
     # Create Invokable with the mock function
     obj = Invokable()
     obj._invoke_function = mock_fn
-    
+
     # Call invoke and expect CancelledError to be re-raised
     with pytest.raises(asyncio.CancelledError):
         await obj.invoke()
-    
+
     # Execution state should not be updated since the finally block won't complete
     assert obj.execution.status == ExecutionStatus.PENDING
 ```
@@ -316,19 +327,19 @@ async def test_invoke_updates_timestamp():
     # Create a mock function
     async def mock_fn():
         return "success"
-    
+
     # Create Invokable with the mock function
     obj = Invokable()
     obj._invoke_function = mock_fn
-    
+
     # Store the initial timestamp
     initial_timestamp = obj.updated_at
-    
+
     # Freeze time and advance it
     with freeze_time(initial_timestamp + timedelta(seconds=10)):
         # Call invoke
         await obj.invoke()
-        
+
         # Verify timestamp is updated
         assert obj.updated_at > initial_timestamp
 ```
@@ -345,7 +356,7 @@ class MockResponse:
 
 class TestInvokable(Invokable):
     """Test implementation of Invokable with configurable invoke function."""
-    
+
     def __init__(self, invoke_function=None, **kwargs):
         super().__init__(**kwargs)
         if invoke_function:
@@ -353,33 +364,33 @@ class TestInvokable(Invokable):
 
 class SuccessInvokable(Invokable):
     """Mock Invokable implementation that succeeds."""
-    
+
     def __init__(self, response=None, **kwargs):
         super().__init__(**kwargs)
         self._invoke_function = self._success_fn
         self._response = response or MockResponse()
-        
+
     async def _success_fn(self, *args, **kwargs):
         return self._response
 
 class FailingInvokable(Invokable):
     """Mock Invokable implementation that fails."""
-    
+
     def __init__(self, error_message="Test error", **kwargs):
         super().__init__(**kwargs)
         self._invoke_function = self._failing_fn
         self._error_message = error_message
-        
+
     async def _failing_fn(self, *args, **kwargs):
         raise ValueError(self._error_message)
 
 class CancellingInvokable(Invokable):
     """Mock Invokable implementation that gets cancelled."""
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._invoke_function = self._cancelling_fn
-        
+
     async def _cancelling_fn(self, *args, **kwargs):
         raise asyncio.CancelledError()
 ```
@@ -392,14 +403,14 @@ def mock_event_loop_time(monkeypatch):
     """Mock the event loop time method to return predictable values."""
     time_values = [1.0, 2.0]  # Start time and end time
     mock_time = MagicMock(side_effect=time_values)
-    
+
     # Create a mock event loop
     mock_loop = MagicMock()
     mock_loop.time = mock_time
-    
+
     # Mock the get_event_loop function
     monkeypatch.setattr(asyncio, "get_event_loop", lambda: mock_loop)
-    
+
     return mock_loop
 ```
 
@@ -469,7 +480,7 @@ class MockResponse(BaseModel):
 
 class TestInvokable(Invokable):
     """Test implementation of Invokable with configurable invoke function."""
-    
+
     def __init__(self, invoke_function=None, **kwargs):
         super().__init__(**kwargs)
         if invoke_function:
@@ -478,35 +489,35 @@ class TestInvokable(Invokable):
 
 class SuccessInvokable(Invokable):
     """Mock Invokable implementation that succeeds."""
-    
+
     def __init__(self, response=None, **kwargs):
         super().__init__(**kwargs)
         self._invoke_function = self._success_fn
         self._response = response or MockResponse()
-        
+
     async def _success_fn(self, *args, **kwargs):
         return self._response
 
 
 class FailingInvokable(Invokable):
     """Mock Invokable implementation that fails."""
-    
+
     def __init__(self, error_message="Test error", **kwargs):
         super().__init__(**kwargs)
         self._invoke_function = self._failing_fn
         self._error_message = error_message
-        
+
     async def _failing_fn(self, *args, **kwargs):
         raise ValueError(self._error_message)
 
 
 class CancellingInvokable(Invokable):
     """Mock Invokable implementation that gets cancelled."""
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._invoke_function = self._cancelling_fn
-        
+
     async def _cancelling_fn(self, *args, **kwargs):
         raise asyncio.CancelledError()
 
@@ -517,14 +528,14 @@ def mock_event_loop_time(monkeypatch):
     """Mock the event loop time method to return predictable values."""
     time_values = [1.0, 2.0]  # Start time and end time
     mock_time = MagicMock(side_effect=time_values)
-    
+
     # Create a mock event loop
     mock_loop = MagicMock()
     mock_loop.time = mock_time
-    
+
     # Mock the get_event_loop function
     monkeypatch.setattr(asyncio, "get_event_loop", lambda: mock_loop)
-    
+
     return mock_loop
 
 
@@ -563,7 +574,7 @@ async def assert_execution_failed(invokable, error_substring=None):
 def test_invokable_default_initialization():
     """Test that Invokable initializes with default values."""
     obj = Invokable()
-    
+
     # Check default values
     assert obj.request is None
     assert obj.execution is not None
@@ -572,7 +583,7 @@ def test_invokable_default_initialization():
     assert obj.execution.response is None
     assert obj.execution.error is None
     assert obj.response_obj is None
-    
+
     # Check private attributes
     assert obj._invoke_function is None
     assert obj._invoke_args == []
@@ -584,13 +595,13 @@ def test_invokable_custom_initialization():
     request = {"param": "value"}
     execution = Execution(status=ExecutionStatus.PROCESSING)
     response_obj = {"result": "data"}
-    
+
     obj = Invokable(
         request=request,
         execution=execution,
         response_obj=response_obj
     )
-    
+
     assert obj.request == request
     assert obj.execution == execution
     assert obj.response_obj == response_obj
@@ -601,15 +612,15 @@ def test_has_invoked_property():
     # Test with PENDING status
     obj = Invokable(execution=Execution(status=ExecutionStatus.PENDING))
     assert obj.has_invoked is False
-    
+
     # Test with PROCESSING status
     obj = Invokable(execution=Execution(status=ExecutionStatus.PROCESSING))
     assert obj.has_invoked is False
-    
+
     # Test with COMPLETED status
     obj = Invokable(execution=Execution(status=ExecutionStatus.COMPLETED))
     assert obj.has_invoked is True
-    
+
     # Test with FAILED status
     obj = Invokable(execution=Execution(status=ExecutionStatus.FAILED))
     assert obj.has_invoked is True
@@ -620,7 +631,7 @@ def test_has_invoked_property():
 async def test_invoke_with_none_function():
     """Test that _invoke raises ValueError when _invoke_function is None."""
     obj = Invokable()
-    
+
     with pytest.raises(ValueError, match="Event invoke function is not set."):
         await obj._invoke()
 
@@ -631,13 +642,13 @@ async def test_invoke_with_sync_function():
     # Define a synchronous function
     def sync_fn(a, b, c=None):
         return f"{a}-{b}-{c}"
-    
+
     # Create Invokable with the sync function
     obj = create_invokable_with_function(sync_fn, 1, 2, c=3)
-    
+
     # Call _invoke
     result = await obj._invoke()
-    
+
     # Verify result
     assert result == "1-2-3"
 
@@ -648,13 +659,13 @@ async def test_invoke_with_async_function():
     # Define an asynchronous function
     async def async_fn(a, b, c=None):
         return f"{a}-{b}-{c}"
-    
+
     # Create Invokable with the async function
     obj = create_invokable_with_function(async_fn, 1, 2, c=3)
-    
+
     # Call _invoke
     result = await obj._invoke()
-    
+
     # Verify result
     assert result == "1-2-3"
 
@@ -665,13 +676,13 @@ async def test_invoke_successful_execution(mock_event_loop_time):
     """Test that invoke handles successful execution correctly."""
     # Create a mock response
     mock_response = MockResponse(value="success")
-    
+
     # Create Invokable with success function
     obj = SuccessInvokable(response=mock_response)
-    
+
     # Call invoke
     await obj.invoke()
-    
+
     # Verify execution state
     await assert_execution_completed(obj)
     assert obj.response_obj == mock_response
@@ -684,10 +695,10 @@ async def test_invoke_failed_execution(mock_event_loop_time):
     # Create Invokable with failing function
     error_message = "Custom test error"
     obj = FailingInvokable(error_message=error_message)
-    
+
     # Call invoke
     await obj.invoke()
-    
+
     # Verify execution state
     await assert_execution_failed(obj, error_message)
     assert obj.execution.duration == 1.0  # 2.0 - 1.0 from mock_event_loop_time
@@ -698,11 +709,11 @@ async def test_invoke_cancelled_execution():
     """Test that invoke handles cancellation correctly."""
     # Create Invokable with cancelling function
     obj = CancellingInvokable()
-    
+
     # Call invoke and expect CancelledError to be re-raised
     with pytest.raises(asyncio.CancelledError):
         await obj.invoke()
-    
+
     # Execution state should not be updated since the finally block won't complete
     assert obj.execution.status == ExecutionStatus.PENDING
 
@@ -712,15 +723,15 @@ async def test_invoke_updates_timestamp():
     """Test that invoke updates the timestamp."""
     # Create Invokable with success function
     obj = SuccessInvokable()
-    
+
     # Store the initial timestamp
     initial_timestamp = obj.updated_at
-    
+
     # Freeze time and advance it
     with freeze_time(initial_timestamp + timedelta(seconds=10)):
         # Call invoke
         await obj.invoke()
-        
+
         # Verify timestamp is updated
         assert obj.updated_at > initial_timestamp
 ```
@@ -730,7 +741,8 @@ async def test_invoke_updates_timestamp():
 ### 8.1 Known Limitations
 
 - Testing cancellation scenarios can be tricky as they involve asyncio internals
-- The mock event loop time approach simplifies duration testing but doesn't test actual timing behavior
+- The mock event loop time approach simplifies duration testing but doesn't test
+  actual timing behavior
 
 ### 8.2 Future Improvements
 
