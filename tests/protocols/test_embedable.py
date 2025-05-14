@@ -340,8 +340,8 @@ def test_get_default_embed_endpoint_unsupported(monkeypatch):
 
     # Arrange
     class MockSettings:
-        DEFAULT_EMBEDDING_PROVIDER = "unsupported"
-        DEFAULT_EMBEDDING_MODEL = "model"
+        KHIVE_EMBEDDING_PROVIDER = "unsupported"
+        KHIVE_EMBEDDING_MODEL = "model"
 
     monkeypatch.setattr("khive.protocols.embedable.settings", MockSettings())
 
