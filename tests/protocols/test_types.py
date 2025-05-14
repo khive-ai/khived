@@ -3,15 +3,14 @@ Tests for khive.protocols.types module.
 """
 
 import pytest
-from pydantic import BaseModel, ValidationError
-
 from khive.protocols.types import (
     Embedding,
-    ExecutionStatus,
     Execution,
+    ExecutionStatus,
     Log,
     Metadata,
 )
+from pydantic import BaseModel, ValidationError
 
 
 # --- Tests for Embedding type ---
@@ -84,14 +83,15 @@ def test_execution_with_values():
 
 def test_execution_with_pydantic_model_response():
     """Test that a Pydantic model can be used as a response and is converted to dict."""
+
     class SampleResponse(BaseModel):
         field1: str
         field2: int
 
     sample_response = SampleResponse(field1="test", field2=123)
-    
+
     execution = Execution(response=sample_response)
-    
+
     # The response should be converted to a dict
     assert isinstance(execution.response, dict)
     assert execution.response == {"field1": "test", "field2": 123}
@@ -100,7 +100,7 @@ def test_execution_with_pydantic_model_response():
 def test_execution_status_serialization():
     """Test that ExecutionStatus is serialized to its string value."""
     execution = Execution(status=ExecutionStatus.COMPLETED)
-    
+
     # Convert to dict to test serialization
     serialized = execution.model_dump()
     assert serialized["status"] == "completed"
@@ -134,7 +134,7 @@ def test_log_with_valid_values():
         error=None,
         sha256="abc123",
     )
-    
+
     assert log.id == "log123"
     assert log.created_at == "2025-05-14T12:00:00Z"
     assert log.updated_at == "2025-05-14T12:01:00Z"
@@ -156,7 +156,7 @@ def test_log_default_values():
         event_type="test_event",
         status="completed",
     )
-    
+
     assert log.content is None
     assert log.embedding == []
     assert log.duration is None
@@ -174,5 +174,5 @@ def test_log_with_empty_embedding():
         status="completed",
         embedding=[],
     )
-    
+
     assert log.embedding == []
