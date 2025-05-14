@@ -40,7 +40,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 try:
-    from khive.services.info.info_service import InfoService
+    from khive.services.info.info_service import InfoServiceGroup
     from khive.services.info.parts import (
         ConsultModel,
         ExaSearchRequest,
@@ -64,7 +64,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-info_service_instance = InfoService()
+info_service_instance = InfoServiceGroup()
 
 
 async def run_info_request_and_print(request_model: InfoRequest) -> None:

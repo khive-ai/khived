@@ -4,6 +4,7 @@
 
 import asyncio
 
+from khivemcp import ServiceGroup, operation
 from pydantic import BaseModel
 
 from .parts import (
@@ -15,7 +16,7 @@ from .parts import (
 )
 
 
-class InfoService:
+class InfoServiceGroup(ServiceGroup):
     def __init__(self):
         from khive.connections.api.endpoint import Endpoint
 
@@ -23,7 +24,17 @@ class InfoService:
         self._exa: Endpoint = None
         self._openrouter: Endpoint = None
 
+    @operation(
+        name="handle_request",
+        schema=InfoRequest,
+    )
     async def handle_request(self, request: InfoRequest) -> InfoResponse:
+        """Handle an info request."""
+        if isinstance(request, str):
+            request = InfoRequest.model_validate_json(request)
+        if isinstance(request, dict):
+            request = InfoRequest.model_validate(request)
+
         if request.action == InfoAction.SEARCH:
             if request.params.provider == SearchProvider.PERPLEXITY:
                 return await self._perplexity_search(request.params.provider_params)

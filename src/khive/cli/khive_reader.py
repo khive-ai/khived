@@ -45,7 +45,7 @@ try:
         ReaderRequest,  # Main request model
         ReaderResponse,  # Main response model
     )
-    from khive.services.reader.reader_service import ReaderService
+    from khive.services.reader.reader_service import ReaderServiceGroup
 except ModuleNotFoundError as e:
     sys.stderr.write(
         f"❌ Required modules not found. Ensure khive.services.reader is in PYTHONPATH.\nError: {e}\n"
@@ -87,7 +87,7 @@ CACHE = _load_cache()
 # --------------------------------------------------------------------------- #
 # This global instance will persist self.documents within a single CLI execution
 # but not across multiple CLI executions unless we repopulate it from CACHE.
-reader_service = ReaderService()
+reader_service = ReaderServiceGroup()
 
 
 def _handle_request_and_print(req_dict: dict[str, Any]) -> None:

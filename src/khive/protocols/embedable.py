@@ -17,7 +17,7 @@ from .types import Embedding
 class Embedable(BaseModel):
     """Embedable trait, contains embedding and content"""
 
-    content: str
+    content: str | None = None
     embedding: Embedding = Field(default_factory=list)
     embed_endpoint: ClassVar[Endpoint] = None
 
@@ -43,10 +43,14 @@ class Embedable(BaseModel):
                 raise ValueError("Invalid embedding list.") from e
         raise ValueError("Invalid embedding type; must be list or JSON-encoded string.")
 
+    def create_content(self):
+        """override in child class to support custom content creation"""
+        return self.content
+
     async def generate_embedding(self) -> Self:
         endpoint = self.__class__.embed_endpoint or _get_default_embed_endpoint()
 
-        response = await endpoint.call({"input": self.content})
+        response = await endpoint.call({"input": self.create_content()})
         self.embedding = _parse_embedding_response(response)
         return self
 

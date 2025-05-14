@@ -62,14 +62,22 @@ class AppSettings(BaseSettings, frozen=True):
     GROQ_API_KEY: SecretStr | None = None
     ANTHROPIC_API_KEY: SecretStr | None = None
 
-    # defaults
-    DEFAULT_EMBEDDING_PROVIDER: str = "openai"
-    DEFAULT_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    # defaults models
+    KHIVE_EMBEDDING_PROVIDER: str = "openai"
+    KHIVE_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
-    DEFAULT_CHAT_PROVIDER: str = "anthropic"
-    DEFAULT_CHAT_MODEL: str = "claude-3-7-sonnet-20250219"
+    KHIVE_CHAT_PROVIDER: str = "anthropic"
+    KHIVE_CHAT_MODEL: str = "claude-3-7-sonnet-20250219"
 
-    DEFAULT_QDRANT_URL: str = "http://localhost:6333"
+    # default storage
+    KHIVE_AUTO_STORE_EVENT: bool = False
+    KHIVE_STORAGE_PROVIDER: str = "async_qdrant"
+
+    KHIVE_AUTO_EMBED_LOG: bool = False
+
+    # specific storage
+    KHIVE_QDRANT_URL: str = "http://localhost:6333"
+    KHIVE_DEFAULT_QDRANT_COLLECTION: str = "event_logs"
 
     # Class variable to store the singleton instance
     _instance: ClassVar[Any] = None

@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import asyncio
-from abc import abstractmethod
 from asyncio.log import logger
+from collections.abc import Callable
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
-from khive.traits.temporal import Temporal
-from khive.utils import validate_model_to_dict
+from khive.protocols.temporal import Temporal
+from khive.utils import is_coroutine_function, validate_model_to_dict
 
 from .types import Execution, ExecutionStatus
 
@@ -21,10 +21,31 @@ class Invokable(Temporal):
     request: dict | None = None
     execution: Execution = Field(default_factory=Execution)
     response_obj: Any = Field(None, exclude=True)
+    _invoke_function: Callable | None = PrivateAttr(None)
+    _invoke_args: list[Any] = PrivateAttr([])
+    _invoke_kwargs: dict[str, Any] = PrivateAttr({})
 
-    @abstractmethod
+    @property
+    def has_invoked(self) -> bool:
+        return self.execution.status in [
+            ExecutionStatus.COMPLETED,
+            ExecutionStatus.FAILED,
+        ]
+
     async def _invoke(self):
-        pass
+        if self._invoke_function is None:
+            raise ValueError("Event invoke function is not set.")
+
+        is_async = is_coroutine_function(self._invoke_function)
+        if is_async:
+            return await self._invoke_function(
+                *self._invoke_args, **self._invoke_kwargs
+            )
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self._invoke_function(*self._invoke_args, **self._invoke_kwargs),
+        )
 
     async def invoke(self) -> None:
         start = asyncio.get_event_loop().time()
