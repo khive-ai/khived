@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings>=2.9.1",
     "pydapter>=0.1.3",
     "pyyaml>=6.0.2",
+    "tiktoken>=0.9.0",
 ]
 
 [dependency-groups]
