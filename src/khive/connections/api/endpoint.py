@@ -10,9 +10,12 @@ from aiocache import cached
 from pydantic import BaseModel
 
 from khive.config import settings
+from khive.utils import is_package_installed
 
 from .endpoint_config import EndpointConfig
 from .header_factory import HeaderFactory
+
+_HAS_OPENAI = is_package_installed("openai")
 
 
 class Endpoint:
@@ -27,7 +30,11 @@ class Endpoint:
 
     def _create_client(self):
         if self.config.transport_type == "sdk" and self.config.openai_compatible:
-            from openai import AsyncOpenAI
+            if not _HAS_OPENAI:
+                raise ModuleNotFoundError(
+                    "The OpenAI SDK is not installed. Please install it with `pip install openai`."
+                )
+            from openai import AsyncOpenAI  # type: ignore[import]
 
             return AsyncOpenAI(
                 api_key=self.config._api_key,
