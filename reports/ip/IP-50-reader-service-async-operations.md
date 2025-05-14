@@ -267,20 +267,20 @@ async def test_read_doc_returns_expected_content():
     reader_service = ReaderServiceGroup()
     doc_id = "test_doc_id"
     test_content = "Test document content"
-    
+
     # Mock the documents_index and file reading
     reader_service.documents_index = {
         doc_id: {"length": len(test_content), "num_tokens": 5}
     }
-    
+
     # Create a mock file with test content
     test_file = reader_service.cache_dir / f"{doc_id}.txt"
     async with aiofiles.open(test_file, "w") as f:
         await f.write(test_content)
-    
+
     # Act
     response = await reader_service._read_doc(ReaderReadParams(doc_id=doc_id))
-    
+
     # Assert
     assert response.success is True
     assert response.content.chunk.content == test_content
@@ -296,29 +296,29 @@ async def test_open_and_read_document():
     reader_service = ReaderServiceGroup()
     test_file_path = "test_document.txt"
     test_content = "Test document content"
-    
+
     # Create a test file
     with open(test_file_path, "w") as f:
         f.write(test_content)
-    
+
     # Act - Open the document
     open_response = await reader_service._open_doc(
         ReaderOpenParams(path_or_url=test_file_path)
     )
-    
+
     # Get the document ID
     doc_id = open_response.content.doc_info.doc_id
-    
+
     # Act - Read the document
     read_response = await reader_service._read_doc(
         ReaderReadParams(doc_id=doc_id)
     )
-    
+
     # Assert
     assert open_response.success is True
     assert read_response.success is True
     assert read_response.content.chunk.content == test_content
-    
+
     # Clean up
     os.remove(test_file_path)
 ```

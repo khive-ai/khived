@@ -138,7 +138,7 @@ async def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
     doc_info = self.documents_index[params.doc_id]
     file_path = self.cache_dir / f"{params.doc_id}.txt"
     length = doc_info["length"]
-    
+
     # clamp offsets
     s = max(0, params.start_offset if params.start_offset is not None else 0)
     e = min(length, params.end_offset if params.end_offset is not None else length)
@@ -147,7 +147,7 @@ async def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
         # Check if the file exists
         if not file_path.exists():
             return ReaderResponse(success=False, error=f"File not found: {file_path}")
-            
+
         # Read the file content asynchronously
         async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
             # If we need the whole file
@@ -158,16 +158,16 @@ async def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
                 content = await f.read(e)
                 # Then slice to get the start offset
                 content = content[s:]
-        
+
         # Create a PartialChunk object
         chunk = PartialChunk(start_offset=s, end_offset=e, content=content)
-        
+
         # Return the response with the chunk in the content field
         return ReaderResponse(
             success=True,
             content=ReaderReadResponseContent(chunk=chunk),
         )
-        
+
     except Exception as ex:
         return ReaderResponse(success=False, error=f"Read error: {ex!s}")
 ```
@@ -432,7 +432,7 @@ try:
     # Check if the file exists
     if not file_path.exists():
         return ReaderResponse(success=False, error=f"File not found: {file_path}")
-        
+
     # Read the file content asynchronously
     async with aiofiles.open(file_path, mode='r', encoding='utf-8') as f:
         # ...
