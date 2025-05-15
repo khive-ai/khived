@@ -1372,7 +1372,7 @@ requires-dist = [
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.70.0" },
     { name = "orjson", specifier = ">=3.10.18" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
-    { name = "pydapter", specifier = ">=0.1.3" },
+    { name = "pydapter", specifier = ">=0.1.5" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "tiktoken", specifier = ">=0.9.0" },
 ]
@@ -2669,15 +2669,15 @@ wheels = [
 
 [[package]]
 name = "pydapter"
-version = "0.1.4"
+version = "0.1.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "toml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/5a/e9e6db0013260f10859ed9b86eb1becaa6fb41d99d04ae6fd1950e203124/pydapter-0.1.4.tar.gz", hash = "sha256:f4ac41f5fa158d1fd5a94c5c24dbbf24e73a82df7d0f6cec24e4dbd399312662", size = 202741, upload-time = "2025-05-08T19:37:34.349Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/9d/8cc060dd63eecd050ef0281c5996813c70365a76506ccac6fa49531dcb55/pydapter-0.1.5.tar.gz", hash = "sha256:ab29d1bace04756a4b1d09cf46af1bbabaaa3f8fae908e0864ce5e0af8bd974d", size = 261130, upload-time = "2025-05-15T15:12:45.733Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/02/7c845ad60e7a0b9aeb7cd40750b8b2f93d8bf3b84c08d12280451570c0b7/pydapter-0.1.4-py3-none-any.whl", hash = "sha256:8cd741c1ba50e392fa7c88afbad20b928ddc1c3fabd6f108ae51f75ff99c1620", size = 37038, upload-time = "2025-05-08T19:37:32.772Z" },
+    { url = "https://files.pythonhosted.org/packages/26/8d/b21474f4fdc687fa45407c13e429384a47f66efb7ea9e71dbccbad68e6ed/pydapter-0.1.5-py3-none-any.whl", hash = "sha256:f5b2fc74923ec398109d890e037918ef397a21a9e673ab268fd050ba40e8f3a4", size = 57222, upload-time = "2025-05-15T15:12:44.377Z" },
 ]
 
 [[package]]

@@ -34,3 +34,7 @@ class Identifiable(BaseModel):
     @field_validator("id", mode="before")
     def _validate_ids(cls, v: str | UUID) -> UUID:
         return validate_uuid(v)
+
+    def __hash__(self) -> int:
+        """Returns the hash of the object."""
+        return hash(self.id)

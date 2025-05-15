@@ -3,7 +3,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from pydapter import AsyncAdapter
+from pydapter.async_core import AsyncAdapter
 
 from khive.config import settings
 from khive.utils import as_async_fn, validate_model_to_dict
@@ -50,7 +50,7 @@ class Event(Identifiable, Embedable, Invokable):
         if hash_content:
             from khive.utils import sha256_of_dict
 
-            log_params["sha256"] = sha256_of_dict(self.content)
+            log_params["sha256"] = sha256_of_dict({"content": self.content})
 
         return Log(**log_params)
 
