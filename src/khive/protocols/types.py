@@ -47,7 +47,7 @@ class Log(BaseModel):
     updated_at: str
     event_type: str
     content: str | None = None
-    embedding: Embedding | None = None
+    embedding: Embedding = []
     duration: float | None = None
     status: str
     error: str | None = None
