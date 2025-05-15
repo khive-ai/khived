@@ -1,6 +1,6 @@
 [project]
 name = "khive"
-version = "0.2.9"
+version = "0.2.10"
 description = "Autonomous software engineering department"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -11,7 +11,7 @@ dependencies = [
     "backoff>=2.2.1",
     "orjson>=3.10.18",
     "pydantic-settings>=2.9.1",
-    "pydapter>=0.1.3",
+    "pydapter>=0.1.5",
     "pyyaml>=6.0.2",
     "tiktoken>=0.9.0",
 ]
