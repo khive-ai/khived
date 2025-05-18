@@ -8,7 +8,6 @@ from typing import Any
 
 import aiofiles
 
-from khive.protocols.service import Service
 from khive.services.reader.parts import (
     DocumentInfo,
     ReaderAction,
@@ -20,6 +19,7 @@ from khive.services.reader.parts import (
     ReaderResponse,
 )
 from khive.services.reader.utils import calculate_text_tokens
+from khive.types import Service
 from khive.utils import is_package_installed
 
 _HAS_DOCLING = is_package_installed("docling")

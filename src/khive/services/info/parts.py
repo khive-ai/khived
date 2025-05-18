@@ -9,8 +9,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from khive.providers.exa_ import ExaSearchRequest
-from khive.providers.perplexity_ import PerplexityChatRequest
+from khive.connections.providers.exa_ import ExaSearchRequest
+from khive.connections.providers.perplexity_ import PerplexityChatRequest
 
 
 class InfoAction(str, Enum):
