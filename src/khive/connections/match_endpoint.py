@@ -11,35 +11,35 @@ def match_endpoint(
 ) -> Endpoint:
     if provider == "openai":
         if "chat" in endpoint:
-            from khive.providers.oai_ import OpenaiChatEndpoint
+            from .providers.oai_ import OpenaiChatEndpoint
 
             return OpenaiChatEndpoint()
         if "response" in endpoint:
-            from khive.providers.oai_ import OpenaiResponseEndpoint
+            from .providers.oai_ import OpenaiResponseEndpoint
 
             return OpenaiResponseEndpoint()
     if provider == "openrouter" and "chat" in endpoint:
-        from khive.providers.oai_ import OpenrouterChatEndpoint
+        from .providers.oai_ import OpenrouterChatEndpoint
 
         return OpenrouterChatEndpoint()
     if provider == "ollama" and "chat" in endpoint:
-        from khive.providers.ollama_ import OllamaChatEndpoint
+        from .providers.ollama_ import OllamaChatEndpoint
 
         return OllamaChatEndpoint()
     if provider == "exa" and "search" in endpoint:
-        from khive.providers.exa_ import ExaSearchEndpoint
+        from .providers.exa_ import ExaSearchEndpoint
 
         return ExaSearchEndpoint()
     if provider == "anthropic" and ("messages" in endpoint or "chat" in endpoint):
-        from khive.providers.anthropic_ import AnthropicMessagesEndpoint
+        from .providers.anthropic_ import AnthropicMessagesEndpoint
 
         return AnthropicMessagesEndpoint()
     if provider == "groq" and "chat" in endpoint:
-        from khive.providers.oai_ import GroqChatEndpoint
+        from .providers.oai_ import GroqChatEndpoint
 
         return GroqChatEndpoint()
     if provider == "perplexity" and "chat" in endpoint:
-        from khive.providers.perplexity_ import PerplexityChatEndpoint
+        from .providers.perplexity_ import PerplexityChatEndpoint
 
         return PerplexityChatEndpoint()
 

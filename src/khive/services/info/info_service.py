@@ -6,7 +6,6 @@ import asyncio
 
 from pydantic import BaseModel
 
-from khive.protocols.service import Service
 from khive.services.info.parts import (
     InfoAction,
     InfoConsultParams,
@@ -14,11 +13,12 @@ from khive.services.info.parts import (
     InfoResponse,
     SearchProvider,
 )
+from khive.types import Service
 
 
 class InfoServiceGroup(Service):
     def __init__(self):
-        from khive.connections.api.endpoint import Endpoint
+        from khive.connections.endpoint import Endpoint
 
         self._perplexity: Endpoint = None
         self._exa: Endpoint = None
@@ -46,7 +46,7 @@ class InfoServiceGroup(Service):
         )
 
     async def _perplexity_search(self, params) -> InfoResponse:
-        from khive.providers.perplexity_ import (
+        from khive.connections.providers.perplexity_ import (
             PerplexityChatEndpoint,
             PerplexityChatRequest,
         )
@@ -70,7 +70,7 @@ class InfoServiceGroup(Service):
             )
 
     async def _exa_search(self, params) -> InfoResponse:
-        from khive.providers.exa_ import ExaSearchEndpoint, ExaSearchRequest
+        from khive.connections.providers.exa_ import ExaSearchEndpoint, ExaSearchRequest
 
         params: ExaSearchRequest
 
@@ -91,7 +91,7 @@ class InfoServiceGroup(Service):
             )
 
     async def _consult(self, params: InfoConsultParams) -> InfoResponse:
-        from khive.providers.oai_ import OpenrouterChatEndpoint
+        from khive.connections.providers.oai_ import OpenrouterChatEndpoint
 
         if self._openrouter is None:
             self._openrouter = OpenrouterChatEndpoint()

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from khive.config import settings
-from khive.connections.api.endpoint import Endpoint, EndpointConfig
+from khive.connections.endpoint import Endpoint, EndpointConfig
 
 __all__ = (
     "OpenaiChatEndpoint",
