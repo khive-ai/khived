@@ -205,7 +205,8 @@ khive/
 │ ├── docs/                     # Documentation
 │   ├── commands/             # Command-specific documentation
 │   ├── core-concepts/        # Core architectural concepts
-│   │   └── async_resource_management.md  # Async resource management documentation
+│   │   ├── async_resource_management.md  # Async resource management documentation
+│   │   └── resilience_patterns.md        # Circuit breaker and retry patterns documentation
 │   └── ...                   # General documentation
 ├── tests/                    # Test suite
 └── ...                       # Configuration files, etc.
