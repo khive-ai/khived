@@ -15,6 +15,7 @@ import weakref
 from unittest.mock import AsyncMock
 
 import pytest
+from khive.clients.errors import TestError
 from khive.clients.executor import AsyncExecutor, RateLimitedExecutor
 from khive.connections.endpoint import Endpoint, EndpointConfig
 
@@ -191,11 +192,11 @@ async def test_resource_cleanup_with_exception(monkeypatch, mock_http_client):
     )
 
     # Act & Assert
-    with pytest.raises(Exception, match="Test exception"):
+    with pytest.raises(TestError, match="Test exception"):
         async with executor:
             async with Endpoint(endpoint_config) as endpoint:
                 # Simulate an exception
-                raise Exception("Test exception")
+                raise TestError("Test exception")
 
     # Assert
     mock_http_client.close.assert_called_once()

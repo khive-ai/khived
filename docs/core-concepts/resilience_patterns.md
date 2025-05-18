@@ -1,39 +1,52 @@
 # Resilience Patterns
 
-This document explains the resilience patterns implemented in Khive, focusing on the Circuit Breaker and Retry patterns that enhance the reliability of API operations.
+This document explains the resilience patterns implemented in Khive, focusing on
+the Circuit Breaker and Retry patterns that enhance the reliability of API
+operations.
 
 ## Overview
 
-Khive's resilience patterns provide robust error handling mechanisms for asynchronous operations, particularly when interacting with external services. These patterns help prevent cascading failures, manage transient errors, and ensure system stability even when external dependencies are unreliable.
+Khive's resilience patterns provide robust error handling mechanisms for
+asynchronous operations, particularly when interacting with external services.
+These patterns help prevent cascading failures, manage transient errors, and
+ensure system stability even when external dependencies are unreliable.
 
 The two primary resilience patterns implemented are:
 
-1. **Circuit Breaker Pattern**: Prevents repeated calls to failing services, allowing them time to recover
-2. **Retry Pattern**: Handles transient failures by automatically retrying operations with exponential backoff
+1. **Circuit Breaker Pattern**: Prevents repeated calls to failing services,
+   allowing them time to recover
+2. **Retry Pattern**: Handles transient failures by automatically retrying
+   operations with exponential backoff
 
-These patterns can be used independently or combined for comprehensive resilience.
+These patterns can be used independently or combined for comprehensive
+resilience.
 
 ## Circuit Breaker Pattern
 
 ### Purpose
 
-The Circuit Breaker pattern prevents a system from repeatedly trying to execute an operation that's likely to fail, allowing the failing service time to recover and preventing cascading failures throughout the system.
+The Circuit Breaker pattern prevents a system from repeatedly trying to execute
+an operation that's likely to fail, allowing the failing service time to recover
+and preventing cascading failures throughout the system.
 
 ### How It Works
 
-The Circuit Breaker operates like an electrical circuit breaker, with three states:
+The Circuit Breaker operates like an electrical circuit breaker, with three
+states:
 
 1. **CLOSED**: Normal operation, requests pass through
 2. **OPEN**: Failing state, requests are immediately rejected
-3. **HALF_OPEN**: Recovery testing state, limited requests are allowed through to test if the service has recovered
+3. **HALF_OPEN**: Recovery testing state, limited requests are allowed through
+   to test if the service has recovered
 
 ![Circuit Breaker State Diagram](https://miro.medium.com/max/1400/1*CjNXJ1hBpbJTD-5_Fw75cA.png)
 
 ### Implementation
 
-Khive implements the Circuit Breaker pattern in the `CircuitBreaker` class in `src/khive/clients/resilience.py`:
+Khive implements the Circuit Breaker pattern in the `CircuitBreaker` class in
+`src/khive/clients/resilience.py`:
 
-```python
+````python
 class CircuitBreaker:
     """
     Circuit breaker pattern implementation for preventing calls to failing services.
@@ -60,16 +73,21 @@ class CircuitBreaker:
                 pass
         ```
     """
-```
+````
 
 ### Key Features
 
-- **Failure Threshold**: Configurable number of failures before opening the circuit
+- **Failure Threshold**: Configurable number of failures before opening the
+  circuit
 - **Recovery Time**: Configurable time period before attempting recovery
-- **Half-Open State Management**: Controls the number of test requests allowed in half-open state
-- **Excluded Exceptions**: Ability to specify exceptions that should not count as failures
-- **Metrics Tracking**: Tracks success, failure, and rejection counts for monitoring
-- **Decorator Support**: Easy application to any async function using the `@circuit_breaker()` decorator
+- **Half-Open State Management**: Controls the number of test requests allowed
+  in half-open state
+- **Excluded Exceptions**: Ability to specify exceptions that should not count
+  as failures
+- **Metrics Tracking**: Tracks success, failure, and rejection counts for
+  monitoring
+- **Decorator Support**: Easy application to any async function using the
+  `@circuit_breaker()` decorator
 
 ### Usage Examples
 
@@ -113,7 +131,9 @@ except CircuitBreakerOpenError:
 
 ### Purpose
 
-The Retry pattern enables an application to handle transient failures when connecting to a service or network resource by transparently retrying the operation with an exponential backoff strategy.
+The Retry pattern enables an application to handle transient failures when
+connecting to a service or network resource by transparently retrying the
+operation with an exponential backoff strategy.
 
 ### How It Works
 
@@ -129,7 +149,8 @@ When an operation fails, the retry mechanism:
 
 ### Implementation
 
-Khive implements the Retry pattern in the `retry_with_backoff` function in `src/khive/clients/resilience.py`:
+Khive implements the Retry pattern in the `retry_with_backoff` function in
+`src/khive/clients/resilience.py`:
 
 ```python
 async def retry_with_backoff(
@@ -175,8 +196,10 @@ async def retry_with_backoff(
 - **Exponential Backoff**: Delay increases exponentially with each retry
 - **Maximum Delay Cap**: Prevents excessive wait times
 - **Jitter Support**: Adds randomness to prevent thundering herd problems
-- **Exception Filtering**: Specify which exceptions should trigger retries and which should not
-- **Decorator Support**: Easy application to any async function using the `@with_retry()` decorator
+- **Exception Filtering**: Specify which exceptions should trigger retries and
+  which should not
+- **Decorator Support**: Easy application to any async function using the
+  `@with_retry()` decorator
 
 ### Usage Examples
 
@@ -291,24 +314,44 @@ except Exception as e:
 
 ## Best Practices
 
-1. **Configure Appropriately**: Set failure thresholds, retry counts, and delays based on the specific service characteristics
+1. **Configure Appropriately**: Set failure thresholds, retry counts, and delays
+   based on the specific service characteristics
 
-2. **Use Jitter**: Always enable jitter for retries to prevent thundering herd problems
+2. **Use Jitter**: Always enable jitter for retries to prevent thundering herd
+   problems
 
-3. **Set Reasonable Timeouts**: Ensure operations have appropriate timeouts to prevent long-running operations
+3. **Set Reasonable Timeouts**: Ensure operations have appropriate timeouts to
+   prevent long-running operations
 
-4. **Implement Fallback Strategies**: Always have a fallback strategy when the circuit is open
+4. **Implement Fallback Strategies**: Always have a fallback strategy when the
+   circuit is open
 
-5. **Monitor Circuit State**: Track and alert on circuit state changes to identify problematic services
+5. **Monitor Circuit State**: Track and alert on circuit state changes to
+   identify problematic services
 
-6. **Exclude Non-Retryable Errors**: Configure retry mechanisms to not retry errors that won't be resolved by retrying (e.g., authentication errors)
+6. **Exclude Non-Retryable Errors**: Configure retry mechanisms to not retry
+   errors that won't be resolved by retrying (e.g., authentication errors)
 
-7. **Combine with Caching**: Use caching as a fallback strategy when the circuit is open
+7. **Combine with Caching**: Use caching as a fallback strategy when the circuit
+   is open
 
-8. **Log Retry Attempts**: Log retry attempts and circuit state changes for debugging
+8. **Log Retry Attempts**: Log retry attempts and circuit state changes for
+   debugging
 
 ## Conclusion
 
-The resilience patterns implemented in Khive provide robust error handling mechanisms for asynchronous operations. By using the Circuit Breaker and Retry patterns, applications can gracefully handle transient failures, prevent cascading failures, and ensure system stability even when external dependencies are unreliable.
+The resilience patterns implemented in Khive provide robust error handling
+mechanisms for asynchronous operations. By using the Circuit Breaker and Retry
+patterns, applications can gracefully handle transient failures, prevent
+cascading failures, and ensure system stability even when external dependencies
+are unreliable.
 
-These patterns are particularly valuable in distributed systems where network calls and external service dependencies are common. By properly configuring and combining these patterns, Khive applications can achieve high reliability and fault tolerance.
+| These patterns are particularly valuable in distributed systems where network
+| calls and external service dependencies are common. By properly configuring and
+| combining these patterns, Khive applications can achieve high reliability and
+| fault tolerance.
+
+## Related Documentation
+
+- [Async Resource Management](async_resource_management.md): Documentation on the standardized async resource cleanup patterns implemented in Khive.
+- [Bounded Async Queue with Backpressure](async_queue.md): Documentation on the queue-based backpressure mechanism that complements resilience patterns by preventing system overload.

@@ -206,6 +206,7 @@ khive/
 │   ├── commands/             # Command-specific documentation
 │   ├── core-concepts/        # Core architectural concepts
 │   │   ├── async_resource_management.md  # Async resource management documentation
+│   │   ├── async_queue.md                # Bounded async queue with backpressure documentation
 │   │   └── resilience_patterns.md        # Circuit breaker and retry patterns documentation
 │   └── ...                   # General documentation
 ├── tests/                    # Test suite
