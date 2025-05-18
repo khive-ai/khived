@@ -11,10 +11,13 @@ API requests with proper backpressure and worker management.
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
+
+from khive.clients.errors import QueueStateError
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -34,23 +37,23 @@ class QueueConfig(BaseModel):
 
     queue_capacity: int = 100
     capacity_refresh_time: float = 1.0
-    concurrency_limit: Optional[int] = None
+    concurrency_limit: int | None = None
 
-    @validator("queue_capacity")
+    @field_validator("queue_capacity")
     def validate_queue_capacity(cls, v):
         """Validate that queue capacity is at least 1."""
         if v < 1:
             raise ValueError("Queue capacity must be at least 1")
         return v
 
-    @validator("capacity_refresh_time")
+    @field_validator("capacity_refresh_time")
     def validate_capacity_refresh_time(cls, v):
         """Validate that capacity refresh time is positive."""
         if v <= 0:
             raise ValueError("Capacity refresh time must be positive")
         return v
 
-    @validator("concurrency_limit")
+    @field_validator("concurrency_limit")
     def validate_concurrency_limit(cls, v):
         """Validate that concurrency limit is at least 1 if provided."""
         if v is not None and v < 1:
@@ -102,7 +105,7 @@ class BoundedQueue(Generic[T]):
         self,
         maxsize: int = 100,
         timeout: float = 0.1,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """
         Initialize the bounded queue.
@@ -120,10 +123,10 @@ class BoundedQueue(Generic[T]):
         self.logger = logger or logging.getLogger(__name__)
         self.queue = asyncio.Queue(maxsize=maxsize)
         self._status = QueueStatus.IDLE
-        self._workers: List[asyncio.Task] = []
+        self._workers: list[asyncio.Task] = []
         self._stop_event = asyncio.Event()
         self._lock = asyncio.Lock()
-        self._metrics: Dict[str, int] = {
+        self._metrics: dict[str, int] = {
             "enqueued": 0,
             "processed": 0,
             "errors": 0,
@@ -140,7 +143,7 @@ class BoundedQueue(Generic[T]):
         return self._status
 
     @property
-    def metrics(self) -> Dict[str, int]:
+    def metrics(self) -> dict[str, int]:
         """Get queue metrics."""
         return self._metrics.copy()
 
@@ -164,7 +167,7 @@ class BoundedQueue(Generic[T]):
         """Get the current number of active workers."""
         return len([w for w in self._workers if not w.done()])
 
-    async def put(self, item: T, timeout: Optional[float] = None) -> bool:
+    async def put(self, item: T, timeout: float | None = None) -> bool:
         """
         Add an item to the queue with backpressure.
 
@@ -176,10 +179,14 @@ class BoundedQueue(Generic[T]):
             True if the item was enqueued, False if backpressure was applied
 
         Raises:
-            RuntimeError: If the queue is not in PROCESSING state
+            QueueStateError: If the queue is not in PROCESSING state
+            QueueFullError: If the queue is full and backpressure is applied
         """
         if self._status != QueueStatus.PROCESSING:
-            raise RuntimeError(f"Cannot put items when queue is {self._status.value}")
+            raise QueueStateError(
+                f"Cannot put items when queue is {self._status.value}",
+                current_state=self._status.value,
+            )
 
         try:
             # Use wait_for to implement backpressure with timeout
@@ -205,10 +212,14 @@ class BoundedQueue(Generic[T]):
             The next item from the queue
 
         Raises:
-            RuntimeError: If the queue is not in PROCESSING state
+            QueueStateError: If the queue is not in PROCESSING state
+            QueueEmptyError: If the queue is empty (when using get_nowait)
         """
         if self._status != QueueStatus.PROCESSING:
-            raise RuntimeError(f"Cannot get items when queue is {self._status.value}")
+            raise QueueStateError(
+                f"Cannot get items when queue is {self._status.value}",
+                current_state=self._status.value,
+            )
 
         return await self.queue.get()
 
@@ -231,7 +242,7 @@ class BoundedQueue(Generic[T]):
             self._status = QueueStatus.PROCESSING
             self.logger.info(f"Queue started with maxsize {self.maxsize}")
 
-    async def stop(self, timeout: Optional[float] = None) -> None:
+    async def stop(self, timeout: float | None = None) -> None:
         """
         Stop the queue and all worker tasks.
 
@@ -257,13 +268,13 @@ class BoundedQueue(Generic[T]):
                         )
                         for task in pending:
                             task.cancel()
-                    except Exception as e:
-                        self.logger.error(f"Error waiting for workers: {e}")
+                    except Exception:
+                        self.logger.exception("Error waiting for workers")
                 else:
                     try:
                         await asyncio.gather(*self._workers, return_exceptions=True)
-                    except Exception as e:
-                        self.logger.error(f"Error waiting for workers: {e}")
+                    except Exception:
+                        self.logger.exception("Error waiting for workers")
 
             # Clear worker list
             self._workers.clear()
@@ -274,7 +285,7 @@ class BoundedQueue(Generic[T]):
         self,
         worker_func: Callable[[T], Awaitable[Any]],
         num_workers: int,
-        error_handler: Optional[Callable[[Exception, T], Awaitable[None]]] = None,
+        error_handler: Callable[[Exception, T], Awaitable[None]] | None = None,
     ) -> None:
         """
         Start worker tasks to process queue items.
@@ -296,7 +307,9 @@ class BoundedQueue(Generic[T]):
         async with self._lock:
             # Stop existing workers if any
             if self._workers:
-                self.logger.warning("Stopping existing workers before starting new ones")
+                self.logger.warning(
+                    "Stopping existing workers before starting new ones"
+                )
                 for task in self._workers:
                     if not task.done():
                         task.cancel()
@@ -315,7 +328,7 @@ class BoundedQueue(Generic[T]):
         self,
         worker_id: int,
         worker_func: Callable[[T], Awaitable[Any]],
-        error_handler: Optional[Callable[[Exception, T], Awaitable[None]]] = None,
+        error_handler: Callable[[Exception, T], Awaitable[None]] | None = None,
     ) -> None:
         """
         Worker loop that processes queue items.
@@ -345,13 +358,12 @@ class BoundedQueue(Generic[T]):
                     if error_handler:
                         try:
                             await error_handler(e, item)
-                        except Exception as handler_error:
-                            self.logger.error(
-                                f"Error in error handler: {handler_error}. "
-                                f"Original error: {e}"
+                        except Exception:
+                            self.logger.exception(
+                                f"Error in error handler. Original error: {e}"
                             )
                     else:
-                        self.logger.error(f"Error processing item: {e}")
+                        self.logger.exception("Error processing item")
                 finally:
                     # Mark the task as done regardless of success/failure
                     self.task_done()
@@ -404,8 +416,8 @@ class WorkQueue(Generic[T]):
         self,
         maxsize: int = 100,
         timeout: float = 0.1,
-        concurrency_limit: Optional[int] = None,
-        logger: Optional[logging.Logger] = None,
+        concurrency_limit: int | None = None,
+        logger: logging.Logger | None = None,
     ):
         """
         Initialize the work queue.
@@ -446,7 +458,7 @@ class WorkQueue(Generic[T]):
         return self.queue.is_empty
 
     @property
-    def metrics(self) -> Dict[str, int]:
+    def metrics(self) -> dict[str, int]:
         """Get queue metrics."""
         return self.queue.metrics
 
@@ -459,7 +471,7 @@ class WorkQueue(Generic[T]):
         """Start the queue for processing."""
         await self.queue.start()
 
-    async def stop(self, timeout: Optional[float] = None) -> None:
+    async def stop(self, timeout: float | None = None) -> None:
         """
         Stop the queue and all worker tasks.
 
@@ -483,8 +495,8 @@ class WorkQueue(Generic[T]):
     async def process(
         self,
         worker_func: Callable[[T], Awaitable[Any]],
-        num_workers: Optional[int] = None,
-        error_handler: Optional[Callable[[Exception, T], Awaitable[None]]] = None,
+        num_workers: int | None = None,
+        error_handler: Callable[[Exception, T], Awaitable[None]] | None = None,
     ) -> None:
         """
         Process queue items using the specified worker function.
@@ -498,7 +510,9 @@ class WorkQueue(Generic[T]):
             num_workers = self.concurrency_limit or 1
 
         await self.queue.start_workers(
-            worker_func=worker_func, num_workers=num_workers, error_handler=error_handler
+            worker_func=worker_func,
+            num_workers=num_workers,
+            error_handler=error_handler,
         )
 
     async def join(self) -> None:
@@ -507,10 +521,10 @@ class WorkQueue(Generic[T]):
 
     async def batch_process(
         self,
-        items: List[T],
+        items: list[T],
         worker_func: Callable[[T], Awaitable[Any]],
-        num_workers: Optional[int] = None,
-        error_handler: Optional[Callable[[Exception, T], Awaitable[None]]] = None,
+        num_workers: int | None = None,
+        error_handler: Callable[[Exception, T], Awaitable[None]] | None = None,
     ) -> None:
         """
         Process a batch of items through the queue.
@@ -524,7 +538,9 @@ class WorkQueue(Generic[T]):
         # Start the queue and workers
         await self.start()
         await self.process(
-            worker_func=worker_func, num_workers=num_workers, error_handler=error_handler
+            worker_func=worker_func,
+            num_workers=num_workers,
+            error_handler=error_handler,
         )
 
         # Enqueue all items

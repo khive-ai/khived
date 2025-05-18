@@ -12,9 +12,10 @@ worker management, and integration with the executor framework.
 
 import asyncio
 import logging
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
+from khive.clients.errors import QueueStateError
 from khive.clients.queue import BoundedQueue, QueueConfig, QueueStatus, WorkQueue
 
 
@@ -178,10 +179,10 @@ async def test_bounded_queue_operations_non_processing(mock_logger):
     queue = BoundedQueue(maxsize=10, logger=mock_logger)
 
     # Act & Assert - Operations should fail when queue is IDLE
-    with pytest.raises(RuntimeError, match="Cannot put items when queue is idle"):
+    with pytest.raises(QueueStateError, match="Cannot put items when queue is idle"):
         await queue.put("item")
 
-    with pytest.raises(RuntimeError, match="Cannot get items when queue is idle"):
+    with pytest.raises(QueueStateError, match="Cannot get items when queue is idle"):
         await queue.get()
 
     # Start and then stop the queue
@@ -189,10 +190,10 @@ async def test_bounded_queue_operations_non_processing(mock_logger):
     await queue.stop()
 
     # Act & Assert - Operations should fail when queue is STOPPED
-    with pytest.raises(RuntimeError, match="Cannot put items when queue is stopped"):
+    with pytest.raises(QueueStateError, match="Cannot put items when queue is stopped"):
         await queue.put("item")
 
-    with pytest.raises(RuntimeError, match="Cannot get items when queue is stopped"):
+    with pytest.raises(QueueStateError, match="Cannot get items when queue is stopped"):
         await queue.get()
 
 
@@ -452,7 +453,9 @@ def test_queue_config_validation():
     """Test that QueueConfig validates parameters correctly."""
     # Arrange & Act & Assert
     # Valid configuration
-    config = QueueConfig(queue_capacity=10, capacity_refresh_time=1.0, concurrency_limit=5)
+    config = QueueConfig(
+        queue_capacity=10, capacity_refresh_time=1.0, concurrency_limit=5
+    )
     assert config.queue_capacity == 10
     assert config.capacity_refresh_time == 1.0
     assert config.concurrency_limit == 5
@@ -500,7 +503,7 @@ async def test_bounded_queue_worker_error_without_handler(mock_logger):
     assert queue.metrics["processed"] == 3  # All items should be marked as processed
 
     # Verify logger was called with error message
-    mock_logger.error.assert_called_with("Error processing item: Test error")
+    mock_logger.exception.assert_called_with("Error processing item")
 
     # Cleanup
     await queue.stop()
@@ -538,8 +541,8 @@ async def test_bounded_queue_worker_error_handler_error(mock_logger):
     assert queue.metrics["processed"] == 1  # All items should be marked as processed
 
     # Verify logger was called with error message
-    mock_logger.error.assert_called_with(
-        "Error in error handler: Error handler error. Original error: Test error"
+    mock_logger.exception.assert_called_with(
+        "Error in error handler. Original error: Test error"
     )
 
     # Cleanup
@@ -639,7 +642,7 @@ async def test_bounded_queue_properties(mock_logger):
 
     # Fill the queue
     for i in range(9):
-        await queue.put(f"item{i+2}")
+        await queue.put(f"item{i + 2}")
     assert queue.size == 10
     assert not queue.is_empty
     assert queue.is_full

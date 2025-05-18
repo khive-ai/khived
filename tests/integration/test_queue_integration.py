@@ -12,7 +12,7 @@ task management, backpressure, and resource cleanup.
 
 import asyncio
 import logging
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from khive.clients.executor import AsyncExecutor
@@ -55,6 +55,7 @@ def mock_logger():
 @pytest.mark.asyncio
 async def test_executor_with_work_queue(mock_logger):
     """Test that Executor correctly uses WorkQueue for task management."""
+
     # Arrange
     # Create a custom Executor class that uses our WorkQueue
     class TestExecutor(AsyncExecutor):
@@ -128,6 +129,7 @@ async def test_executor_with_work_queue(mock_logger):
 @pytest.mark.asyncio
 async def test_executor_with_queue_backpressure(mock_logger):
     """Test that Executor handles queue backpressure gracefully."""
+
     # Arrange
     # Create a custom Executor class that uses our WorkQueue
     class TestExecutor(AsyncExecutor):
@@ -207,6 +209,7 @@ async def test_executor_with_queue_backpressure(mock_logger):
 @pytest.mark.asyncio
 async def test_executor_resource_cleanup():
     """Test that Executor properly cleans up queue resources."""
+
     # Arrange
     # Create a custom Executor class that uses our WorkQueue
     class TestExecutor(AsyncExecutor):
