@@ -9,73 +9,74 @@ description: >
   (3-6 perspectives) before action while reserving tokens for the real answer.
 ---
 
-## 1 • Purpose & Rule (of one)
+## Response Structure
 
-> **Always** start with a `<multi-reasoning>` block (≈3-5 bullets). After that,
-> answer freely or layer a task-specific template.
+Every response must begin with a structured reasoning format:
 
-```text
-<multi-reasoning>
-1. [^Spec]  Reason | Action | Outcome
-2. [^Impl]  …
-3. [^Validation] …
-</multi-reasoning>
-
-<main answer here>
-```
-
-### Why bother?
-
-- Ensures broad thinking first.
-- Stays cheap (≈70-120 tokens).
-- Remains tool-agnostic, so CI/YAML can wrap it later.
+<multi_reasoning> To increase our reasoning context, Let us think through with 5
+random perspectives in random order: [^...] Reason / Action / Reflection /
+Expected Outcome [^...] Reason / Action / Reflection / Expected Outcome ...
+</multi_reasoning>
 
 ---
 
-## 2 • Perspective tags
+Then move onto answering the prompt.
 
-| Tag                                  | Use-case                           | Sample prompt stub           |
-| ------------------------------------ | ---------------------------------- | ---------------------------- |
-| **[^Spec]**                          | clarify requirements & constraints | “What does _done_ mean?”     |
-| **[^Impl]**                          | algorithms, code shape             | “How will we build it?”      |
-| **[^Validation]**                    | tests & edge cases                 | “How will we know it works?” |
-| **Optional lenses**<br>(pick any ≤3) |                                    |                              |
-| [^Risk]                              | failure modes & security           | “What can break?”            |
-| [^System]                            | external deps & feedback loops     | “How does it fit in?”        |
-| [^Efficiency]                        | speed / cost trim                  | “Can we do it leaner?”       |
-| [^User]                              | human impact & UX                  | “Who touches this?”          |
+- Creative Thinking [^Creative]: Generate innovative ideas and unconventional
+  solutions beyond traditional boundaries.
 
-> Minimum: **Spec + Impl + Validation**. Feel free to swap or add up to **three
-> optional lenses**.
+- Critical Thinking [^Critical]: Analyze problems from multiple perspectives,
+  question assumptions, and evaluate evidence using logical reasoning.
 
----
+- Systems Thinking [^System]: Consider problems as part of larger systems,
+  identifying underlying causes, feedback loops, and interdependencies.
 
-## 3 • Extended lens glossary (reference only)
+- Reflective Thinking [^Reflect]: Step back to examine personal biases,
+  assumptions, and mental models, learning from past experiences.
 
-Use these if the task demands deeper exploration; otherwise ignore to save
-tokens.
+- Risk Analysis [^Risk]: Evaluate potential risks, uncertainties, and trade-offs
+  associated with different solutions.
 
-| Tag            | Lens                  | One-liner                        |
-| -------------- | --------------------- | -------------------------------- |
-| [^Creative]    | Creative thinking     | novel, unconstrained ideas       |
-| [^Critical]    | Critical thinking     | challenge assumptions with logic |
-| [^Reflect]     | Reflective thinking   | surface biases & past lessons    |
-| [^Stakeholder] | Stakeholder analysis  | align needs & resources          |
-| [^Breakdown]   | Problem decomposition | split into tractable parts       |
-| [^Simplify]    | Simplification        | strip to essentials              |
-| [^Analogy]     | Analogy               | cross-domain parallels           |
-| [^Scenario]    | Scenario planning     | future implications              |
-| [^SWOT]        | SWOT analysis         | strengths / weaknesses / etc.    |
-| [^Design]      | Design thinking       | empathise-ideate-prototype cycle |
-| [^Lean]        | Lean thinking         | waste reduction                  |
-| [^Agile]       | Agile thinking        | iterative adaptability           |
+- Stakeholder Analysis [^Stakeholder]: Consider human behavior aspects, affected
+  individuals, perspectives, needs, and required resources.
 
----
+- Problem Specification [^Specification]: Identify technical requirements,
+  expertise needed, and success metrics.
 
-## 4 • Bullet micro-syntax
+- Alternative Solutions [^New]: Challenge existing solutions and propose
+  entirely new approaches.
 
-```text
-[^Tag] Reason: … | Action: … | Outcome: …
-```
+- Solution Modification [^Edit]: Analyze the problem type and recommend
+  appropriate modifications to current solutions.
 
-Keep sentences short; trim filler adverbs. The goal is clarity, not prose.
+- Problem Decomposition [^Breakdown]: Break down complex problems into smaller,
+  more manageable components.
+
+- Simplification [^Simplify]: Review previous approaches and simplify problems
+  to make them more tractable.
+
+- Analogy [^Analogy]: Use analogies to draw parallels between different domains,
+  facilitating understanding and generating new ideas.
+
+- Brainstorming [^Brainstorm]: Generate a wide range of ideas and possibilities
+  without immediate judgment or evaluation.
+
+- Mind Mapping [^Map]: Visualize relationships between concepts, ideas, and
+  information, aiding in organization and exploration of complex topics.
+
+- Scenario Planning [^Scenario]: Explore potential future scenarios and their
+  implications, helping to anticipate challenges and opportunities.
+
+- SWOT Analysis [^SWOT]: Assess strengths, weaknesses, opportunities, and
+  threats related to a project or idea, providing a structured framework for
+  evaluation.
+
+- Design Thinking [^Design]: Empathize with users, define problems, ideate
+  solutions, prototype, and test, focusing on user-centered design principles.
+
+- Lean Thinking [^Lean]: Emphasize efficiency, waste reduction, and continuous
+  improvement in processes, products, and services.
+
+- Agile Thinking [^Agile]: Embrace flexibility, adaptability, and iterative
+  development, allowing for rapid response to changing requirements and
+  feedback.
