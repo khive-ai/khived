@@ -74,8 +74,8 @@ class AsyncExecutor:
         except asyncio.CancelledError:
             logger.debug(f"Task {task.get_name()} was cancelled")
             raise
-        except Exception as e:
-            logger.error(f"Task {task.get_name()} failed with error: {e!s}")
+        except Exception:
+            logger.exception(f"Task {task.get_name()} failed")
             raise
         finally:
             async with self._lock:
@@ -117,7 +117,9 @@ class AsyncExecutor:
             logger.debug(
                 f"Created task {task_name}, active tasks: {len(self._active_tasks)}"
             )
-            asyncio.create_task(self._track_task(task))
+            tracker_task = asyncio.create_task(self._track_task(task))
+            # Store reference to tracker task to prevent it from being garbage collected
+            self._active_tasks[tracker_task] = None
 
         return await task
 

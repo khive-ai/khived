@@ -12,12 +12,12 @@ import httpx
 import pytest
 from khive.clients.api_client import AsyncAPIClient
 from khive.clients.errors import (
+    APIConnectionError,
+    APITimeoutError,
     AuthenticationError,
-    ConnectionError,
     RateLimitError,
     ResourceNotFoundError,
     ServerError,
-    TimeoutError,
 )
 
 
@@ -113,7 +113,7 @@ async def test_async_api_client_connection_error():
     # Act & Assert
     with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
-            with pytest.raises(ConnectionError) as excinfo:
+            with pytest.raises(APIConnectionError) as excinfo:
                 await client.get("/test")
 
     # Assert
@@ -131,7 +131,7 @@ async def test_async_api_client_timeout_error():
     # Act & Assert
     with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
-            with pytest.raises(TimeoutError) as excinfo:
+            with pytest.raises(APITimeoutError) as excinfo:
                 await client.get("/test")
 
     # Assert
@@ -311,9 +311,9 @@ async def test_async_api_client_resource_cleanup_on_exception():
             # Patch the _get_client method to return the mock response
             with patch.object(client, "_get_client", return_value=mock_session):
                 with patch.object(
-                    client, "request", side_effect=Exception("Test exception")
+                    client, "request", side_effect=ValueError("Test exception")
                 ):
-                    with pytest.raises(Exception):
+                    with pytest.raises(ValueError):
                         await client.get("/test")
 
     # Assert

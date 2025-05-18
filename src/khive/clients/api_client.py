@@ -10,6 +10,7 @@ HTTP client for API interactions with proper resource management.
 """
 
 import asyncio
+import contextlib
 import logging
 from typing import Any, TypeVar
 
@@ -17,12 +18,12 @@ import httpx
 
 from .errors import (
     APIClientError,
+    APIConnectionError,
+    APITimeoutError,
     AuthenticationError,
-    ConnectionError,
     RateLimitError,
     ResourceNotFoundError,
     ServerError,
-    TimeoutError,
 )
 
 T = TypeVar("T")
@@ -165,11 +166,11 @@ class AsyncAPIClient:
             response.raise_for_status()
             return response.json()
         except httpx.ConnectError as e:
-            logger.error(f"Connection error: {e!s}")
-            raise ConnectionError(f"Connection error: {e!s}")
+            logger.exception("Connection error")
+            raise APIConnectionError(f"Connection error: {e!s}") from e
         except httpx.TimeoutException as e:
-            logger.error(f"Request timed out: {e!s}")
-            raise TimeoutError(f"Request timed out: {e!s}")
+            logger.exception("Request timed out")
+            raise APITimeoutError(f"Request timed out: {e!s}") from e
         except httpx.HTTPStatusError as e:
             status_code = e.response.status_code
             headers = dict(e.response.headers)
@@ -182,59 +183,57 @@ class AsyncAPIClient:
             error_message = response_data.get("detail", str(e))
 
             if status_code == 401:
-                logger.error(f"Authentication error: {error_message}")
+                logger.exception("Authentication error")
                 raise AuthenticationError(
                     f"Authentication error: {error_message}",
                     status_code=status_code,
                     headers=headers,
                     response_data=response_data,
-                )
-            elif status_code == 404:
-                logger.error(f"Resource not found: {error_message}")
+                ) from e
+            if status_code == 404:
+                logger.exception("Resource not found")
                 raise ResourceNotFoundError(
                     f"Resource not found: {error_message}",
                     status_code=status_code,
                     headers=headers,
                     response_data=response_data,
-                )
-            elif status_code == 429:
+                ) from e
+            if status_code == 429:
                 retry_after = None
                 if "Retry-After" in headers:
-                    try:
+                    with contextlib.suppress(ValueError, TypeError):
                         retry_after = float(headers["Retry-After"])
-                    except (ValueError, TypeError):
-                        pass
 
-                logger.error(f"Rate limit exceeded: {error_message}")
+                logger.exception("Rate limit exceeded")
                 raise RateLimitError(
                     f"Rate limit exceeded: {error_message}",
                     status_code=status_code,
                     headers=headers,
                     response_data=response_data,
                     retry_after=retry_after,
-                )
-            elif 500 <= status_code < 600:
-                logger.error(f"Server error: {error_message}")
+                ) from e
+            if 500 <= status_code < 600:
+                logger.exception("Server error")
                 raise ServerError(
                     f"Server error: {error_message}",
                     status_code=status_code,
                     headers=headers,
                     response_data=response_data,
-                )
-            else:
-                logger.error(f"API error: {error_message}")
-                raise APIClientError(
-                    f"API error: {error_message}",
-                    status_code=status_code,
-                    headers=headers,
-                    response_data=response_data,
-                )
+                ) from e
+
+            logger.exception("API error")
+            raise APIClientError(
+                f"API error: {error_message}",
+                status_code=status_code,
+                headers=headers,
+                response_data=response_data,
+            ) from e
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error: {e!s}")
-            raise APIClientError(f"HTTP error: {e!s}")
+            logger.exception("HTTP error")
+            raise APIClientError(f"HTTP error: {e!s}") from e
         except Exception as e:
-            logger.error(f"Unexpected error: {e!s}")
-            raise APIClientError(f"Unexpected error: {e!s}")
+            logger.exception("Unexpected error")
+            raise APIClientError(f"Unexpected error: {e!s}") from e
         finally:
             # Ensure response is properly released if coroutine is cancelled
             if (
@@ -361,15 +360,15 @@ class AsyncAPIClient:
 
         if method == "GET":
             return await self.get(url, params=params, **merged_kwargs)
-        elif method == "POST":
+        if method == "POST":
             return await self.post(url, json=json_data, data=data, **merged_kwargs)
-        elif method == "PUT":
+        if method == "PUT":
             return await self.put(url, json=json_data, data=data, **merged_kwargs)
-        elif method == "PATCH":
+        if method == "PATCH":
             return await self.patch(url, json=json_data, data=data, **merged_kwargs)
-        elif method == "DELETE":
+        if method == "DELETE":
             return await self.delete(url, **merged_kwargs)
-        else:
-            return await self.request(
-                method, url, params=params, json=json_data, data=data, **merged_kwargs
-            )
+
+        return await self.request(
+            method, url, params=params, json=json_data, data=data, **merged_kwargs
+        )

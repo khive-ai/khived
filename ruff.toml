@@ -157,6 +157,9 @@ ignore = [
     "TRY004", # Prefer `TypeError` exception for invalid type
     "PERF203",# `try`-`except`-`TypeError` that can be simplified
 ]
+"src/khive/clients/resilience.py" = [
+    "PERF203", # `try`-`except` within a loop incurs performance overhead
+]
 
 # Configuration for the 'isort' import sorter.
 [lint.isort]

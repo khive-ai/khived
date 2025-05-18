@@ -52,7 +52,9 @@ class CircuitBreaker:
             result = await breaker.execute(my_async_function, arg1, arg2, kwarg1=value1)
         except CircuitBreakerOpenError:
             # Handle the case where the circuit is open
-            pass
+            with contextlib.suppress(Exception):
+                # Alternative approach using contextlib.suppress
+                pass
         ```
     """
 
@@ -133,7 +135,7 @@ class CircuitBreaker:
 
             return result
 
-        except Exception as e:
+        except Exception:
             async with self._lock:
                 self.failure_count += 1
                 self.last_failure_time = time.time()
@@ -149,8 +151,8 @@ class CircuitBreaker:
                         f"after {self.failure_count} failures"
                     )
 
-            logger.error(f"Circuit breaker caught exception: {e!s}")
-            raise e
+            logger.exception("Circuit breaker caught exception")
+            raise
 
 
 async def retry_with_backoff(
@@ -206,7 +208,8 @@ async def retry_with_backoff(
 
             # Calculate backoff with optional jitter
             if jitter:
-                jitter_amount = random.uniform(0.8, 1.2)
+                # This is not used for cryptographic purposes, just for jitter
+                jitter_amount = random.uniform(0.8, 1.2)  # noqa: S311
                 current_delay = min(delay * jitter_amount, max_delay)
             else:
                 current_delay = min(delay, max_delay)

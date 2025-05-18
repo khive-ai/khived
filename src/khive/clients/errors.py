@@ -39,11 +39,11 @@ class APIClientError(Exception):
         super().__init__(message)
 
 
-class ConnectionError(APIClientError):
+class APIConnectionError(APIClientError):
     """Exception raised when a connection error occurs."""
 
 
-class TimeoutError(APIClientError):
+class APITimeoutError(APIClientError):
     """Exception raised when a request times out."""
 
 
