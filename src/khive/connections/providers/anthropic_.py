@@ -21,7 +21,9 @@ ANTHROPIC_MESSAGES_ENDPOINT_CONFIG = EndpointConfig(
 
 
 class AnthropicMessagesEndpoint(Endpoint):
-    def __init__(self, config: EndpointConfig = ANTHROPIC_MESSAGES_ENDPOINT_CONFIG, **kwargs):
+    def __init__(
+        self, config: EndpointConfig = ANTHROPIC_MESSAGES_ENDPOINT_CONFIG, **kwargs
+    ):
         super().__init__(config, **kwargs)
 
     def create_payload(

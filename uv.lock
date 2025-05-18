@@ -1343,9 +1343,11 @@ schema = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "black" },
     { name = "fastmcp" },
     { name = "freezegun" },
     { name = "ipykernel" },
+    { name = "isort" },
     { name = "pre-commit" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -1380,9 +1382,11 @@ provides-extras = ["reader", "mcp", "schema", "ollama", "openai", "all"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "black", specifier = ">=25.1.0" },
     { name = "fastmcp", specifier = ">=2.3.3" },
     { name = "freezegun", specifier = ">=1.5.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
+    { name = "isort", specifier = ">=6.0.1" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
