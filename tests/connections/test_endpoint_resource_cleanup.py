@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+from khive.clients.errors import TestError
 from khive.connections.endpoint import Endpoint, EndpointConfig
 from khive.utils import is_package_installed
 
@@ -250,10 +251,10 @@ async def test_endpoint_as_context_manager_with_exception(
     monkeypatch.setattr("aiohttp.ClientSession", lambda **kwargs: mock_http_client)
 
     # Act & Assert
-    with pytest.raises(Exception, match="Test exception"):
+    with pytest.raises(TestError, match="Test exception"):
         async with Endpoint(http_endpoint_config) as endpoint:
             # Simulate an exception
-            raise Exception("Test exception")
+            raise TestError("Test exception")
 
     # Assert
     mock_http_client.close.assert_called_once()
@@ -669,7 +670,7 @@ async def test_endpoint_call_aiohttp_client_error(
     endpoint.client = mock_http_client
 
     # Act & Assert
-    with pytest.raises(Exception):
+    with pytest.raises(aiohttp.ClientResponseError):
         await endpoint._call_aiohttp({"test": "data"}, {})
 
     # Assert

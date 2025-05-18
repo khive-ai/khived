@@ -13,6 +13,7 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from khive.clients.errors import TestError
 from khive.clients.executor import AsyncExecutor, RateLimitedExecutor
 
 
@@ -95,10 +96,10 @@ async def test_async_executor_as_context_manager_with_exception():
     executor.shutdown = AsyncMock()
 
     # Act & Assert
-    with pytest.raises(Exception, match="Test exception"):
+    with pytest.raises(TestError, match="Test exception"):
         async with executor:
             # Simulate an exception
-            raise Exception("Test exception")
+            raise TestError("Test exception")
 
     # Assert
     executor.shutdown.assert_called_once()
@@ -175,10 +176,10 @@ async def test_rate_limited_executor_as_context_manager_with_exception():
         executor.executor.shutdown = AsyncMock()
 
         # Act & Assert
-        with pytest.raises(Exception, match="Test exception"):
+        with pytest.raises(TestError, match="Test exception"):
             async with executor:
                 # Simulate an exception
-                raise Exception("Test exception")
+                raise TestError("Test exception")
 
         # Assert
         executor.executor.shutdown.assert_called_once()

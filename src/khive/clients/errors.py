@@ -97,3 +97,16 @@ class CircuitBreakerOpenError(APIClientError):
         """
         super().__init__(message)
         self.retry_after = retry_after
+
+
+class TestError(APIClientError):
+    """Exception raised for testing purposes."""
+
+    def __init__(self, message: str = "Test exception"):
+        """
+        Initialize the test error.
+
+        Args:
+            message: The error message (default: "Test exception").
+        """
+        super().__init__(message)
