@@ -1302,7 +1302,7 @@ wheels = [
 
 [[package]]
 name = "khive"
-version = "0.2.9"
+version = "0.2.10"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },
@@ -1355,10 +1355,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiocache", specifier = ">=0.12.3" },
+    { name = "aiocache", specifier = ">=0.12.0" },
     { name = "aiofiles", specifier = ">=24.1.0" },
-    { name = "aiohttp", specifier = ">=3.11.18" },
-    { name = "backoff", specifier = ">=2.2.1" },
+    { name = "aiohttp", specifier = ">=3.11.0" },
+    { name = "backoff", specifier = ">=2.0.0" },
     { name = "datamodel-code-generator", marker = "extra == 'all'", specifier = ">=0.30.1" },
     { name = "datamodel-code-generator", marker = "extra == 'schema'", specifier = ">=0.30.1" },
     { name = "docling", marker = "extra == 'all'", specifier = ">=2.31.0" },
@@ -1371,9 +1371,9 @@ requires-dist = [
     { name = "openai", marker = "extra == 'ollama'", specifier = ">=1.70.0" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.70.0" },
     { name = "orjson", specifier = ">=3.10.18" },
-    { name = "pydantic-settings", specifier = ">=2.9.1" },
-    { name = "pydapter", specifier = ">=0.1.5" },
-    { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "pydantic-settings", specifier = ">=2.0.0" },
+    { name = "pydapter", specifier = ">=0.1.7" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "tiktoken", specifier = ">=0.9.0" },
 ]
 provides-extras = ["reader", "mcp", "schema", "ollama", "openai", "all"]
@@ -2669,15 +2669,15 @@ wheels = [
 
 [[package]]
 name = "pydapter"
-version = "0.1.5"
+version = "0.1.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "toml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/9d/8cc060dd63eecd050ef0281c5996813c70365a76506ccac6fa49531dcb55/pydapter-0.1.5.tar.gz", hash = "sha256:ab29d1bace04756a4b1d09cf46af1bbabaaa3f8fae908e0864ce5e0af8bd974d", size = 261130, upload-time = "2025-05-15T15:12:45.733Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/bb/289750c6671463d9813aaf7c777137759acaf7e4ced74972e72900ae0b57/pydapter-0.1.7.tar.gz", hash = "sha256:3fc25e54001ea20611d640a23ad841b35350f4f526b11bdfcaf6038701a0f063", size = 298135, upload-time = "2025-05-18T15:16:01.736Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/8d/b21474f4fdc687fa45407c13e429384a47f66efb7ea9e71dbccbad68e6ed/pydapter-0.1.5-py3-none-any.whl", hash = "sha256:f5b2fc74923ec398109d890e037918ef397a21a9e673ab268fd050ba40e8f3a4", size = 57222, upload-time = "2025-05-15T15:12:44.377Z" },
+    { url = "https://files.pythonhosted.org/packages/69/b0/2acd9ec1191c447915fa5e0a45035b55b50d9b6676bca221e1fa9c51a478/pydapter-0.1.7-py3-none-any.whl", hash = "sha256:2d751768727ebb3005def8960950f22d7012f792d8ad08b7a38f2ec96ca55f25", size = 75647, upload-time = "2025-05-18T15:15:59.974Z" },
 ]
 
 [[package]]

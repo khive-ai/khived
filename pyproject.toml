@@ -1,18 +1,18 @@
 [project]
 name = "khive"
-version = "0.2.10"
+version = "0.2.11"
 description = "Autonomous software engineering department"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "aiocache>=0.12.3",
+    "aiocache>=0.12.0",
     "aiofiles>=24.1.0",
-    "aiohttp>=3.11.18",
-    "backoff>=2.2.1",
+    "aiohttp>=3.11.0",
+    "backoff>=2.0.0",
     "orjson>=3.10.18",
-    "pydantic-settings>=2.9.1",
-    "pydapter>=0.1.5",
-    "pyyaml>=6.0.2",
+    "pydantic-settings>=2.0.0",
+    "pydapter>=0.1.7",
+    "pyyaml>=6.0.0",
     "tiktoken>=0.9.0",
 ]
 
