@@ -117,11 +117,17 @@ class AsyncExecutor:
             logger.debug(
                 f"Created task {task_name}, active tasks: {len(self._active_tasks)}"
             )
-            tracker_task = asyncio.create_task(self._track_task(task))
-            # Store reference to tracker task to prevent it from being garbage collected
-            self._active_tasks[tracker_task] = None
+            # Create tracker task but don't store it in _active_tasks
+            # We intentionally ignore the task reference since we don't need to track or await it
+            # The task will be kept alive by the event loop until it completes
+            _ = asyncio.create_task(self._track_task(task))  # noqa: RUF006
 
-        return await task
+        try:
+            return await task
+        finally:
+            # Ensure task is removed from _active_tasks even if awaiting fails
+            async with self._lock:
+                self._active_tasks.pop(task, None)
 
     async def map(self, func: Callable[[T], Awaitable[R]], items: list[T]) -> list[R]:
         """
