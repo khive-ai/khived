@@ -38,10 +38,19 @@ building on the capabilities of the previous ones:
                     ┌────▼─────┐   ┌────▼─────┐
                     │ event.py │   │  Other   │
                     └──────────┘   │Extensions│
-                                   └──────────┘
-```
-
-#### Foundation Layer
+                                   |                                    └──────────┘
+                                   ```
+                                   
+                                   #### Resource Management Layer
+                                   
+                                   - **protocols.py**: Defines protocols for async resource management
+                                     - `AsyncResourceManager`: Protocol for components that manage async resources with context managers
+                                     - `ResourceClient`: Protocol for resource clients that interact with external APIs
+                                     - `Executor`: Protocol for executors that manage concurrent operations
+                                     - Features: Standardized resource initialization and cleanup, proper async context management
+                                     - See [Async Resource Management](core-concepts/async_resource_management.md) for details
+                                   
+                                   #### Foundation Layer
 
 - **types.py**: Defines basic types and enums used throughout the system
   - `Embedding`: Type alias for a list of floats representing vector embeddings
@@ -339,3 +348,7 @@ of the system.
 
 For more detailed information about specific protocols, refer to the API
 documentation and the protocol source code in the `khive.protocols` module.
+
+## Related Documentation
+
+- [Async Resource Management](core-concepts/async_resource_management.md): Detailed documentation on the AsyncResourceManager protocol and its implementations
