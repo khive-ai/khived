@@ -10,6 +10,7 @@ import backoff
 from aiocache import cached
 from pydantic import BaseModel
 
+from khive.clients.resilience import CircuitBreaker, RetryConfig, retry_with_backoff
 from khive.config import settings
 from khive.utils import is_package_installed
 
@@ -22,7 +23,22 @@ _HAS_OPENAI = is_package_installed("openai")
 
 
 class Endpoint:
-    def __init__(self, config: dict | EndpointConfig, **kwargs):
+    def __init__(
+        self,
+        config: dict | EndpointConfig,
+        circuit_breaker: CircuitBreaker | None = None,
+        retry_config: RetryConfig | None = None,
+        **kwargs,
+    ):
+        """
+        Initialize the endpoint.
+
+        Args:
+            config: The endpoint configuration.
+            circuit_breaker: Optional circuit breaker for resilience.
+            retry_config: Optional retry configuration for resilience.
+            **kwargs: Additional keyword arguments to update the configuration.
+        """
         _config = {}
         if isinstance(config, dict):
             _config = EndpointConfig(**config, **kwargs)
@@ -31,6 +47,14 @@ class Endpoint:
             _config.update(**kwargs)
         self.config = _config
         self.client = None
+        self.circuit_breaker = circuit_breaker
+        self.retry_config = retry_config
+
+        logger.debug(
+            f"Initialized Endpoint with provider={self.config.provider}, "
+            f"endpoint={self.config.endpoint}, circuit_breaker={circuit_breaker is not None}, "
+            f"retry_config={retry_config is not None}"
+        )
 
     def _create_client(self):
         if self.config.transport_type == "sdk" and self.config.openai_compatible:
@@ -180,6 +204,17 @@ class Endpoint:
     async def call(
         self, request: dict | BaseModel, cache_control: bool = False, **kwargs
     ):
+        """
+        Make a call to the endpoint.
+
+        Args:
+            request: The request parameters or model.
+            cache_control: Whether to use cache control.
+            **kwargs: Additional keyword arguments for the request.
+
+        Returns:
+            The response from the endpoint.
+        """
         payload, headers = self.create_payload(request, **kwargs)
 
         async def _call(payload: dict, headers: dict, **kwargs):
@@ -192,16 +227,72 @@ class Endpoint:
                     payload=payload, headers=headers, **kwargs
                 )
 
-        if not cache_control:
-            return await _call(payload, headers, **kwargs)
+        # Apply resilience patterns if configured
+        call_func = _call
 
-        @cached(**settings.aiocache_config.as_kwargs())
-        async def _cached_call(payload: dict, headers: dict, **kwargs):
-            return await _call(payload=payload, headers=headers, **kwargs)
+        # Apply retry if configured
+        if self.retry_config:
 
-        return await _cached_call(payload, headers, **kwargs)
+            async def call_func(p, h, **kw):
+                return await retry_with_backoff(
+                    _call, p, h, **kw, **self.retry_config.as_kwargs()
+                )
+
+        # Apply circuit breaker if configured
+        if self.circuit_breaker:
+            if self.retry_config:
+                # If both are configured, apply circuit breaker to the retry-wrapped function
+                if not cache_control:
+                    return await self.circuit_breaker.execute(
+                        call_func, payload, headers, **kwargs
+                    )
+            else:
+                # If only circuit breaker is configured, apply it directly
+                if not cache_control:
+                    return await self.circuit_breaker.execute(
+                        _call, payload, headers, **kwargs
+                    )
+
+        # Handle caching if requested
+        if cache_control:
+
+            @cached(**settings.aiocache_config.as_kwargs())
+            async def _cached_call(payload: dict, headers: dict, **kwargs):
+                # Apply resilience patterns to cached call if configured
+                if self.circuit_breaker and self.retry_config:
+                    return await self.circuit_breaker.execute(
+                        call_func, payload, headers, **kwargs
+                    )
+                if self.circuit_breaker:
+                    return await self.circuit_breaker.execute(
+                        _call, payload, headers, **kwargs
+                    )
+                if self.retry_config:
+                    return await call_func(payload, headers, **kwargs)
+
+                return await _call(payload, headers, **kwargs)
+
+            return await _cached_call(payload, headers, **kwargs)
+
+        # No caching, apply resilience patterns directly
+        if self.retry_config:
+            return await call_func(payload, headers, **kwargs)
+
+        return await _call(payload, headers, **kwargs)
 
     async def _call_aiohttp(self, payload: dict, headers: dict, **kwargs):
+        """
+        Make a call using aiohttp.
+
+        Args:
+            payload: The request payload.
+            headers: The request headers.
+            **kwargs: Additional keyword arguments for the request.
+
+        Returns:
+            The response from the endpoint.
+        """
+
         async def _make_request_with_backoff():
             response = None
             try:
@@ -253,6 +344,17 @@ class Endpoint:
         return await backoff_handler(_make_request_with_backoff)()
 
     async def _call_openai(self, payload: dict, headers: dict, **kwargs):
+        """
+        Make a call using the OpenAI SDK.
+
+        Args:
+            payload: The request payload.
+            headers: The request headers.
+            **kwargs: Additional keyword arguments for the request.
+
+        Returns:
+            The response from the endpoint.
+        """
         payload = {**payload, **self.config.kwargs, **kwargs}
 
         if headers:

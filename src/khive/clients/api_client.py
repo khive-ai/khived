@@ -25,6 +25,7 @@ from .errors import (
     ResourceNotFoundError,
     ServerError,
 )
+from .resilience import CircuitBreaker, RetryConfig, retry_with_backoff
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -52,6 +53,8 @@ class AsyncAPIClient:
         headers: dict[str, str] | None = None,
         auth: httpx.Auth | None = None,
         client: httpx.AsyncClient | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
+        retry_config: RetryConfig | None = None,
         **client_kwargs,
     ):
         """
@@ -63,6 +66,8 @@ class AsyncAPIClient:
             headers: Default headers to include with every request.
             auth: Authentication to use for requests.
             client: An existing httpx.AsyncClient to use instead of creating a new one.
+            circuit_breaker: Optional circuit breaker for resilience.
+            retry_config: Optional retry configuration for resilience.
             **client_kwargs: Additional keyword arguments to pass to httpx.AsyncClient.
         """
         self.base_url = base_url
@@ -73,6 +78,14 @@ class AsyncAPIClient:
         self._client_kwargs = client_kwargs
         self._session_lock = asyncio.Lock()
         self._closed = False
+        self.circuit_breaker = circuit_breaker
+        self.retry_config = retry_config
+
+        logger.debug(
+            f"Initialized AsyncAPIClient with base_url={base_url}, "
+            f"timeout={timeout}, circuit_breaker={circuit_breaker is not None}, "
+            f"retry_config={retry_config is not None}"
+        )
 
     async def _get_client(self) -> httpx.AsyncClient:
         """
@@ -158,90 +171,119 @@ class AsyncAPIClient:
             ServerError: If a server error occurs.
             APIClientError: For other API client errors.
         """
-        client = await self._get_client()
-        response = None
 
-        try:
-            response = await client.request(method, url, **kwargs)
-            response.raise_for_status()
-            return response.json()
-        except httpx.ConnectError as e:
-            logger.exception("Connection error")
-            raise APIConnectionError(f"Connection error: {e!s}") from e
-        except httpx.TimeoutException as e:
-            logger.exception("Request timed out")
-            raise APITimeoutError(f"Request timed out: {e!s}") from e
-        except httpx.HTTPStatusError as e:
-            status_code = e.response.status_code
-            headers = dict(e.response.headers)
+        # Define the actual request function
+        async def _make_request():
+            client = await self._get_client()
+            response = None
 
             try:
-                response_data = e.response.json()
-            except Exception:
-                response_data = {"detail": e.response.text}
+                response = await client.request(method, url, **kwargs)
+                response.raise_for_status()
+                return response.json()
+            except httpx.ConnectError as e:
+                logger.exception("Connection error")
+                raise APIConnectionError(f"Connection error: {e!s}") from e
+            except httpx.TimeoutException as e:
+                logger.exception("Request timed out")
+                raise APITimeoutError(f"Request timed out: {e!s}") from e
+            except httpx.HTTPStatusError as e:
+                status_code = e.response.status_code
+                headers = dict(e.response.headers)
 
-            error_message = response_data.get("detail", str(e))
+                try:
+                    response_data = e.response.json()
+                except Exception:
+                    response_data = {"detail": e.response.text}
 
-            if status_code == 401:
-                logger.exception("Authentication error")
-                raise AuthenticationError(
-                    f"Authentication error: {error_message}",
+                error_message = response_data.get("detail", str(e))
+
+                if status_code == 401:
+                    logger.exception("Authentication error")
+                    raise AuthenticationError(
+                        f"Authentication error: {error_message}",
+                        status_code=status_code,
+                        headers=headers,
+                        response_data=response_data,
+                    ) from e
+                if status_code == 404:
+                    logger.exception("Resource not found")
+                    raise ResourceNotFoundError(
+                        f"Resource not found: {error_message}",
+                        status_code=status_code,
+                        headers=headers,
+                        response_data=response_data,
+                    ) from e
+                if status_code == 429:
+                    retry_after = None
+                    if "Retry-After" in headers:
+                        with contextlib.suppress(ValueError, TypeError):
+                            retry_after = float(headers["Retry-After"])
+
+                    logger.exception("Rate limit exceeded")
+                    raise RateLimitError(
+                        f"Rate limit exceeded: {error_message}",
+                        status_code=status_code,
+                        headers=headers,
+                        response_data=response_data,
+                        retry_after=retry_after,
+                    ) from e
+                if 500 <= status_code < 600:
+                    logger.exception("Server error")
+                    raise ServerError(
+                        f"Server error: {error_message}",
+                        status_code=status_code,
+                        headers=headers,
+                        response_data=response_data,
+                    ) from e
+
+                logger.exception("API error")
+                raise APIClientError(
+                    f"API error: {error_message}",
                     status_code=status_code,
                     headers=headers,
                     response_data=response_data,
                 ) from e
-            if status_code == 404:
-                logger.exception("Resource not found")
-                raise ResourceNotFoundError(
-                    f"Resource not found: {error_message}",
-                    status_code=status_code,
-                    headers=headers,
-                    response_data=response_data,
-                ) from e
-            if status_code == 429:
-                retry_after = None
-                if "Retry-After" in headers:
-                    with contextlib.suppress(ValueError, TypeError):
-                        retry_after = float(headers["Retry-After"])
+            except httpx.HTTPError as e:
+                logger.exception("HTTP error")
+                raise APIClientError(f"HTTP error: {e!s}") from e
+            except Exception as e:
+                logger.exception("Unexpected error")
+                raise APIClientError(f"Unexpected error: {e!s}") from e
+            finally:
+                # Ensure response is properly released if coroutine is cancelled
+                if (
+                    response is not None
+                    and hasattr(response, "close")
+                    and not response.is_closed
+                ):
+                    response.close()
 
-                logger.exception("Rate limit exceeded")
-                raise RateLimitError(
-                    f"Rate limit exceeded: {error_message}",
-                    status_code=status_code,
-                    headers=headers,
-                    response_data=response_data,
-                    retry_after=retry_after,
-                ) from e
-            if 500 <= status_code < 600:
-                logger.exception("Server error")
-                raise ServerError(
-                    f"Server error: {error_message}",
-                    status_code=status_code,
-                    headers=headers,
-                    response_data=response_data,
-                ) from e
+        # Apply resilience patterns if configured
+        request_func = _make_request
 
-            logger.exception("API error")
-            raise APIClientError(
-                f"API error: {error_message}",
-                status_code=status_code,
-                headers=headers,
-                response_data=response_data,
-            ) from e
-        except httpx.HTTPError as e:
-            logger.exception("HTTP error")
-            raise APIClientError(f"HTTP error: {e!s}") from e
-        except Exception as e:
-            logger.exception("Unexpected error")
-            raise APIClientError(f"Unexpected error: {e!s}") from e
-        finally:
-            # Ensure response is properly released if coroutine is cancelled
-            if (
-                response is not None
-                and hasattr(response, "close")
-                and not response.is_closed
-            ):
-                response.close()
+        # Apply retry if configured
+        if self.retry_config:
+
+            async def request_func():
+                return await retry_with_backoff(
+                    _make_request, **self.retry_config.as_kwargs()
+                )
+
+        # Apply circuit breaker if configured
+        if self.circuit_breaker:
+            if self.retry_config:
+                # If both are configured, apply circuit breaker to the retry-wrapped function
+                return await self.circuit_breaker.execute(request_func)
+            # If only circuit breaker is configured, apply it directly
+            return await self.circuit_breaker.execute(_make_request)
+
+        if self.retry_config:
+            # If only retry is configured, call the retry-wrapped function
+            return await request_func()
+
+        # If no resilience patterns are configured, call the request function directly
+        return await _make_request()
 
     async def get(
         self, url: str, params: dict[str, Any] | None = None, **kwargs

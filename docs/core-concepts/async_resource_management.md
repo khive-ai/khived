@@ -1,16 +1,26 @@
 # Async Resource Management
 
-This document explains the standardized async resource cleanup patterns implemented in Khive, focusing on the `AsyncResourceManager` protocol and its implementations.
+This document explains the standardized async resource cleanup patterns
+implemented in Khive, focusing on the `AsyncResourceManager` protocol and its
+implementations.
 
 ## Overview
 
-Khive's async resource management system provides a consistent pattern for managing asynchronous resources, ensuring proper initialization and cleanup. This is particularly important for components that interact with external services, manage connections, or allocate resources that need to be released when no longer needed.
+Khive's async resource management system provides a consistent pattern for
+managing asynchronous resources, ensuring proper initialization and cleanup.
+This is particularly important for components that interact with external
+services, manage connections, or allocate resources that need to be released
+when no longer needed.
 
-The system is built around the `AsyncResourceManager` protocol, which defines a standard interface for components that need to manage async resources with context managers.
+The system is built around the `AsyncResourceManager` protocol, which defines a
+standard interface for components that need to manage async resources with
+context managers.
 
 ## AsyncResourceManager Protocol
 
-The `AsyncResourceManager` protocol is defined in `src/khive/clients/protocols.py` and serves as the foundation for async resource management in Khive:
+The `AsyncResourceManager` protocol is defined in
+`src/khive/clients/protocols.py` and serves as the foundation for async resource
+management in Khive:
 
 ```python
 class AsyncResourceManager(Protocol):
@@ -37,18 +47,21 @@ class AsyncResourceManager(Protocol):
         ...
 ```
 
-This protocol defines the standard async context manager methods that implementing classes must provide:
+This protocol defines the standard async context manager methods that
+implementing classes must provide:
 
 - `__aenter__`: Initializes resources and returns the manager instance
 - `__aexit__`: Releases resources, handling any exceptions that occurred
 
 ## Protocol Extensions
 
-The `AsyncResourceManager` protocol is extended by other protocols to provide more specific functionality:
+The `AsyncResourceManager` protocol is extended by other protocols to provide
+more specific functionality:
 
 ### ResourceClient Protocol
 
-The `ResourceClient` protocol extends `AsyncResourceManager` to define a standard interface for clients that interact with external APIs:
+The `ResourceClient` protocol extends `AsyncResourceManager` to define a
+standard interface for clients that interact with external APIs:
 
 ```python
 class ResourceClient(AsyncResourceManager, Protocol):
@@ -74,7 +87,8 @@ class ResourceClient(AsyncResourceManager, Protocol):
 
 ### Executor Protocol
 
-The `Executor` protocol extends `AsyncResourceManager` to define a standard interface for components that manage concurrent operations:
+The `Executor` protocol extends `AsyncResourceManager` to define a standard
+interface for components that manage concurrent operations:
 
 ```python
 class Executor(AsyncResourceManager, Protocol):
@@ -111,7 +125,8 @@ class Executor(AsyncResourceManager, Protocol):
 
 ### Endpoint Class
 
-The `Endpoint` class in `src/khive/connections/endpoint.py` implements the `AsyncResourceManager` protocol to manage connections to external APIs:
+The `Endpoint` class in `src/khive/connections/endpoint.py` implements the
+`AsyncResourceManager` protocol to manage connections to external APIs:
 
 ```python
 class Endpoint:
@@ -176,16 +191,21 @@ class Endpoint:
             self.client = None
 ```
 
-The `Endpoint` class provides a robust implementation of the async context manager pattern, with these key features:
+The `Endpoint` class provides a robust implementation of the async context
+manager pattern, with these key features:
 
-1. **Client Initialization**: Creates the appropriate client type (HTTP or SDK) when entering the context
+1. **Client Initialization**: Creates the appropriate client type (HTTP or SDK)
+   when entering the context
 2. **Resource Cleanup**: Properly closes the client when exiting the context
-3. **Error Handling**: Catches and logs exceptions during cleanup to ensure resources are always released
-4. **Reference Clearing**: Sets the client reference to `None` after cleanup to prevent resource leaks
+3. **Error Handling**: Catches and logs exceptions during cleanup to ensure
+   resources are always released
+4. **Reference Clearing**: Sets the client reference to `None` after cleanup to
+   prevent resource leaks
 
 ### AsyncExecutor Class
 
-The `AsyncExecutor` class in `src/khive/clients/executor.py` implements the `AsyncResourceManager` protocol to manage concurrent operations:
+The `AsyncExecutor` class in `src/khive/clients/executor.py` implements the
+`AsyncResourceManager` protocol to manage concurrent operations:
 
 ```python
 class AsyncExecutor:
@@ -246,17 +266,22 @@ class AsyncExecutor:
         logger.debug("Executor shutdown complete")
 ```
 
-The `AsyncExecutor` class provides a comprehensive implementation of the async context manager pattern for task execution, with these key features:
+The `AsyncExecutor` class provides a comprehensive implementation of the async
+context manager pattern for task execution, with these key features:
 
 1. **Task Tracking**: Keeps track of all active tasks
-2. **Graceful Shutdown**: Waits for active tasks to complete when exiting the context
-3. **Timeout Support**: Allows specifying a maximum wait time for tasks to complete
+2. **Graceful Shutdown**: Waits for active tasks to complete when exiting the
+   context
+3. **Timeout Support**: Allows specifying a maximum wait time for tasks to
+   complete
 4. **Task Cancellation**: Cancels pending tasks if a timeout is reached
 5. **Comprehensive Logging**: Logs all key events for debugging
 
 ### RateLimitedExecutor Class
 
-The `RateLimitedExecutor` class in `src/khive/clients/executor.py` combines rate limiting and concurrency control, also implementing the `AsyncResourceManager` protocol:
+The `RateLimitedExecutor` class in `src/khive/clients/executor.py` combines rate
+limiting and concurrency control, also implementing the `AsyncResourceManager`
+protocol:
 
 ```python
 class RateLimitedExecutor:
@@ -296,13 +321,15 @@ class RateLimitedExecutor:
         await self.executor.shutdown(timeout=timeout)
 ```
 
-The `RateLimitedExecutor` delegates most of its resource management to the underlying `AsyncExecutor`, providing a clean composition pattern.
+The `RateLimitedExecutor` delegates most of its resource management to the
+underlying `AsyncExecutor`, providing a clean composition pattern.
 
 ## Usage Patterns
 
 ### Basic Usage with Context Manager
 
-The recommended way to use async resource managers is with the async context manager pattern:
+The recommended way to use async resource managers is with the async context
+manager pattern:
 
 ```python
 async def example():
@@ -324,7 +351,8 @@ async def example():
 
 ### Manual Resource Management
 
-While the context manager pattern is recommended, you can also manage resources manually:
+While the context manager pattern is recommended, you can also manage resources
+manually:
 
 ```python
 async def example():
@@ -345,7 +373,8 @@ async def example():
 
 ### Nested Context Managers
 
-Async resource managers can be nested to create complex resource management patterns:
+Async resource managers can be nested to create complex resource management
+patterns:
 
 ```python
 async def example():
@@ -357,22 +386,38 @@ async def example():
 
 ## Best Practices
 
-1. **Always Use Context Managers**: Prefer the async context manager pattern (`async with`) over manual resource management to ensure proper cleanup.
+1. **Always Use Context Managers**: Prefer the async context manager pattern
+   (`async with`) over manual resource management to ensure proper cleanup.
 
-2. **Handle Exceptions During Cleanup**: Catch and log exceptions during resource cleanup to ensure resources are always released, even in error scenarios.
+2. **Handle Exceptions During Cleanup**: Catch and log exceptions during
+   resource cleanup to ensure resources are always released, even in error
+   scenarios.
 
-3. **Clear References**: Set resource references to `None` after cleanup to prevent resource leaks.
+3. **Clear References**: Set resource references to `None` after cleanup to
+   prevent resource leaks.
 
-4. **Use Timeouts**: Specify timeouts when waiting for tasks to complete to prevent indefinite blocking.
+4. **Use Timeouts**: Specify timeouts when waiting for tasks to complete to
+   prevent indefinite blocking.
 
-5. **Log Resource Lifecycle Events**: Log key events in the resource lifecycle (creation, initialization, cleanup) for debugging.
+5. **Log Resource Lifecycle Events**: Log key events in the resource lifecycle
+   (creation, initialization, cleanup) for debugging.
 
-6. **Implement Both `__aenter__` and `__aexit__`**: Always implement both methods of the async context manager protocol.
+6. **Implement Both `__aenter__` and `__aexit__`**: Always implement both
+   methods of the async context manager protocol.
 
-7. **Delegate to Specialized Methods**: Implement specialized methods for resource initialization and cleanup, and call them from the context manager methods.
+7. **Delegate to Specialized Methods**: Implement specialized methods for
+   resource initialization and cleanup, and call them from the context manager
+   methods.
 
 ## Conclusion
 
-The standardized async resource management system in Khive provides a consistent pattern for managing asynchronous resources, ensuring proper initialization and cleanup. By following the `AsyncResourceManager` protocol and its extensions, components can ensure reliable resource management, even in complex scenarios with multiple resources and error conditions.
+The standardized async resource management system in Khive provides a consistent
+pattern for managing asynchronous resources, ensuring proper initialization and
+cleanup. By following the `AsyncResourceManager` protocol and its extensions,
+components can ensure reliable resource management, even in complex scenarios
+with multiple resources and error conditions.
 
-This system is particularly important for components that interact with external services, manage connections, or allocate resources that need to be released when no longer needed, helping to prevent resource leaks and ensure efficient resource utilization.
+This system is particularly important for components that interact with external
+services, manage connections, or allocate resources that need to be released
+when no longer needed, helping to prevent resource leaks and ensure efficient
+resource utilization.
