@@ -150,8 +150,8 @@ class AsyncAPIClient:
             The parsed response data.
 
         Raises:
-            ConnectionError: If a connection error occurs.
-            TimeoutError: If the request times out.
+            APIConnectionError: If a connection error occurs.
+            APITimeoutError: If the request times out.
             RateLimitError: If a rate limit is exceeded.
             AuthenticationError: If authentication fails.
             ResourceNotFoundError: If a resource is not found.

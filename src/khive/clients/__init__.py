@@ -12,13 +12,13 @@ rate limiting, concurrency control, and resilience patterns.
 from .api_client import AsyncAPIClient
 from .errors import (
     APIClientError,
+    APIConnectionError,
+    APITimeoutError,
     AuthenticationError,
     CircuitBreakerOpenError,
-    ConnectionError,
     RateLimitError,
     ResourceNotFoundError,
     ServerError,
-    TimeoutError,
 )
 from .executor import AsyncExecutor, RateLimitedExecutor
 from .protocols import Executor, Queue, RateLimiter, ResourceClient
@@ -32,8 +32,8 @@ __all__ = [
     "RateLimiter",
     "Queue",
     "APIClientError",
-    "ConnectionError",
-    "TimeoutError",
+    "APIConnectionError",
+    "APITimeoutError",
     "RateLimitError",
     "AuthenticationError",
     "ResourceNotFoundError",
