@@ -14,7 +14,7 @@ follow, ensuring interoperability and consistency across the system.
 Khive protocols are organized in a hierarchical structure, with each level
 building on the capabilities of the previous ones:
 
-```
+````
                   ┌─────────────┐
                   │   types.py  │
                   └──────┬──────┘
@@ -40,16 +40,16 @@ building on the capabilities of the previous ones:
                     └──────────┘   │Extensions│
                                    |                                    └──────────┘
                                    ```
-                                   
+
                                    #### Resource Management Layer
-                                   
+
                                    - **protocols.py**: Defines protocols for async resource management
                                      - `AsyncResourceManager`: Protocol for components that manage async resources with context managers
                                      - `ResourceClient`: Protocol for resource clients that interact with external APIs
                                      - `Executor`: Protocol for executors that manage concurrent operations
                                      - Features: Standardized resource initialization and cleanup, proper async context management
                                      - See [Async Resource Management](core-concepts/async_resource_management.md) for details
-                                   
+
                                    #### Foundation Layer
 
 - **types.py**: Defines basic types and enums used throughout the system
@@ -130,7 +130,7 @@ from khive.protocols.event import Event
 
 class MyCustomEvent(Event):
     # Custom implementation...
-```
+````
 
 ### 2. Implement Required Methods
 
@@ -351,4 +351,6 @@ documentation and the protocol source code in the `khive.protocols` module.
 
 ## Related Documentation
 
-- [Async Resource Management](core-concepts/async_resource_management.md): Detailed documentation on the AsyncResourceManager protocol and its implementations
+- [Async Resource Management](core-concepts/async_resource_management.md):
+  Detailed documentation on the AsyncResourceManager protocol and its
+  implementations
