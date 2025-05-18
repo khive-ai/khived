@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import asyncio
+import logging
 
 import aiohttp
 import backoff
@@ -14,6 +15,8 @@ from khive.utils import is_package_installed
 
 from .endpoint_config import EndpointConfig
 from .header_factory import HeaderFactory
+
+logger = logging.getLogger(__name__)
 
 _HAS_OPENAI = is_package_installed("openai")
 
@@ -108,9 +111,15 @@ class Endpoint:
                     self.client.close()
         except Exception as e:
             # Log the error but don't re-raise to ensure cleanup continues
-            import logging
-
-            logging.getLogger(__name__).warning(f"Error closing client: {e}")
+            logger.warning(
+                "Error closing client",
+                extra={
+                    "error": str(e),
+                    "client_type": self.config.transport_type,
+                    "endpoint": self.config.endpoint,
+                    "provider": self.config.provider,
+                },
+            )
         finally:
             # Always clear the client reference
             self.client = None
