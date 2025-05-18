@@ -35,13 +35,16 @@ class AsyncExecutor:
         # Create an executor with a maximum of 10 concurrent tasks
         executor = AsyncExecutor(max_concurrency=10)
 
-        # Execute a function with concurrency control
+        # Use with async context manager (recommended)
+        async with executor as exec:
+            result = await exec.execute(my_async_function, arg1, arg2, kwarg1=value1)
+            results = await exec.map(my_async_function, [item1, item2, item3])
+        # Resources automatically cleaned up
+
+        # Or manually:
+        executor = AsyncExecutor(max_concurrency=10)
         result = await executor.execute(my_async_function, arg1, arg2, kwarg1=value1)
-
-        # Map a function over a list of items with concurrency control
         results = await executor.map(my_async_function, [item1, item2, item3])
-
-        # Shut down the executor when done
         await executor.shutdown()
         ```
     """
@@ -176,6 +179,28 @@ class AsyncExecutor:
 
         logger.debug("Executor shutdown complete")
 
+    async def __aenter__(self) -> "AsyncExecutor":
+        """
+        Enter the async context manager.
+
+        Returns:
+            The executor instance.
+        """
+        logger.debug("Entering AsyncExecutor context")
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """
+        Exit the async context manager and release resources.
+
+        Args:
+            exc_type: The exception type, if an exception was raised.
+            exc_val: The exception value, if an exception was raised.
+            exc_tb: The exception traceback, if an exception was raised.
+        """
+        logger.debug("Exiting AsyncExecutor context")
+        await self.shutdown()
+
 
 class RateLimitedExecutor:
     """
@@ -191,10 +216,14 @@ class RateLimitedExecutor:
         # and a maximum of 5 concurrent tasks
         executor = RateLimitedExecutor(rate=10, period=1.0, max_concurrency=5)
 
-        # Execute a function with rate limiting and concurrency control
-        result = await executor.execute(my_async_function, arg1, arg2, kwarg1=value1)
+        # Use with async context manager (recommended)
+        async with executor as exec:
+            result = await exec.execute(my_async_function, arg1, arg2, kwarg1=value1)
+        # Resources automatically cleaned up
 
-        # Shut down the executor when done
+        # Or manually:
+        executor = RateLimitedExecutor(rate=10, period=1.0, max_concurrency=5)
+        result = await executor.execute(my_async_function, arg1, arg2, kwarg1=value1)
         await executor.shutdown()
         ```
     """
@@ -248,3 +277,25 @@ class RateLimitedExecutor:
         """
         logger.debug("Shutting down rate-limited executor")
         await self.executor.shutdown(timeout=timeout)
+
+    async def __aenter__(self) -> "RateLimitedExecutor":
+        """
+        Enter the async context manager.
+
+        Returns:
+            The executor instance.
+        """
+        logger.debug("Entering RateLimitedExecutor context")
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """
+        Exit the async context manager and release resources.
+
+        Args:
+            exc_type: The exception type, if an exception was raised.
+            exc_val: The exception value, if an exception was raised.
+            exc_tb: The exception traceback, if an exception was raised.
+        """
+        logger.debug("Exiting RateLimitedExecutor context")
+        await self.shutdown()

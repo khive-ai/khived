@@ -54,18 +54,66 @@ class Endpoint:
         raise ValueError(f"Unsupported transport type: {self.config.transport_type}")
 
     async def __aenter__(self):
+        """
+        Enter the async context manager and initialize the client.
+
+        Returns:
+            The Endpoint instance with an initialized client.
+        """
         self.client = self._create_client()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Close the client when exiting the context manager."""
-        if self.client and self.config.transport_type == "http":
-            await self.client.close()
+        """
+        Close the client when exiting the context manager.
+
+        This method ensures proper resource cleanup for both HTTP and SDK clients.
+        It handles exceptions gracefully to ensure resources are always released.
+
+        Args:
+            exc_type: The exception type, if an exception was raised.
+            exc_val: The exception value, if an exception was raised.
+            exc_tb: The exception traceback, if an exception was raised.
+        """
+        await self._close_client()
 
     async def aclose(self):
-        """Gracefully close the client session."""
-        if self.client and self.config.transport_type == "http":
-            await self.client.close()
+        """
+        Gracefully close the client session.
+
+        This method can be called explicitly to close the client without using
+        the context manager. It ensures proper resource cleanup for both HTTP
+        and SDK clients.
+        """
+        await self._close_client()
+
+    async def _close_client(self):
+        """
+        Internal method to close the client and release resources.
+
+        This method handles different client types and ensures proper cleanup
+        in all cases, including error scenarios.
+        """
+        if self.client is None:
+            return
+
+        try:
+            if self.config.transport_type == "http":
+                await self.client.close()
+            elif self.config.transport_type == "sdk" and hasattr(self.client, "close"):
+                # Some SDK clients might have a close method
+                if asyncio.iscoroutinefunction(self.client.close):
+                    await self.client.close()
+                else:
+                    self.client.close()
+        except Exception as e:
+            # Log the error but don't re-raise to ensure cleanup continues
+            import logging
+
+            logging.getLogger(__name__).warning(f"Error closing client: {e}")
+        finally:
+            # Always clear the client reference
+            self.client = None
 
     @property
     def request_options(self):
