@@ -346,7 +346,12 @@ patterns, applications can gracefully handle transient failures, prevent
 cascading failures, and ensure system stability even when external dependencies
 are unreliable.
 
-These patterns are particularly valuable in distributed systems where network
-calls and external service dependencies are common. By properly configuring and
-combining these patterns, Khive applications can achieve high reliability and
-fault tolerance.
+| These patterns are particularly valuable in distributed systems where network
+| calls and external service dependencies are common. By properly configuring and
+| combining these patterns, Khive applications can achieve high reliability and
+| fault tolerance.
+
+## Related Documentation
+
+- [Async Resource Management](async_resource_management.md): Documentation on the standardized async resource cleanup patterns implemented in Khive.
+- [Bounded Async Queue with Backpressure](async_queue.md): Documentation on the queue-based backpressure mechanism that complements resilience patterns by preventing system overload.
