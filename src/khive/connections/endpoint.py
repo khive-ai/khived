@@ -20,12 +20,13 @@ _HAS_OPENAI = is_package_installed("openai")
 
 class Endpoint:
     def __init__(self, config: dict | EndpointConfig, **kwargs):
+        _config = {}
         if isinstance(config, dict):
-            config = EndpointConfig(**config)
-        if not isinstance(config, EndpointConfig):
-            raise TypeError(f"Expected EndpointConfig, got {type(config)}")
-        self.config = config
-        self.config.update(**kwargs)
+            _config = EndpointConfig(**config, **kwargs)
+        if isinstance(config, EndpointConfig):
+            _config = config.model_copy()
+            _config.update(**kwargs)
+        self.config = _config
         self.client = None
 
     def _create_client(self):

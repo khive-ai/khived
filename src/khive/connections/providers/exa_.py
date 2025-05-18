@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from khive.config import settings
-from khive.connections.api.endpoint import Endpoint, EndpointConfig
+from khive.connections.endpoint import Endpoint, EndpointConfig
 from khive.third_party.exa_models import ExaSearchRequest
 
 __all__ = ("ExaSearchEndpoint",)
