@@ -10,18 +10,18 @@ connection errors, timeout errors, rate limit errors, authentication errors,
 resource not found errors, server errors, and circuit breaker errors.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class APIClientError(Exception):
     """Base exception for all API client errors."""
 
     def __init__(
-        self, 
-        message: str, 
-        status_code: Optional[int] = None,
-        headers: Optional[Dict[str, str]] = None,
-        response_data: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        status_code: int | None = None,
+        headers: dict[str, str] | None = None,
+        response_data: dict[str, Any] | None = None,
     ):
         """
         Initialize the API client error.
@@ -41,24 +41,22 @@ class APIClientError(Exception):
 
 class ConnectionError(APIClientError):
     """Exception raised when a connection error occurs."""
-    pass
 
 
 class TimeoutError(APIClientError):
     """Exception raised when a request times out."""
-    pass
 
 
 class RateLimitError(APIClientError):
     """Exception raised when a rate limit is exceeded."""
 
     def __init__(
-        self, 
-        message: str, 
-        status_code: Optional[int] = 429,
-        headers: Optional[Dict[str, str]] = None,
-        response_data: Optional[Dict[str, Any]] = None,
-        retry_after: Optional[float] = None
+        self,
+        message: str,
+        status_code: int | None = 429,
+        headers: dict[str, str] | None = None,
+        response_data: dict[str, Any] | None = None,
+        retry_after: float | None = None,
     ):
         """
         Initialize the rate limit error.
@@ -76,27 +74,20 @@ class RateLimitError(APIClientError):
 
 class AuthenticationError(APIClientError):
     """Exception raised when authentication fails."""
-    pass
 
 
 class ResourceNotFoundError(APIClientError):
     """Exception raised when a resource is not found."""
-    pass
 
 
 class ServerError(APIClientError):
     """Exception raised when a server error occurs."""
-    pass
 
 
 class CircuitBreakerOpenError(APIClientError):
     """Exception raised when a circuit breaker is open."""
 
-    def __init__(
-        self, 
-        message: str, 
-        retry_after: Optional[float] = None
-    ):
+    def __init__(self, message: str, retry_after: float | None = None):
         """
         Initialize the circuit breaker open error.
 

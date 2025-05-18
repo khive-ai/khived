@@ -11,32 +11,32 @@ HTTP client for API interactions with proper resource management.
 
 import asyncio
 import logging
-from typing import Optional, Dict, Any, Union, TypeVar, cast
+from typing import Any, TypeVar
 
 import httpx
 
 from .errors import (
     APIClientError,
-    ConnectionError,
-    TimeoutError,
-    RateLimitError,
     AuthenticationError,
+    ConnectionError,
+    RateLimitError,
     ResourceNotFoundError,
     ServerError,
+    TimeoutError,
 )
 
-T = TypeVar('T')
+T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
 class AsyncAPIClient:
     """
     Generic async HTTP client for API interactions with proper resource management.
-    
+
     This client handles session management, connection pooling, and proper
     resource cleanup. It implements the async context manager protocol for
     resource management.
-    
+
     Example:
         ```python
         async with AsyncAPIClient(base_url="https://api.example.com") as client:
@@ -48,10 +48,10 @@ class AsyncAPIClient:
         self,
         base_url: str,
         timeout: float = 10.0,
-        headers: Optional[Dict[str, str]] = None,
-        auth: Optional[httpx.Auth] = None,
-        client: Optional[httpx.AsyncClient] = None,
-        **client_kwargs
+        headers: dict[str, str] | None = None,
+        auth: httpx.Auth | None = None,
+        client: httpx.AsyncClient | None = None,
+        **client_kwargs,
     ):
         """
         Initialize the async API client.
@@ -96,7 +96,7 @@ class AsyncAPIClient:
                     timeout=self.timeout,
                     headers=self.headers,
                     auth=self.auth,
-                    **self._client_kwargs
+                    **self._client_kwargs,
                 )
             return self._client
 
@@ -115,7 +115,7 @@ class AsyncAPIClient:
                 self._client = None
             self._closed = True
 
-    async def __aenter__(self) -> 'AsyncAPIClient':
+    async def __aenter__(self) -> "AsyncAPIClient":
         """
         Enter the async context manager.
 
@@ -136,12 +136,7 @@ class AsyncAPIClient:
         """
         await self.close()
 
-    async def request(
-        self,
-        method: str,
-        url: str,
-        **kwargs
-    ) -> Any:
+    async def request(self, method: str, url: str, **kwargs) -> Any:
         """
         Make a request to the API.
 
@@ -170,29 +165,29 @@ class AsyncAPIClient:
             response.raise_for_status()
             return response.json()
         except httpx.ConnectError as e:
-            logger.error(f"Connection error: {str(e)}")
-            raise ConnectionError(f"Connection error: {str(e)}")
+            logger.error(f"Connection error: {e!s}")
+            raise ConnectionError(f"Connection error: {e!s}")
         except httpx.TimeoutException as e:
-            logger.error(f"Request timed out: {str(e)}")
-            raise TimeoutError(f"Request timed out: {str(e)}")
+            logger.error(f"Request timed out: {e!s}")
+            raise TimeoutError(f"Request timed out: {e!s}")
         except httpx.HTTPStatusError as e:
             status_code = e.response.status_code
             headers = dict(e.response.headers)
-            
+
             try:
                 response_data = e.response.json()
             except Exception:
                 response_data = {"detail": e.response.text}
-            
+
             error_message = response_data.get("detail", str(e))
-            
+
             if status_code == 401:
                 logger.error(f"Authentication error: {error_message}")
                 raise AuthenticationError(
                     f"Authentication error: {error_message}",
                     status_code=status_code,
                     headers=headers,
-                    response_data=response_data
+                    response_data=response_data,
                 )
             elif status_code == 404:
                 logger.error(f"Resource not found: {error_message}")
@@ -200,7 +195,7 @@ class AsyncAPIClient:
                     f"Resource not found: {error_message}",
                     status_code=status_code,
                     headers=headers,
-                    response_data=response_data
+                    response_data=response_data,
                 )
             elif status_code == 429:
                 retry_after = None
@@ -209,14 +204,14 @@ class AsyncAPIClient:
                         retry_after = float(headers["Retry-After"])
                     except (ValueError, TypeError):
                         pass
-                
+
                 logger.error(f"Rate limit exceeded: {error_message}")
                 raise RateLimitError(
                     f"Rate limit exceeded: {error_message}",
                     status_code=status_code,
                     headers=headers,
                     response_data=response_data,
-                    retry_after=retry_after
+                    retry_after=retry_after,
                 )
             elif 500 <= status_code < 600:
                 logger.error(f"Server error: {error_message}")
@@ -224,7 +219,7 @@ class AsyncAPIClient:
                     f"Server error: {error_message}",
                     status_code=status_code,
                     headers=headers,
-                    response_data=response_data
+                    response_data=response_data,
                 )
             else:
                 logger.error(f"API error: {error_message}")
@@ -232,24 +227,25 @@ class AsyncAPIClient:
                     f"API error: {error_message}",
                     status_code=status_code,
                     headers=headers,
-                    response_data=response_data
+                    response_data=response_data,
                 )
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error: {str(e)}")
-            raise APIClientError(f"HTTP error: {str(e)}")
+            logger.error(f"HTTP error: {e!s}")
+            raise APIClientError(f"HTTP error: {e!s}")
         except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}")
-            raise APIClientError(f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error: {e!s}")
+            raise APIClientError(f"Unexpected error: {e!s}")
         finally:
             # Ensure response is properly released if coroutine is cancelled
-            if response is not None and hasattr(response, "close") and not response.is_closed:
+            if (
+                response is not None
+                and hasattr(response, "close")
+                and not response.is_closed
+            ):
                 response.close()
 
     async def get(
-        self,
-        url: str,
-        params: Optional[Dict[str, Any]] = None,
-        **kwargs
+        self, url: str, params: dict[str, Any] | None = None, **kwargs
     ) -> Any:
         """
         Make a GET request to the API.
@@ -267,9 +263,9 @@ class AsyncAPIClient:
     async def post(
         self,
         url: str,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Union[Dict[str, Any], bytes, str]] = None,
-        **kwargs
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | bytes | str | None = None,
+        **kwargs,
     ) -> Any:
         """
         Make a POST request to the API.
@@ -288,9 +284,9 @@ class AsyncAPIClient:
     async def put(
         self,
         url: str,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Union[Dict[str, Any], bytes, str]] = None,
-        **kwargs
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | bytes | str | None = None,
+        **kwargs,
     ) -> Any:
         """
         Make a PUT request to the API.
@@ -309,9 +305,9 @@ class AsyncAPIClient:
     async def patch(
         self,
         url: str,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Union[Dict[str, Any], bytes, str]] = None,
-        **kwargs
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | bytes | str | None = None,
+        **kwargs,
     ) -> Any:
         """
         Make a PATCH request to the API.
@@ -327,11 +323,7 @@ class AsyncAPIClient:
         """
         return await self.request("PATCH", url, json=json, data=data, **kwargs)
 
-    async def delete(
-        self,
-        url: str,
-        **kwargs
-    ) -> Any:
+    async def delete(self, url: str, **kwargs) -> Any:
         """
         Make a DELETE request to the API.
 
@@ -344,7 +336,7 @@ class AsyncAPIClient:
         """
         return await self.request("DELETE", url, **kwargs)
 
-    async def call(self, request: Dict[str, Any], **kwargs) -> Any:
+    async def call(self, request: dict[str, Any], **kwargs) -> Any:
         """
         Make a call to the API using the ResourceClient protocol.
 
@@ -363,10 +355,10 @@ class AsyncAPIClient:
         params = request.pop("params", None)
         json_data = request.pop("json", None)
         data = request.pop("data", None)
-        
+
         # Merge any remaining request parameters with kwargs
         merged_kwargs = {**request, **kwargs}
-        
+
         if method == "GET":
             return await self.get(url, params=params, **merged_kwargs)
         elif method == "POST":
@@ -378,4 +370,6 @@ class AsyncAPIClient:
         elif method == "DELETE":
             return await self.delete(url, **merged_kwargs)
         else:
-            return await self.request(method, url, params=params, json=json_data, data=data, **merged_kwargs)
+            return await self.request(
+                method, url, params=params, json=json_data, data=data, **merged_kwargs
+            )

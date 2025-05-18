@@ -6,19 +6,18 @@
 Tests for the AsyncAPIClient class.
 """
 
-import pytest
-import httpx
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+import pytest
 from khive.clients.api_client import AsyncAPIClient
 from khive.clients.errors import (
-    APIClientError,
-    ConnectionError,
-    TimeoutError,
-    RateLimitError,
     AuthenticationError,
+    ConnectionError,
+    RateLimitError,
     ResourceNotFoundError,
     ServerError,
+    TimeoutError,
 )
 
 
@@ -29,14 +28,10 @@ async def test_async_api_client_init():
     base_url = "https://api.example.com"
     timeout = 10.0
     headers = {"User-Agent": "Test"}
-    
+
     # Act
-    client = AsyncAPIClient(
-        base_url=base_url,
-        timeout=timeout,
-        headers=headers
-    )
-    
+    client = AsyncAPIClient(base_url=base_url, timeout=timeout, headers=headers)
+
     # Assert
     assert client.base_url == base_url
     assert client.timeout == timeout
@@ -51,14 +46,14 @@ async def test_async_api_client_context_manager():
     # Arrange
     base_url = "https://api.example.com"
     mock_session = AsyncMock(spec=httpx.AsyncClient)
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             # Assert client was initialized correctly
             assert client.base_url == base_url
             assert client._client is not None
-            
+
         # Assert session was closed
         mock_session.aclose.assert_called_once()
 
@@ -72,17 +67,15 @@ async def test_async_api_client_get():
     mock_response = MagicMock()
     mock_response.json.return_value = {"data": "test"}
     mock_session.request.return_value = mock_response
-    
+
     # Act
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             result = await client.get("/test", params={"key": "value"})
-    
+
     # Assert
     mock_session.request.assert_called_once_with(
-        "GET", 
-        "/test", 
-        params={"key": "value"}
+        "GET", "/test", params={"key": "value"}
     )
     assert result == {"data": "test"}
 
@@ -96,21 +89,15 @@ async def test_async_api_client_post():
     mock_response = MagicMock()
     mock_response.json.return_value = {"data": "test"}
     mock_session.request.return_value = mock_response
-    
+
     # Act
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
-            result = await client.post(
-                "/test", 
-                json={"key": "value"}
-            )
-    
+            result = await client.post("/test", json={"key": "value"})
+
     # Assert
     mock_session.request.assert_called_once_with(
-        "POST", 
-        "/test", 
-        json={"key": "value"}, 
-        data=None
+        "POST", "/test", json={"key": "value"}, data=None
     )
     assert result == {"data": "test"}
 
@@ -122,13 +109,13 @@ async def test_async_api_client_connection_error():
     base_url = "https://api.example.com"
     mock_session = AsyncMock(spec=httpx.AsyncClient)
     mock_session.request.side_effect = httpx.ConnectError("Connection failed")
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             with pytest.raises(ConnectionError) as excinfo:
                 await client.get("/test")
-    
+
     # Assert
     assert "Connection error: Connection failed" in str(excinfo.value)
 
@@ -140,13 +127,13 @@ async def test_async_api_client_timeout_error():
     base_url = "https://api.example.com"
     mock_session = AsyncMock(spec=httpx.AsyncClient)
     mock_session.request.side_effect = httpx.TimeoutException("Request timed out")
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             with pytest.raises(TimeoutError) as excinfo:
                 await client.get("/test")
-    
+
     # Assert
     assert "Request timed out" in str(excinfo.value)
 
@@ -162,24 +149,22 @@ async def test_async_api_client_rate_limit_error():
     mock_response.json.return_value = {"detail": "Rate limit exceeded"}
     mock_response.headers = {"Retry-After": "60"}
     mock_response.text = "Rate limit exceeded"
-    
+
     mock_request_info = MagicMock()
     mock_request_info.url = httpx.URL(base_url + "/test")
     mock_request_info.method = "GET"
-    
+
     mock_error = httpx.HTTPStatusError(
-        "429 Too Many Requests",
-        request=mock_request_info,
-        response=mock_response
+        "429 Too Many Requests", request=mock_request_info, response=mock_response
     )
     mock_session.request.side_effect = mock_error
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             with pytest.raises(RateLimitError) as excinfo:
                 await client.get("/test")
-    
+
     # Assert
     assert "Rate limit exceeded" in str(excinfo.value)
     assert excinfo.value.status_code == 429
@@ -196,24 +181,22 @@ async def test_async_api_client_authentication_error():
     mock_response.status_code = 401
     mock_response.json.return_value = {"detail": "Invalid credentials"}
     mock_response.text = "Invalid credentials"
-    
+
     mock_request_info = MagicMock()
     mock_request_info.url = httpx.URL(base_url + "/test")
     mock_request_info.method = "GET"
-    
+
     mock_error = httpx.HTTPStatusError(
-        "401 Unauthorized",
-        request=mock_request_info,
-        response=mock_response
+        "401 Unauthorized", request=mock_request_info, response=mock_response
     )
     mock_session.request.side_effect = mock_error
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             with pytest.raises(AuthenticationError) as excinfo:
                 await client.get("/test")
-    
+
     # Assert
     assert "Invalid credentials" in str(excinfo.value)
     assert excinfo.value.status_code == 401
@@ -229,24 +212,22 @@ async def test_async_api_client_resource_not_found_error():
     mock_response.status_code = 404
     mock_response.json.return_value = {"detail": "Resource not found"}
     mock_response.text = "Resource not found"
-    
+
     mock_request_info = MagicMock()
     mock_request_info.url = httpx.URL(base_url + "/test")
     mock_request_info.method = "GET"
-    
+
     mock_error = httpx.HTTPStatusError(
-        "404 Not Found",
-        request=mock_request_info,
-        response=mock_response
+        "404 Not Found", request=mock_request_info, response=mock_response
     )
     mock_session.request.side_effect = mock_error
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             with pytest.raises(ResourceNotFoundError) as excinfo:
                 await client.get("/test")
-    
+
     # Assert
     assert "Resource not found" in str(excinfo.value)
     assert excinfo.value.status_code == 404
@@ -262,24 +243,22 @@ async def test_async_api_client_server_error():
     mock_response.status_code = 500
     mock_response.json.return_value = {"detail": "Internal server error"}
     mock_response.text = "Internal server error"
-    
+
     mock_request_info = MagicMock()
     mock_request_info.url = httpx.URL(base_url + "/test")
     mock_request_info.method = "GET"
-    
+
     mock_error = httpx.HTTPStatusError(
-        "500 Internal Server Error",
-        request=mock_request_info,
-        response=mock_response
+        "500 Internal Server Error", request=mock_request_info, response=mock_response
     )
     mock_session.request.side_effect = mock_error
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             with pytest.raises(ServerError) as excinfo:
                 await client.get("/test")
-    
+
     # Assert
     assert "Internal server error" in str(excinfo.value)
     assert excinfo.value.status_code == 500
@@ -294,17 +273,17 @@ async def test_async_api_client_call_method():
     mock_response = MagicMock()
     mock_response.json.return_value = {"data": "test"}
     mock_session.request.return_value = mock_response
-    
+
     # Act
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             result = await client.call({
                 "method": "POST",
                 "url": "/test",
                 "json": {"key": "value"},
-                "headers": {"X-Test": "test"}
+                "headers": {"X-Test": "test"},
             })
-    
+
     # Assert
     # The order of kwargs doesn't matter for the assertion, just check that it was called with the right parameters
     mock_session.request.assert_called_once()
@@ -325,15 +304,17 @@ async def test_async_api_client_resource_cleanup_on_exception():
     mock_response.is_closed = False
     mock_response.close = MagicMock()
     mock_session.request.side_effect = Exception("Test exception")
-    
+
     # Act & Assert
-    with patch('httpx.AsyncClient', return_value=mock_session):
+    with patch("httpx.AsyncClient", return_value=mock_session):
         async with AsyncAPIClient(base_url=base_url) as client:
             # Patch the _get_client method to return the mock response
-            with patch.object(client, '_get_client', return_value=mock_session):
-                with patch.object(client, 'request', side_effect=Exception("Test exception")):
+            with patch.object(client, "_get_client", return_value=mock_session):
+                with patch.object(
+                    client, "request", side_effect=Exception("Test exception")
+                ):
                     with pytest.raises(Exception):
                         await client.get("/test")
-    
+
     # Assert
     mock_session.aclose.assert_called_once()

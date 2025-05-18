@@ -9,10 +9,11 @@ This module defines the Protocol interfaces for the ResourceClient,
 Executor, RateLimiter, and Queue components.
 """
 
-from typing import Protocol, TypeVar, Any, Awaitable, Callable, Dict, Optional
+from collections.abc import Awaitable, Callable
+from typing import Any, Protocol, TypeVar
 
-T = TypeVar('T')
-R = TypeVar('R')
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 class ResourceClient(Protocol):
@@ -35,7 +36,7 @@ class ResourceClient(Protocol):
         """Close the client and release any resources."""
         ...
 
-    async def __aenter__(self) -> 'ResourceClient':
+    async def __aenter__(self) -> "ResourceClient":
         """Enter the async context manager."""
         ...
 
@@ -48,10 +49,7 @@ class Executor(Protocol):
     """Protocol for executors that manage concurrent operations."""
 
     async def execute(
-        self, 
-        func: Callable[..., Awaitable[T]], 
-        *args: Any, 
-        **kwargs: Any
+        self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any
     ) -> T:
         """
         Execute a coroutine with concurrency control.
@@ -66,7 +64,7 @@ class Executor(Protocol):
         """
         ...
 
-    async def shutdown(self, timeout: Optional[float] = None) -> None:
+    async def shutdown(self, timeout: float | None = None) -> None:
         """
         Shut down the executor and wait for active tasks to complete.
 
@@ -93,10 +91,7 @@ class RateLimiter(Protocol):
         ...
 
     async def execute(
-        self, 
-        func: Callable[..., Awaitable[T]], 
-        *args: Any, 
-        **kwargs: Any
+        self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any
     ) -> T:
         """
         Execute a coroutine with rate limiting.
@@ -145,9 +140,7 @@ class Queue(Protocol):
         ...
 
     async def start_workers(
-        self, 
-        worker_func: Callable[[T], Awaitable[Any]], 
-        num_workers: int
+        self, worker_func: Callable[[T], Awaitable[Any]], num_workers: int
     ) -> None:
         """
         Start worker tasks to process queue items.
@@ -158,7 +151,7 @@ class Queue(Protocol):
         """
         ...
 
-    async def stop_workers(self, timeout: Optional[float] = None) -> None:
+    async def stop_workers(self, timeout: float | None = None) -> None:
         """
         Stop worker tasks.
 

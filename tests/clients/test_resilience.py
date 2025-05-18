@@ -6,13 +6,12 @@
 Tests for the resilience patterns.
 """
 
-import asyncio
 import time
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, patch
 
-from khive.clients.resilience import CircuitBreaker, CircuitState, retry_with_backoff
+import pytest
 from khive.clients.errors import CircuitBreakerOpenError
+from khive.clients.resilience import CircuitBreaker, CircuitState, retry_with_backoff
 
 
 @pytest.mark.asyncio
@@ -20,7 +19,7 @@ async def test_circuit_breaker_init():
     """Test that CircuitBreaker initializes correctly."""
     # Arrange & Act
     breaker = CircuitBreaker(failure_threshold=5, recovery_time=30.0)
-    
+
     # Assert
     assert breaker.failure_threshold == 5
     assert breaker.recovery_time == 30.0
@@ -35,10 +34,10 @@ async def test_circuit_breaker_execute_success():
     # Arrange
     breaker = CircuitBreaker(failure_threshold=5, recovery_time=30.0)
     mock_func = AsyncMock(return_value="result")
-    
+
     # Act
     result = await breaker.execute(mock_func, "arg1", "arg2", kwarg1="value1")
-    
+
     # Assert
     mock_func.assert_called_once_with("arg1", "arg2", kwarg1="value1")
     assert result == "result"
@@ -52,11 +51,11 @@ async def test_circuit_breaker_execute_failure():
     # Arrange
     breaker = CircuitBreaker(failure_threshold=5, recovery_time=30.0)
     mock_func = AsyncMock(side_effect=ValueError("Test error"))
-    
+
     # Act & Assert
     with pytest.raises(ValueError) as excinfo:
         await breaker.execute(mock_func)
-    
+
     # Assert
     assert "Test error" in str(excinfo.value)
     assert breaker.state == CircuitState.CLOSED
@@ -70,12 +69,12 @@ async def test_circuit_breaker_open_after_threshold():
     # Arrange
     breaker = CircuitBreaker(failure_threshold=3, recovery_time=30.0)
     mock_func = AsyncMock(side_effect=ValueError("Test error"))
-    
+
     # Act & Assert
     for i in range(3):
         with pytest.raises(ValueError):
             await breaker.execute(mock_func)
-    
+
     # Assert
     assert breaker.state == CircuitState.OPEN
     assert breaker.failure_count == 3
@@ -89,11 +88,11 @@ async def test_circuit_breaker_rejects_when_open():
     breaker.state = CircuitState.OPEN
     breaker.last_failure_time = time.time()  # Set to current time
     mock_func = AsyncMock(return_value="result")
-    
+
     # Act & Assert
     with pytest.raises(CircuitBreakerOpenError) as excinfo:
         await breaker.execute(mock_func)
-    
+
     # Assert
     assert "Circuit breaker is open" in str(excinfo.value)
     mock_func.assert_not_called()
@@ -107,13 +106,15 @@ async def test_circuit_breaker_half_open_after_recovery_time():
     breaker.state = CircuitState.OPEN
     breaker.last_failure_time = time.time() - 31.0  # Set to 31 seconds ago
     mock_func = AsyncMock(return_value="result")
-    
+
     # Act
     result = await breaker.execute(mock_func)
-    
+
     # Assert
     assert result == "result"
-    assert breaker.state == CircuitState.CLOSED  # Should transition to closed after success
+    assert (
+        breaker.state == CircuitState.CLOSED
+    )  # Should transition to closed after success
     assert breaker.failure_count == 0
 
 
@@ -124,11 +125,11 @@ async def test_circuit_breaker_remains_open_after_failure_in_half_open():
     breaker = CircuitBreaker(failure_threshold=3, recovery_time=30.0)
     breaker.state = CircuitState.HALF_OPEN
     mock_func = AsyncMock(side_effect=ValueError("Test error"))
-    
+
     # Act & Assert
     with pytest.raises(ValueError):
         await breaker.execute(mock_func)
-    
+
     # Assert
     assert breaker.state == CircuitState.OPEN
 
@@ -138,14 +139,12 @@ async def test_retry_with_backoff_success_first_try():
     """Test that retry_with_backoff succeeds on first try."""
     # Arrange
     mock_func = AsyncMock(return_value="result")
-    
+
     # Act
     result = await retry_with_backoff(
-        mock_func, "arg1", "arg2", 
-        kwarg1="value1",
-        max_retries=3
+        mock_func, "arg1", "arg2", kwarg1="value1", max_retries=3
     )
-    
+
     # Assert
     mock_func.assert_called_once_with("arg1", "arg2", kwarg1="value1")
     assert result == "result"
@@ -155,25 +154,25 @@ async def test_retry_with_backoff_success_first_try():
 async def test_retry_with_backoff_success_after_retries():
     """Test that retry_with_backoff succeeds after retries."""
     # Arrange
-    mock_func = AsyncMock(side_effect=[
-        ValueError("Error 1"),
-        ValueError("Error 2"),
-        "result"
-    ])
-    
+    mock_func = AsyncMock(
+        side_effect=[ValueError("Error 1"), ValueError("Error 2"), "result"]
+    )
+
     # Mock asyncio.sleep to avoid actual delays
     mock_sleep = AsyncMock()
-    
+
     # Act
-    with patch('asyncio.sleep', mock_sleep):
+    with patch("asyncio.sleep", mock_sleep):
         result = await retry_with_backoff(
-            mock_func, "arg1", "arg2", 
+            mock_func,
+            "arg1",
+            "arg2",
             kwarg1="value1",
             max_retries=3,
             base_delay=1.0,
-            jitter=False  # Disable jitter for predictable testing
+            jitter=False,  # Disable jitter for predictable testing
         )
-    
+
     # Assert
     assert mock_func.call_count == 3
     assert result == "result"
@@ -189,21 +188,23 @@ async def test_retry_with_backoff_max_retries_exceeded():
     """Test that retry_with_backoff raises exception after max retries."""
     # Arrange
     mock_func = AsyncMock(side_effect=ValueError("Test error"))
-    
+
     # Mock asyncio.sleep to avoid actual delays
     mock_sleep = AsyncMock()
-    
+
     # Act & Assert
-    with patch('asyncio.sleep', mock_sleep):
+    with patch("asyncio.sleep", mock_sleep):
         with pytest.raises(ValueError) as excinfo:
             await retry_with_backoff(
-                mock_func, "arg1", "arg2", 
+                mock_func,
+                "arg1",
+                "arg2",
                 kwarg1="value1",
                 max_retries=3,
                 base_delay=1.0,
-                jitter=False  # Disable jitter for predictable testing
+                jitter=False,  # Disable jitter for predictable testing
             )
-    
+
     # Assert
     assert "Test error" in str(excinfo.value)
     assert mock_func.call_count == 4  # Initial call + 3 retries
@@ -215,21 +216,23 @@ async def test_retry_with_backoff_excluded_exceptions():
     """Test that retry_with_backoff doesn't retry excluded exceptions."""
     # Arrange
     mock_func = AsyncMock(side_effect=TypeError("Type error"))
-    
+
     # Mock asyncio.sleep to avoid actual delays
     mock_sleep = AsyncMock()
-    
+
     # Act & Assert
-    with patch('asyncio.sleep', mock_sleep):
+    with patch("asyncio.sleep", mock_sleep):
         with pytest.raises(TypeError) as excinfo:
             await retry_with_backoff(
-                mock_func, "arg1", "arg2", 
+                mock_func,
+                "arg1",
+                "arg2",
                 kwarg1="value1",
                 retry_exceptions=(ValueError, RuntimeError),
                 exclude_exceptions=(TypeError,),
-                max_retries=3
+                max_retries=3,
             )
-    
+
     # Assert
     assert "Type error" in str(excinfo.value)
     assert mock_func.call_count == 1  # Should not retry
@@ -240,27 +243,27 @@ async def test_retry_with_backoff_excluded_exceptions():
 async def test_retry_with_backoff_jitter():
     """Test that retry_with_backoff applies jitter correctly."""
     # Arrange
-    mock_func = AsyncMock(side_effect=[
-        ValueError("Error 1"),
-        ValueError("Error 2"),
-        "result"
-    ])
-    
+    mock_func = AsyncMock(
+        side_effect=[ValueError("Error 1"), ValueError("Error 2"), "result"]
+    )
+
     # Mock random.uniform to return predictable values
-    with patch('random.uniform', return_value=1.0):
+    with patch("random.uniform", return_value=1.0):
         # Mock asyncio.sleep to avoid actual delays
         mock_sleep = AsyncMock()
-        
+
         # Act
-        with patch('asyncio.sleep', mock_sleep):
+        with patch("asyncio.sleep", mock_sleep):
             result = await retry_with_backoff(
-                mock_func, "arg1", "arg2", 
+                mock_func,
+                "arg1",
+                "arg2",
                 kwarg1="value1",
                 max_retries=3,
                 base_delay=1.0,
-                jitter=True
+                jitter=True,
             )
-    
+
     # Assert
     assert mock_func.call_count == 3
     assert result == "result"
