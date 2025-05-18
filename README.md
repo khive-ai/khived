@@ -202,8 +202,10 @@ khive/
 │   ├── protocols/            # Interface definitions
 │   ├── prompts/              # Templates and prompts
 │   └── third_party/          # Third-party integrations
-├── docs/                     # Documentation
+│ ├── docs/                     # Documentation
 │   ├── commands/             # Command-specific documentation
+│   ├── core-concepts/        # Core architectural concepts
+│   │   └── async_resource_management.md  # Async resource management documentation
 │   └── ...                   # General documentation
 ├── tests/                    # Test suite
 └── ...                       # Configuration files, etc.

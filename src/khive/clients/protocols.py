@@ -5,8 +5,8 @@
 """
 Protocol definitions for the API client components.
 
-This module defines the Protocol interfaces for the ResourceClient,
-Executor, RateLimiter, and Queue components.
+This module defines the Protocol interfaces for the AsyncResourceManager,
+ResourceClient, Executor, RateLimiter, and Queue components.
 """
 
 from collections.abc import Awaitable, Callable
@@ -16,7 +16,31 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
-class ResourceClient(Protocol):
+class AsyncResourceManager(Protocol):
+    """Protocol for components that manage async resources with context managers."""
+
+    async def __aenter__(self) -> "AsyncResourceManager":
+        """
+        Enter the async context manager.
+
+        Returns:
+            The resource manager instance.
+        """
+        ...
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """
+        Exit the async context manager and release resources.
+
+        Args:
+            exc_type: The exception type, if an exception was raised.
+            exc_val: The exception value, if an exception was raised.
+            exc_tb: The exception traceback, if an exception was raised.
+        """
+        ...
+
+
+class ResourceClient(AsyncResourceManager, Protocol):
     """Protocol for resource clients that interact with external APIs."""
 
     async def call(self, request: Any, **kwargs) -> Any:
@@ -45,7 +69,7 @@ class ResourceClient(Protocol):
         ...
 
 
-class Executor(Protocol):
+class Executor(AsyncResourceManager, Protocol):
     """Protocol for executors that manage concurrent operations."""
 
     async def execute(
