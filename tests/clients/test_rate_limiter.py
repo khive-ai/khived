@@ -487,9 +487,7 @@ async def test_adaptive_rate_limiter_retry_after_header():
     ):
         limiter = AdaptiveRateLimiter(initial_rate=10.0, min_rate=0.1)
 
-        headers = {
-            "Retry-After": "30"  # Wait 30 seconds
-        }
+        headers = {"Retry-After": "30"}  # Wait 30 seconds
 
         # Act
         limiter.update_from_headers(headers)
