@@ -422,4 +422,3 @@ class RateLimitedExecutor:
         """
         logger.debug("Exiting RateLimitedExecutor context")
         await self.shutdown()
-        await self.shutdown()

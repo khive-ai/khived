@@ -6,8 +6,7 @@
 Tests for the enhanced rate limiting functionality in RateLimitedExecutor.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from khive.clients.executor import RateLimitedExecutor
@@ -38,10 +37,7 @@ async def test_rate_limited_executor_init_endpoint_rate_limiting():
     """Test that RateLimitedExecutor initializes correctly with endpoint rate limiting."""
     # Arrange & Act
     executor = RateLimitedExecutor(
-        endpoint_rate_limiting=True,
-        default_rate=10.0,
-        period=1.0,
-        max_concurrency=5
+        endpoint_rate_limiting=True, default_rate=10.0, period=1.0, max_concurrency=5
     )
 
     # Assert
@@ -63,7 +59,7 @@ async def test_rate_limited_executor_init_adaptive_rate_limiting():
         max_concurrency=5,
         adaptive_rate_limiting=True,
         min_rate=2.0,
-        safety_factor=0.8
+        safety_factor=0.8,
     )
 
     # Assert
@@ -102,9 +98,7 @@ async def test_rate_limited_executor_execute_endpoint_rate_limiting():
     """Test that execute uses endpoint-specific rate limiting."""
     # Arrange
     executor = RateLimitedExecutor(
-        endpoint_rate_limiting=True,
-        default_rate=10.0,
-        max_concurrency=5
+        endpoint_rate_limiting=True, default_rate=10.0, max_concurrency=5
     )
     mock_func = AsyncMock(return_value="result")
     endpoint = "api/v1/users"
@@ -113,7 +107,9 @@ async def test_rate_limited_executor_execute_endpoint_rate_limiting():
     executor.limiter.execute = AsyncMock(return_value="result")
 
     # Act
-    result = await executor.execute(mock_func, "arg1", kwarg1="value1", endpoint=endpoint)
+    result = await executor.execute(
+        mock_func, "arg1", kwarg1="value1", endpoint=endpoint
+    )
 
     # Assert
     assert result == "result"
@@ -126,27 +122,23 @@ async def test_rate_limited_executor_execute_endpoint_rate_limiting():
 async def test_rate_limited_executor_execute_adaptive_rate_limiting():
     """Test that execute updates rate limits based on response headers."""
     # Arrange
-    executor = RateLimitedExecutor(
-        rate=10.0,
-        adaptive_rate_limiting=True,
-        min_rate=2.0
-    )
+    executor = RateLimitedExecutor(rate=10.0, adaptive_rate_limiting=True, min_rate=2.0)
     mock_func = AsyncMock(return_value="result")
-    
+
     # Mock response headers
     response_headers = {
         "X-RateLimit-Limit": "100",
         "X-RateLimit-Remaining": "80",
-        "X-RateLimit-Reset": "30"
+        "X-RateLimit-Reset": "30",
     }
-    
+
     # Mock the update_from_headers method to verify it's called
     with patch.object(executor.limiter, "update_from_headers") as mock_update:
         # Act
         result = await executor.execute(
             mock_func, "arg1", kwarg1="value1", response_headers=response_headers
         )
-        
+
         # Assert
         mock_update.assert_called_once_with(response_headers)
 
@@ -155,30 +147,19 @@ async def test_rate_limited_executor_execute_adaptive_rate_limiting():
 async def test_rate_limited_executor_update_rate_limit():
     """Test that update_rate_limit updates endpoint-specific rate limits."""
     # Arrange
-    executor = RateLimitedExecutor(
-        endpoint_rate_limiting=True,
-        default_rate=10.0
-    )
+    executor = RateLimitedExecutor(endpoint_rate_limiting=True, default_rate=10.0)
     endpoint = "api/v1/users"
-    
+
     # Mock the limiter's update_rate_limit method to verify it's called
     with patch.object(executor.limiter, "update_rate_limit") as mock_update:
         # Act
         await executor.update_rate_limit(
-            endpoint=endpoint,
-            rate=5.0,
-            period=2.0,
-            max_tokens=15.0,
-            reset_tokens=True
+            endpoint=endpoint, rate=5.0, period=2.0, max_tokens=15.0, reset_tokens=True
         )
-        
+
         # Assert
         mock_update.assert_called_once_with(
-            endpoint=endpoint,
-            rate=5.0,
-            period=2.0,
-            max_tokens=15.0,
-            reset_tokens=True
+            endpoint=endpoint, rate=5.0, period=2.0, max_tokens=15.0, reset_tokens=True
         )
 
 
@@ -188,13 +169,10 @@ async def test_rate_limited_executor_update_rate_limit_error():
     # Arrange
     executor = RateLimitedExecutor(rate=10.0)  # No endpoint rate limiting
     endpoint = "api/v1/users"
-    
+
     # Act & Assert
     with pytest.raises(TypeError, match="Endpoint rate limiting is not enabled"):
-        await executor.update_rate_limit(
-            endpoint=endpoint,
-            rate=5.0
-        )
+        await executor.update_rate_limit(endpoint=endpoint, rate=5.0)
 
 
 @pytest.mark.asyncio
@@ -203,13 +181,13 @@ async def test_rate_limited_executor_with_custom_tokens():
     # Arrange
     executor = RateLimitedExecutor(rate=10.0, period=1.0)
     mock_func = AsyncMock(return_value="result")
-    
+
     # Mock the limiter's execute method to verify it's called with the right token count
     executor.limiter.execute = AsyncMock(return_value="result")
-    
+
     # Act
     result = await executor.execute(mock_func, "arg1", tokens=2.5)
-    
+
     # Assert
     assert result == "result"
     # Verify that tokens parameter was passed to the limiter's execute method

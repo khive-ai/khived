@@ -178,6 +178,10 @@ class Endpoint:
         )
         params = self.config.kwargs.copy()
 
+        # First update params with the request data
+        params.update(request)
+
+        # Then handle any additional kwargs
         if kwargs:
             if self.request_options is not None:
                 update_config = {
@@ -192,8 +196,7 @@ class Endpoint:
             else:
                 params.update(kwargs)
 
-        params.update(request)
-
+        # Apply request_options validation if configured
         if self.request_options is not None:
             params = self.request_options.model_validate(params).model_dump(
                 exclude_none=True
@@ -317,6 +320,7 @@ class Endpoint:
                         headers=response.headers,
                     )
 
+                # Extract and return the JSON response
                 return await response.json()
             finally:
                 # Ensure response is properly released if coroutine is cancelled between retries
