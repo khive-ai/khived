@@ -1,6 +1,7 @@
 # InfoService
 
-The InfoService provides a unified interface for accessing external information sources, including web search and AI model consultation.
+The InfoService provides a unified interface for accessing external information
+sources, including web search and AI model consultation.
 
 ## Overview
 
@@ -19,7 +20,8 @@ The InfoService follows Khive's layered resource control architecture:
 Client -> InfoService -> Endpoint -> AsyncAPIClient -> External API
 ```
 
-This architecture provides clear separation of concerns and improved resource management.
+This architecture provides clear separation of concerns and improved resource
+management.
 
 ## Key Components
 
@@ -29,7 +31,8 @@ This architecture provides clear separation of concerns and improved resource ma
 
 ## Implementation Details
 
-The InfoService uses lazy-loaded endpoints that are initialized only when needed:
+The InfoService uses lazy-loaded endpoints that are initialized only when
+needed:
 
 ```python
 # Lazy initialization of the Perplexity endpoint
@@ -37,8 +40,10 @@ if self._perplexity is None:
     self._perplexity = match_endpoint("perplexity", "chat")
 ```
 
-This approach ensures efficient resource usage and proper separation between the service layer and the connections layer.
+This approach ensures efficient resource usage and proper separation between the
+service layer and the connections layer.
 
 ## Usage
 
-See the [InfoService documentation](../../../docs/services/info_service.md) for detailed usage examples.
+See the [InfoService documentation](../../../docs/services/info_service.md) for
+detailed usage examples.

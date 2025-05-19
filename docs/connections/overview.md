@@ -68,8 +68,8 @@ The Connections Layer integrates with other Khive components:
   external services
 - **Async Resource Management**: Ensures proper resource cleanup through async
   context managers
-- **Service Layer**: Services like InfoService use endpoints via `match_endpoint`
-  to interact with external APIs
+- **Service Layer**: Services like InfoService use endpoints via
+  `match_endpoint` to interact with external APIs
 
 ### Service to Endpoint Flow
 
@@ -98,6 +98,7 @@ Services in Khive use the Connections Layer through a standardized flow:
 ```
 
 This layered approach ensures:
+
 - Clear separation of concerns
 - Proper resource management
 - Consistent error handling
@@ -201,7 +202,8 @@ async def _perplexity_search(self, params) -> InfoResponse:
         )
 ```
 
-This pattern ensures that services can focus on their domain logic while the Connections Layer handles the complexities of API interactions.
+This pattern ensures that services can focus on their domain logic while the
+Connections Layer handles the complexities of API interactions.
 
 ## Related Documentation
 
