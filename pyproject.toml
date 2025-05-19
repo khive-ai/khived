@@ -1,6 +1,6 @@
 [project]
 name = "khive"
-version = "0.3.1"
+version = "0.3.2"
 description = "Autonomous software engineering department"
 readme = "README.md"
 requires-python = ">=3.10"
