@@ -2,15 +2,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from khive.clients.executor import AsyncExecutor
 from khive.services.info.info_service import InfoServiceGroup
 from khive.services.info.parts import (
     InfoAction,
-    InfoConsultParams,
-    InfoRequest,
     InfoResponse,
     SearchProvider,
 )
@@ -23,7 +21,7 @@ class TestInfoServiceGroup:
         """Test that InfoServiceGroup initializes with None endpoints."""
         # Act
         service = InfoServiceGroup()
-        
+
         # Assert
         assert service._perplexity is None
         assert service._exa is None
@@ -36,26 +34,26 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"result": "success"})
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the PerplexityChatRequest class
         mock_request = mocker.Mock()
         mocker.patch(
             "khive.connections.providers.perplexity_.PerplexityChatRequest",
-            return_value=mock_request
+            return_value=mock_request,
         )
-        
+
         service = InfoServiceGroup()
         params = {"query": "test"}
-        
+
         # Act
         response = await service._perplexity_search(params)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.SEARCH
@@ -68,26 +66,26 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(side_effect=Exception("Test error"))
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the PerplexityChatRequest class
         mock_request = mocker.Mock()
         mocker.patch(
             "khive.connections.providers.perplexity_.PerplexityChatRequest",
-            return_value=mock_request
+            return_value=mock_request,
         )
-        
+
         service = InfoServiceGroup()
         params = {"query": "test"}
-        
+
         # Act
         response = await service._perplexity_search(params)
-        
+
         # Assert
         assert response.success is False
         assert response.action_performed == InfoAction.SEARCH
@@ -99,16 +97,15 @@ class TestInfoServiceGroup:
         """Test that _perplexity_search handles None endpoint."""
         # Arrange
         mocker.patch(
-            "khive.services.info.info_service.match_endpoint",
-            return_value=None
+            "khive.services.info.info_service.match_endpoint", return_value=None
         )
-        
+
         service = InfoServiceGroup()
         params = {"query": "test"}
-        
+
         # Act
         response = await service._perplexity_search(params)
-        
+
         # Assert
         assert response.success is False
         assert response.action_performed == InfoAction.SEARCH
@@ -120,26 +117,26 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"result": "success"})
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the ExaSearchRequest class
         mock_request = mocker.Mock()
         mocker.patch(
             "khive.connections.providers.exa_.ExaSearchRequest",
-            return_value=mock_request
+            return_value=mock_request,
         )
-        
+
         service = InfoServiceGroup()
         params = {"query": "test"}
-        
+
         # Act
         response = await service._exa_search(params)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.SEARCH
@@ -152,26 +149,26 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(side_effect=Exception("Test error"))
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the ExaSearchRequest class
         mock_request = mocker.Mock()
         mocker.patch(
             "khive.connections.providers.exa_.ExaSearchRequest",
-            return_value=mock_request
+            return_value=mock_request,
         )
-        
+
         service = InfoServiceGroup()
         params = {"query": "test"}
-        
+
         # Act
         response = await service._exa_search(params)
-        
+
         # Assert
         assert response.success is False
         assert response.action_performed == InfoAction.SEARCH
@@ -183,16 +180,15 @@ class TestInfoServiceGroup:
         """Test that _exa_search handles None endpoint."""
         # Arrange
         mocker.patch(
-            "khive.services.info.info_service.match_endpoint",
-            return_value=None
+            "khive.services.info.info_service.match_endpoint", return_value=None
         )
-        
+
         service = InfoServiceGroup()
         params = {"query": "test"}
-        
+
         # Act
         response = await service._exa_search(params)
-        
+
         # Assert
         assert response.success is False
         assert response.action_performed == InfoAction.SEARCH
@@ -204,15 +200,14 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"result": "success"})
-        
+
         service = InfoServiceGroup()
         service._openrouter = mock_endpoint
-        model = "test-model"
         payload = {"messages": [{"role": "user", "content": "test"}]}
-        
+
         # Act
-        result = await service._make_model_call(model, payload)
-        
+        result = await service._make_model_call(payload)
+
         # Assert
         assert result == {"result": "success"}
         mock_endpoint.call.assert_called_once_with(payload)
@@ -223,15 +218,14 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(side_effect=Exception("Test error"))
-        
+
         service = InfoServiceGroup()
         service._openrouter = mock_endpoint
-        model = "test-model"
         payload = {"messages": [{"role": "user", "content": "test"}]}
-        
+
         # Act
-        result = await service._make_model_call(model, payload)
-        
+        result = await service._make_model_call(payload)
+
         # Assert
         assert "error" in result
         assert "Test error" in result["error"]
@@ -243,34 +237,36 @@ class TestInfoServiceGroup:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"result": "success"})
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the executor map method
-        mock_map = AsyncMock(return_value=[
-            ("model1", {"result": "success1"}),
-            ("model2", {"result": "success2"})
-        ])
+        mock_map = AsyncMock(
+            return_value=[
+                ("model1", {"result": "success1"}),
+                ("model2", {"result": "success2"}),
+            ]
+        )
         mock_executor = mocker.Mock()
         mock_executor.map = mock_map
-        
+
         service = InfoServiceGroup()
         service._executor = mock_executor
-        
+
         # Create a mock for InfoConsultParams that bypasses validation
         with patch("khive.services.info.parts.InfoConsultParams") as MockParams:
             mock_params = MockParams.return_value
             mock_params.models = ["model1", "model2"]
             mock_params.question = "test question"
             mock_params.system_prompt = "test prompt"
-            
+
             # Act
             response = await service._consult(mock_params)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.CONSULT
@@ -284,22 +280,21 @@ class TestInfoServiceGroup:
         """Test that _consult handles None endpoint."""
         # Arrange
         mocker.patch(
-            "khive.services.info.info_service.match_endpoint",
-            return_value=None
+            "khive.services.info.info_service.match_endpoint", return_value=None
         )
-        
+
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoConsultParams that bypasses validation
         with patch("khive.services.info.parts.InfoConsultParams") as MockParams:
             mock_params = MockParams.return_value
             mock_params.models = ["model1"]
             mock_params.question = "test question"
             mock_params.system_prompt = "test prompt"
-            
+
             # Act
             response = await service._consult(mock_params)
-        
+
         # Assert
         assert response.success is False
         assert response.action_performed == InfoAction.CONSULT
@@ -310,33 +305,35 @@ class TestInfoServiceGroup:
         """Test that handle_request correctly routes Perplexity search requests."""
         # Arrange
         mock_perplexity_search = mocker.patch.object(
-            InfoServiceGroup, 
-            "_perplexity_search", 
-            autospec=True, 
+            InfoServiceGroup,
+            "_perplexity_search",
+            autospec=True,
             return_value=InfoResponse(
                 success=True,
                 action_performed=InfoAction.SEARCH,
-                content={"result": "success"}
-            )
+                content={"result": "success"},
+            ),
         )
-        
+
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest, \
-             patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams:
+        with (
+            patch("khive.services.info.parts.InfoRequest") as MockRequest,
+            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+        ):
             mock_request = MockRequest.return_value
             mock_request.action = InfoAction.SEARCH
-            
+
             mock_params = MockSearchParams.return_value
             mock_params.provider = SearchProvider.PERPLEXITY
             mock_params.provider_params = {"query": "test"}
-            
+
             mock_request.params = mock_params
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.SEARCH
@@ -348,33 +345,35 @@ class TestInfoServiceGroup:
         """Test that handle_request correctly routes Exa search requests."""
         # Arrange
         mock_exa_search = mocker.patch.object(
-            InfoServiceGroup, 
-            "_exa_search", 
-            autospec=True, 
+            InfoServiceGroup,
+            "_exa_search",
+            autospec=True,
             return_value=InfoResponse(
                 success=True,
                 action_performed=InfoAction.SEARCH,
-                content={"result": "success"}
-            )
+                content={"result": "success"},
+            ),
         )
-        
+
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest, \
-             patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams:
+        with (
+            patch("khive.services.info.parts.InfoRequest") as MockRequest,
+            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+        ):
             mock_request = MockRequest.return_value
             mock_request.action = InfoAction.SEARCH
-            
+
             mock_params = MockSearchParams.return_value
             mock_params.provider = SearchProvider.EXA
             mock_params.provider_params = {"query": "test"}
-            
+
             mock_request.params = mock_params
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.SEARCH
@@ -386,34 +385,36 @@ class TestInfoServiceGroup:
         """Test that handle_request correctly routes consult requests."""
         # Arrange
         mock_consult = mocker.patch.object(
-            InfoServiceGroup, 
-            "_consult", 
-            autospec=True, 
+            InfoServiceGroup,
+            "_consult",
+            autospec=True,
             return_value=InfoResponse(
                 success=True,
                 action_performed=InfoAction.CONSULT,
-                content={"model1": {"result": "success"}}
-            )
+                content={"model1": {"result": "success"}},
+            ),
         )
-        
+
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest, \
-             patch("khive.services.info.parts.InfoConsultParams") as MockConsultParams:
+        with (
+            patch("khive.services.info.parts.InfoRequest") as MockRequest,
+            patch("khive.services.info.parts.InfoConsultParams") as MockConsultParams,
+        ):
             mock_request = MockRequest.return_value
             mock_request.action = InfoAction.CONSULT
-            
+
             mock_params = MockConsultParams.return_value
             mock_params.question = "test question"
             mock_params.models = ["model1"]
             mock_params.system_prompt = "test prompt"
-            
+
             mock_request.params = mock_params
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.CONSULT
@@ -425,15 +426,15 @@ class TestInfoServiceGroup:
         """Test that handle_request correctly handles invalid actions."""
         # Arrange
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoRequest that bypasses validation
         with patch("khive.services.info.parts.InfoRequest") as MockRequest:
             mock_request = MockRequest.return_value
             mock_request.action = "INVALID_ACTION"
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is False
         assert "Invalid action" in response.error
@@ -444,25 +445,25 @@ class TestInfoServiceGroup:
         # Arrange
         mock_executor = mocker.Mock()
         mock_executor.shutdown = AsyncMock()
-        
+
         mock_perplexity = mocker.Mock()
         mock_perplexity.aclose = AsyncMock()
-        
+
         mock_exa = mocker.Mock()
         mock_exa.aclose = AsyncMock()
-        
+
         mock_openrouter = mocker.Mock()
         mock_openrouter.aclose = AsyncMock()
-        
+
         service = InfoServiceGroup()
         service._executor = mock_executor
         service._perplexity = mock_perplexity
         service._exa = mock_exa
         service._openrouter = mock_openrouter
-        
+
         # Act
         await service.close()
-        
+
         # Assert
         mock_executor.shutdown.assert_called_once()
         mock_perplexity.aclose.assert_called_once()
@@ -479,40 +480,42 @@ class TestInfoServiceIntegration:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"perplexity": "result"})
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the PerplexityChatRequest class and capture the created instance
         perplexity_request_mock = mocker.patch(
             "khive.connections.providers.perplexity_.PerplexityChatRequest"
         )
-        
+
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest, \
-             patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams:
+        with (
+            patch("khive.services.info.parts.InfoRequest") as MockRequest,
+            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+        ):
             mock_request = MockRequest.return_value
             mock_request.action = InfoAction.SEARCH
-            
+
             mock_params = MockSearchParams.return_value
             mock_params.provider = SearchProvider.PERPLEXITY
             mock_params.provider_params = {"query": "test"}
-            
+
             mock_request.params = mock_params
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.SEARCH
         assert response.content == {"perplexity": "result"}
-        
+
         # Verify that the endpoint was called (without checking the exact mock object)
         assert mock_endpoint.call.call_count == 1
         # Verify that the PerplexityChatRequest constructor was called
@@ -524,40 +527,42 @@ class TestInfoServiceIntegration:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"exa": "result"})
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the ExaSearchRequest class and capture the created instance
         exa_request_mock = mocker.patch(
             "khive.connections.providers.exa_.ExaSearchRequest"
         )
-        
+
         service = InfoServiceGroup()
-        
+
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest, \
-             patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams:
+        with (
+            patch("khive.services.info.parts.InfoRequest") as MockRequest,
+            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+        ):
             mock_request = MockRequest.return_value
             mock_request.action = InfoAction.SEARCH
-            
+
             mock_params = MockSearchParams.return_value
             mock_params.provider = SearchProvider.EXA
             mock_params.provider_params = {"query": "test"}
-            
+
             mock_request.params = mock_params
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.SEARCH
         assert response.content == {"exa": "result"}
-        
+
         # Verify that the endpoint was called (without checking the exact mock object)
         assert mock_endpoint.call.call_count == 1
         # Verify that the ExaSearchRequest constructor was called
@@ -569,39 +574,39 @@ class TestInfoServiceIntegration:
         # Arrange
         mock_endpoint = mocker.Mock()
         mock_endpoint.call = AsyncMock(return_value={"openrouter": "result"})
-        
+
         # Mock the match_endpoint function
         mocker.patch(
             "khive.services.info.info_service.match_endpoint",
-            return_value=mock_endpoint
+            return_value=mock_endpoint,
         )
-        
+
         # Mock the executor map method
-        mock_map = AsyncMock(return_value=[
-            ("model1", {"openrouter": "result"})
-        ])
+        mock_map = AsyncMock(return_value=[("model1", {"openrouter": "result"})])
         mock_executor = mocker.Mock()
         mock_executor.map = mock_map
-        
+
         service = InfoServiceGroup()
         service._executor = mock_executor
-        
+
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest, \
-             patch("khive.services.info.parts.InfoConsultParams") as MockConsultParams:
+        with (
+            patch("khive.services.info.parts.InfoRequest") as MockRequest,
+            patch("khive.services.info.parts.InfoConsultParams") as MockConsultParams,
+        ):
             mock_request = MockRequest.return_value
             mock_request.action = InfoAction.CONSULT
-            
+
             mock_params = MockConsultParams.return_value
             mock_params.question = "test question"
             mock_params.models = ["model1"]
             mock_params.system_prompt = "test prompt"
-            
+
             mock_request.params = mock_params
-            
+
             # Act
             response = await service.handle_request(mock_request)
-        
+
         # Assert
         assert response.success is True
         assert response.action_performed == InfoAction.CONSULT
