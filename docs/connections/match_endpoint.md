@@ -1,6 +1,9 @@
 # match_endpoint
 
-The `match_endpoint` function is a utility in Khive's Connections Layer that selects the appropriate endpoint implementation based on the provider and endpoint type. It provides a convenient way to create pre-configured endpoints for common API providers.
+The `match_endpoint` function is a utility in Khive's Connections Layer that
+selects the appropriate endpoint implementation based on the provider and
+endpoint type. It provides a convenient way to create pre-configured endpoints
+for common API providers.
 
 ## Overview
 
@@ -20,11 +23,11 @@ def match_endpoint(
 ) -> Endpoint:
     """
     Match a provider and endpoint to a pre-configured Endpoint instance.
-    
+
     Args:
         provider: The API provider (e.g., "openai", "anthropic")
         endpoint: The endpoint type (e.g., "chat", "search")
-        
+
     Returns:
         A pre-configured Endpoint instance, or None if no match is found
     """
@@ -32,22 +35,24 @@ def match_endpoint(
 
 ## Supported Providers and Endpoints
 
-The `match_endpoint` function supports the following provider and endpoint combinations:
+The `match_endpoint` function supports the following provider and endpoint
+combinations:
 
-| Provider | Endpoint | Implementation |
-|----------|----------|----------------|
-| `openai` | `chat` | `OpenaiChatEndpoint` |
-| `openai` | `response` | `OpenaiResponseEndpoint` |
-| `openrouter` | `chat` | `OpenrouterChatEndpoint` |
-| `ollama` | `chat` | `OllamaChatEndpoint` |
-| `exa` | `search` | `ExaSearchEndpoint` |
-| `anthropic` | `messages` or `chat` | `AnthropicMessagesEndpoint` |
-| `groq` | `chat` | `GroqChatEndpoint` |
-| `perplexity` | `chat` | `PerplexityChatEndpoint` |
+| Provider     | Endpoint             | Implementation              |
+| ------------ | -------------------- | --------------------------- |
+| `openai`     | `chat`               | `OpenaiChatEndpoint`        |
+| `openai`     | `response`           | `OpenaiResponseEndpoint`    |
+| `openrouter` | `chat`               | `OpenrouterChatEndpoint`    |
+| `ollama`     | `chat`               | `OllamaChatEndpoint`        |
+| `exa`        | `search`             | `ExaSearchEndpoint`         |
+| `anthropic`  | `messages` or `chat` | `AnthropicMessagesEndpoint` |
+| `groq`       | `chat`               | `GroqChatEndpoint`          |
+| `perplexity` | `chat`               | `PerplexityChatEndpoint`    |
 
 ## Implementation Details
 
-The `match_endpoint` function uses a series of conditional checks to determine the appropriate endpoint implementation:
+The `match_endpoint` function uses a series of conditional checks to determine
+the appropriate endpoint implementation:
 
 ```python
 def match_endpoint(
@@ -79,15 +84,17 @@ def match_endpoint(
     if provider == "perplexity" and "chat" in endpoint:
         from .providers.perplexity_ import PerplexityChatEndpoint
         return PerplexityChatEndpoint()
-    
+
     return None
 ```
 
-The function uses lazy imports to avoid importing all provider modules when only one is needed.
+The function uses lazy imports to avoid importing all provider modules when only
+one is needed.
 
 ## Provider-Specific Endpoints
 
-Each provider-specific endpoint implementation is a subclass of the `Endpoint` class, pre-configured with appropriate settings for that provider:
+Each provider-specific endpoint implementation is a subclass of the `Endpoint`
+class, pre-configured with appropriate settings for that provider:
 
 ### OpenAI Chat Endpoint
 
@@ -233,7 +240,8 @@ async with endpoint:
 
 ## Extending with Custom Providers
 
-To extend the `match_endpoint` function with support for custom providers, you can create a wrapper function:
+To extend the `match_endpoint` function with support for custom providers, you
+can create a wrapper function:
 
 ```python
 from khive.connections import match_endpoint as base_match_endpoint, Endpoint
@@ -244,27 +252,33 @@ def extended_match_endpoint(provider: str, endpoint: str) -> Endpoint:
     result = base_match_endpoint(provider, endpoint)
     if result is not None:
         return result
-    
+
     # Add custom provider support
     if provider == "my-custom-provider" and "api" in endpoint:
         return MyCustomEndpoint()
-    
+
     # Return None if no match is found
     return None
 ```
 
 ## Best Practices
 
-1. **Use Pre-configured Endpoints**: When working with common API providers, use `match_endpoint` to get pre-configured endpoints.
+1. **Use Pre-configured Endpoints**: When working with common API providers, use
+   `match_endpoint` to get pre-configured endpoints.
 
-2. **Customize as Needed**: Update the configuration of pre-configured endpoints to suit your specific needs.
+2. **Customize as Needed**: Update the configuration of pre-configured endpoints
+   to suit your specific needs.
 
-3. **Handle No Match**: Always check if `match_endpoint` returns `None` and provide a fallback if needed.
+3. **Handle No Match**: Always check if `match_endpoint` returns `None` and
+   provide a fallback if needed.
 
-4. **Add Resilience Patterns**: Add circuit breakers and retry configurations to pre-configured endpoints for better resilience.
+4. **Add Resilience Patterns**: Add circuit breakers and retry configurations to
+   pre-configured endpoints for better resilience.
 
 ## Related Documentation
 
 - [Endpoint](endpoint.md): Documentation on the Endpoint class
-- [EndpointConfig](endpoint_config.md): Documentation on the configuration options for endpoints
-- [Provider-Specific Documentation](https://platform.openai.com/docs/api-reference): Links to official API documentation for supported providers
+- [EndpointConfig](endpoint_config.md): Documentation on the configuration
+  options for endpoints
+- [Provider-Specific Documentation](https://platform.openai.com/docs/api-reference):
+  Links to official API documentation for supported providers

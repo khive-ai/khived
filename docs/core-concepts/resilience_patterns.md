@@ -1,8 +1,8 @@
 # Resilience Patterns
 
 This document explains the resilience patterns implemented in Khive, focusing on
-the Circuit Breaker, Retry, and Rate Limiting patterns that enhance the reliability of API
-operations.
+the Circuit Breaker, Retry, and Rate Limiting patterns that enhance the
+reliability of API operations.
 
 ## Overview
 
@@ -344,7 +344,10 @@ except Exception as e:
 
 ### Purpose
 
-The Rate Limiting pattern controls the frequency of API requests to prevent overwhelming external services, comply with API rate limits, and manage resource consumption. It ensures that applications maintain a sustainable request rate while allowing for controlled bursts when needed.
+The Rate Limiting pattern controls the frequency of API requests to prevent
+overwhelming external services, comply with API rate limits, and manage resource
+consumption. It ensures that applications maintain a sustainable request rate
+while allowing for controlled bursts when needed.
 
 ### How It Works
 
@@ -360,13 +363,14 @@ The Token Bucket algorithm is used for rate limiting:
 
 ### Implementation
 
-Khive implements the Rate Limiting pattern through several classes in `src/khive/clients/rate_limiter.py`:
+Khive implements the Rate Limiting pattern through several classes in
+`src/khive/clients/rate_limiter.py`:
 
 #### TokenBucketRateLimiter
 
 The core implementation of the token bucket algorithm:
 
-```python
+````python
 class TokenBucketRateLimiter:
     """
     Rate limiter using the token bucket algorithm.
@@ -389,13 +393,13 @@ class TokenBucketRateLimiter:
         result = await limiter.execute(my_async_function, arg1, arg2, tokens=2.5)
         ```
     """
-```
+````
 
 #### EndpointRateLimiter
 
 Manages per-endpoint rate limits:
 
-```python
+````python
 class EndpointRateLimiter:
     """
     Rate limiter that manages multiple endpoints with different rate limits.
@@ -415,13 +419,13 @@ class EndpointRateLimiter:
         limiter.update_rate_limit("api/v1/users", rate=5.0, period=1.0)
         ```
     """
-```
+````
 
 #### AdaptiveRateLimiter
 
 Adjusts rate limits based on API response headers:
 
-```python
+````python
 class AdaptiveRateLimiter(TokenBucketRateLimiter):
     """
     Rate limiter that can adapt its limits based on API response headers.
@@ -442,14 +446,17 @@ class AdaptiveRateLimiter(TokenBucketRateLimiter):
         limiter.update_from_headers(response.headers)
         ```
     """
-```
+````
 
 ### Key Features
 
 - **Token-Based Execution**: Control request rates with precise token costs
-- **Endpoint-Specific Rate Limiting**: Apply different rate limits to different endpoints
-- **Adaptive Rate Limiting**: Automatically adjust rate limits based on API response headers
-- **Configurable Parameters**: Customize rate, period, maximum tokens, and safety factors
+- **Endpoint-Specific Rate Limiting**: Apply different rate limits to different
+  endpoints
+- **Adaptive Rate Limiting**: Automatically adjust rate limits based on API
+  response headers
+- **Configurable Parameters**: Customize rate, period, maximum tokens, and
+  safety factors
 - **Integration with Executor**: Combine rate limiting with concurrency control
 - **Thread Safety**: Properly handle concurrent requests with asyncio locks
 
@@ -539,7 +546,8 @@ await executor.update_rate_limit(
 
 ### Integration with Other Resilience Patterns
 
-Rate limiting can be combined with Circuit Breaker and Retry patterns for comprehensive resilience:
+Rate limiting can be combined with Circuit Breaker and Retry patterns for
+comprehensive resilience:
 
 ```python
 from khive.clients.executor import RateLimitedExecutor
@@ -574,15 +582,15 @@ async def call_api_with_resilience(endpoint, *args, **kwargs):
 ## Conclusion
 
 The resilience patterns implemented in Khive provide robust error handling
-mechanisms for asynchronous operations. By using the Circuit Breaker, Retry,
-and Rate Limiting patterns, applications can gracefully handle transient failures,
+mechanisms for asynchronous operations. By using the Circuit Breaker, Retry, and
+Rate Limiting patterns, applications can gracefully handle transient failures,
 prevent cascading failures, control request rates, and ensure system stability
 even when external dependencies are unreliable.
 
 These patterns are particularly valuable in distributed systems where network
-calls and external service dependencies are common. By properly configuring
-and combining these patterns, Khive applications can achieve high reliability
-and fault tolerance.
+calls and external service dependencies are common. By properly configuring and
+combining these patterns, Khive applications can achieve high reliability and
+fault tolerance.
 
 ## Related Documentation
 
