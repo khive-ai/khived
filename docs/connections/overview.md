@@ -68,6 +68,40 @@ The Connections Layer integrates with other Khive components:
   external services
 - **Async Resource Management**: Ensures proper resource cleanup through async
   context managers
+- **Service Layer**: Services like InfoService use endpoints via `match_endpoint`
+  to interact with external APIs
+
+### Service to Endpoint Flow
+
+Services in Khive use the Connections Layer through a standardized flow:
+
+```
+┌─────────────────┐
+│    Client       │
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│    Service      │ ◄── Uses match_endpoint to get provider-specific endpoints
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│    Endpoint     │ ◄── Manages connection lifecycle and request formatting
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│ AsyncAPIClient  │ ◄── Handles HTTP requests and response parsing
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  External API   │
+└─────────────────┘
+```
+
+This layered approach ensures:
+- Clear separation of concerns
+- Proper resource management
+- Consistent error handling
+- Resilience through circuit breakers and retries
 
 ## Usage Examples
 
@@ -132,6 +166,42 @@ The Connections Layer supports various API providers:
 - Groq
 - Ollama
 - OpenRouter
+
+### Example: InfoService Integration
+
+The InfoService uses the Connections Layer to interact with multiple providers:
+
+```python
+# In InfoServiceGroup
+async def _perplexity_search(self, params) -> InfoResponse:
+    # Lazy initialization of the Perplexity endpoint
+    if self._perplexity is None:
+        self._perplexity = match_endpoint("perplexity", "chat")
+
+    if self._perplexity is None:
+        return InfoResponse(
+            success=False,
+            error="Perplexity search error: Endpoint not initialized",
+            action_performed=InfoAction.SEARCH,
+        )
+
+    try:
+        # Make the API call through the endpoint
+        response = await self._perplexity.call(perplexity_params)
+        return InfoResponse(
+            success=True,
+            action_performed=InfoAction.SEARCH,
+            content=response,
+        )
+    except Exception as e:
+        return InfoResponse(
+            success=False,
+            error=f"Perplexity search error: {e!s}",
+            action_performed=InfoAction.SEARCH,
+        )
+```
+
+This pattern ensures that services can focus on their domain logic while the Connections Layer handles the complexities of API interactions.
 
 ## Related Documentation
 
