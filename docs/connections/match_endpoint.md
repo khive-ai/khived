@@ -13,6 +13,33 @@ The `match_endpoint` function:
 - Selects the appropriate endpoint implementation
 - Returns a pre-configured `Endpoint` instance
 - Supports various API providers (OpenAI, Anthropic, Perplexity, etc.)
+- Serves as a bridge between services and the Connections Layer
+
+### Role in Layered Architecture
+
+The `match_endpoint` function plays a crucial role in Khive's layered resource control architecture:
+
+```
+┌─────────────────┐
+│  Service Layer  │
+│                 │
+│  InfoService    │───┐
+└─────────────────┘   │
+                      │ match_endpoint("provider", "endpoint")
+                      ▼
+┌─────────────────┐
+│ Connections     │
+│     Layer       │
+│                 │
+│  Endpoint       │
+└─────────────────┘
+```
+
+By using `match_endpoint`, services can:
+- Obtain pre-configured endpoints for specific providers
+- Maintain separation of concerns
+- Implement lazy loading of resources
+- Ensure consistent error handling and resource management
 
 ## Function Definition
 
@@ -144,7 +171,6 @@ class ExaSearchEndpoint(Endpoint):
         )
         super().__init__(config)
 ```
-
 ## Usage Examples
 
 ### Basic Usage
@@ -162,6 +188,43 @@ async with endpoint:
         "messages": [{"role": "user", "content": "Hello, world!"}]
     })
     print(response.choices[0].message.content)
+```
+
+### Service Integration
+
+```python
+from khive.connections import match_endpoint
+
+class MyService:
+    def __init__(self):
+        # Initialize with None - lazy loading
+        self._openai_endpoint = None
+        
+    async def generate_text(self, prompt):
+        # Lazy initialization of the endpoint
+        if self._openai_endpoint is None:
+            self._openai_endpoint = match_endpoint("openai", "chat")
+            
+        if self._openai_endpoint is None:
+            return {"error": "Failed to initialize OpenAI endpoint"}
+            
+        try:
+            # Use the endpoint
+            response = await self._openai_endpoint.call({
+                "model": "gpt-4",
+                "messages": [{"role": "user", "content": prompt}]
+            })
+            return {"text": response.choices[0].message.content}
+        except Exception as e:
+            return {"error": f"API call failed: {str(e)}"}
+            
+    async def close(self):
+        # Clean up resources
+        if self._openai_endpoint is not None:
+            await self._openai_endpoint.aclose()
+```
+
+This pattern is used in Khive's InfoService to interact with multiple providers through a unified interface.
 ```
 
 ### With Custom Configuration
@@ -275,10 +338,19 @@ def extended_match_endpoint(provider: str, endpoint: str) -> Endpoint:
 4. **Add Resilience Patterns**: Add circuit breakers and retry configurations to
    pre-configured endpoints for better resilience.
 
+5. **Implement Lazy Loading**: Initialize endpoints only when they are first used
+   to improve startup performance and resource usage.
+
+6. **Ensure Proper Cleanup**: Always close endpoints when they are no longer needed,
+   preferably using async context managers or explicit `aclose()` calls.
+
 ## Related Documentation
 
 - [Endpoint](endpoint.md): Documentation on the Endpoint class
 - [EndpointConfig](endpoint_config.md): Documentation on the configuration
   options for endpoints
+- [InfoService](../services/info_service.md): Documentation on a service that uses
+  `match_endpoint` to interact with multiple providers
+- [Connections Overview](overview.md): Documentation on the Connections Layer architecture
 - [Provider-Specific Documentation](https://platform.openai.com/docs/api-reference):
   Links to official API documentation for supported providers
