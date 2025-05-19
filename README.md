@@ -202,8 +202,15 @@ khive/
 │   ├── protocols/            # Interface definitions
 │   ├── prompts/              # Templates and prompts
 │   └── third_party/          # Third-party integrations
-│ ├── docs/                     # Documentation
+├── docs/                     # Documentation
 │   ├── commands/             # Command-specific documentation
+│   ├── connections/          # Connections layer documentation
+│   │   ├── overview.md                   # Overview of the connections layer
+│   │   ├── endpoint.md                   # Endpoint class documentation
+│   │   ├── endpoint_config.md            # EndpointConfig class documentation
+│   │   ├── header_factory.md             # HeaderFactory class documentation
+│   │   ├── match_endpoint.md             # match_endpoint function documentation
+│   │   └── api_client.md                 # AsyncAPIClient class documentation
 │   ├── core-concepts/        # Core architectural concepts
 │   │   ├── async_resource_management.md  # Async resource management documentation
 │   │   ├── async_queue.md                # Bounded async queue with backpressure documentation
