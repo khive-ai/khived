@@ -1,26 +1,38 @@
 # Connections Layer
 
-The Connections Layer in Khive provides a robust, flexible system for managing connections to external API providers. It handles authentication, request formatting, response parsing, and proper resource management for various API services.
+The Connections Layer in Khive provides a robust, flexible system for managing
+connections to external API providers. It handles authentication, request
+formatting, response parsing, and proper resource management for various API
+services.
 
 ## Overview
 
 The Connections Layer is designed to:
 
-1. **Abstract API Complexity**: Provide a consistent interface for interacting with different API providers
-2. **Manage Resources**: Ensure proper initialization and cleanup of connection resources
-3. **Support Resilience**: Integrate with Khive's resilience patterns for reliable API interactions
-4. **Enable Configuration**: Allow flexible configuration of endpoints and connection parameters
+1. **Abstract API Complexity**: Provide a consistent interface for interacting
+   with different API providers
+2. **Manage Resources**: Ensure proper initialization and cleanup of connection
+   resources
+3. **Support Resilience**: Integrate with Khive's resilience patterns for
+   reliable API interactions
+4. **Enable Configuration**: Allow flexible configuration of endpoints and
+   connection parameters
 
-This layer is a critical component in Khive's layered resource control architecture, sitting between the service layer and the external APIs.
+This layer is a critical component in Khive's layered resource control
+architecture, sitting between the service layer and the external APIs.
 
 ## Key Components
 
 The Connections Layer consists of several key components:
 
-- **[Endpoint](endpoint.md)**: The core class that manages connections to external APIs
-- **[EndpointConfig](endpoint_config.md)**: Configuration class for endpoints with validation
-- **[HeaderFactory](header_factory.md)**: Utility for creating appropriate authentication headers
-- **[match_endpoint](match_endpoint.md)**: Function to select the appropriate endpoint implementation
+- **[Endpoint](endpoint.md)**: The core class that manages connections to
+  external APIs
+- **[EndpointConfig](endpoint_config.md)**: Configuration class for endpoints
+  with validation
+- **[HeaderFactory](header_factory.md)**: Utility for creating appropriate
+  authentication headers
+- **[match_endpoint](match_endpoint.md)**: Function to select the appropriate
+  endpoint implementation
 
 ## Architecture
 
@@ -50,9 +62,12 @@ The Connections Layer follows a layered architecture pattern:
 
 The Connections Layer integrates with other Khive components:
 
-- **Resilience Patterns**: Circuit breaker and retry mechanisms for handling transient failures
-- **Rate Limiting**: Controls the rate of API requests to prevent overwhelming external services
-- **Async Resource Management**: Ensures proper resource cleanup through async context managers
+- **Resilience Patterns**: Circuit breaker and retry mechanisms for handling
+  transient failures
+- **Rate Limiting**: Controls the rate of API requests to prevent overwhelming
+  external services
+- **Async Resource Management**: Ensures proper resource cleanup through async
+  context managers
 
 ## Usage Examples
 
@@ -120,6 +135,9 @@ The Connections Layer supports various API providers:
 
 ## Related Documentation
 
-- [Async Resource Management](../core-concepts/async_resource_management.md): Documentation on the standardized async resource cleanup patterns
-- [Resilience Patterns](../core-concepts/resilience_patterns.md): Documentation on the Circuit Breaker and Retry patterns
-- [Bounded Async Queue](../core-concepts/async_queue.md): Documentation on the queue-based backpressure mechanism
+- [Async Resource Management](../core-concepts/async_resource_management.md):
+  Documentation on the standardized async resource cleanup patterns
+- [Resilience Patterns](../core-concepts/resilience_patterns.md): Documentation
+  on the Circuit Breaker and Retry patterns
+- [Bounded Async Queue](../core-concepts/async_queue.md): Documentation on the
+  queue-based backpressure mechanism

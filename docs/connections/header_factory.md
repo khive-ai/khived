@@ -1,6 +1,8 @@
 # HeaderFactory
 
-The `HeaderFactory` class is a utility in Khive's Connections Layer that creates appropriate authentication headers for API requests. It provides a standardized way to handle different authentication types across various API providers.
+The `HeaderFactory` class is a utility in Khive's Connections Layer that creates
+appropriate authentication headers for API requests. It provides a standardized
+way to handle different authentication types across various API providers.
 
 ## Overview
 
@@ -21,10 +23,10 @@ class HeaderFactory:
     ) -> dict[str, str]:
         """
         Get a content type header.
-        
+
         Args:
             content_type: The content type (default: "application/json")
-            
+
         Returns:
             A dictionary with the Content-Type header
         """
@@ -34,10 +36,10 @@ class HeaderFactory:
     def get_bearer_auth_header(api_key: str) -> dict[str, str]:
         """
         Get a Bearer authentication header.
-        
+
         Args:
             api_key: The API key to use for authentication
-            
+
         Returns:
             A dictionary with the Authorization header
         """
@@ -47,10 +49,10 @@ class HeaderFactory:
     def get_x_api_key_header(api_key: str) -> dict[str, str]:
         """
         Get an x-api-key authentication header.
-        
+
         Args:
             api_key: The API key to use for authentication
-            
+
         Returns:
             A dictionary with the x-api-key header
         """
@@ -65,16 +67,16 @@ class HeaderFactory:
     ) -> dict[str, str]:
         """
         Get a complete set of headers for an API request.
-        
+
         Args:
             auth_type: The authentication type ("bearer" or "x-api-key")
             content_type: The content type (default: "application/json")
             api_key: The API key for authentication
             default_headers: Additional headers to include
-            
+
         Returns:
             A dictionary with all headers
-            
+
         Raises:
             ValueError: If the API key is missing or the auth type is unsupported
         """
@@ -82,14 +84,17 @@ class HeaderFactory:
 
 ## Authentication Types
 
-The `HeaderFactory` supports the following authentication types, defined by the `AUTH_TYPES` type:
+The `HeaderFactory` supports the following authentication types, defined by the
+`AUTH_TYPES` type:
 
 ```python
 AUTH_TYPES = Literal["bearer", "x-api-key"]
 ```
 
-- **Bearer Authentication**: Uses the `Authorization: Bearer <token>` header format, commonly used by OAuth 2.0 and many modern APIs
-- **API Key Authentication**: Uses the `x-api-key: <key>` header format, commonly used by AWS API Gateway and other services
+- **Bearer Authentication**: Uses the `Authorization: Bearer <token>` header
+  format, commonly used by OAuth 2.0 and many modern APIs
+- **API Key Authentication**: Uses the `x-api-key: <key>` header format,
+  commonly used by AWS API Gateway and other services
 
 ## Methods
 
@@ -103,7 +108,8 @@ def get_content_type_header(
     return {"Content-Type": content_type}
 ```
 
-Creates a content type header with the specified content type (default: "application/json").
+Creates a content type header with the specified content type (default:
+"application/json").
 
 ### `get_bearer_auth_header`
 
@@ -234,7 +240,8 @@ headers = HeaderFactory.get_header(
 
 ## Integration with Endpoint
 
-The `HeaderFactory` is used by the `Endpoint` class to create headers for API requests:
+The `HeaderFactory` is used by the `Endpoint` class to create headers for API
+requests:
 
 ```python
 def create_payload(
@@ -251,22 +258,30 @@ def create_payload(
     )
     if extra_headers:
         headers.update(extra_headers)
-    
+
     # ... rest of the method
 ```
 
 ## Best Practices
 
-1. **Use SecretStr for API Keys**: When possible, use `SecretStr` for API keys to prevent accidental logging.
+1. **Use SecretStr for API Keys**: When possible, use `SecretStr` for API keys
+   to prevent accidental logging.
 
-2. **Include Appropriate Content Types**: Set the correct content type for the API you're interacting with.
+2. **Include Appropriate Content Types**: Set the correct content type for the
+   API you're interacting with.
 
-3. **Use Default Headers for Common Headers**: Use the `default_headers` parameter for headers that should be included in all requests to a particular API.
+3. **Use Default Headers for Common Headers**: Use the `default_headers`
+   parameter for headers that should be included in all requests to a particular
+   API.
 
-4. **Handle API Key Securely**: Never hardcode API keys in your code; use environment variables or secure storage.
+4. **Handle API Key Securely**: Never hardcode API keys in your code; use
+   environment variables or secure storage.
 
 ## Related Documentation
 
-- [Endpoint](endpoint.md): Documentation on the Endpoint class that uses HeaderFactory
-- [EndpointConfig](endpoint_config.md): Documentation on the configuration options for endpoints
-- [Pydantic SecretStr](https://docs.pydantic.dev/latest/api/types/#secretstr): Official documentation for Pydantic's SecretStr type
+- [Endpoint](endpoint.md): Documentation on the Endpoint class that uses
+  HeaderFactory
+- [EndpointConfig](endpoint_config.md): Documentation on the configuration
+  options for endpoints
+- [Pydantic SecretStr](https://docs.pydantic.dev/latest/api/types/#secretstr):
+  Official documentation for Pydantic's SecretStr type

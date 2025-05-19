@@ -1,6 +1,9 @@
 # API Client
 
-The `AsyncAPIClient` class is a robust async HTTP client for API interactions with proper resource management. It serves as a key component in Khive's resource access layer, providing a consistent interface for making HTTP requests to external APIs.
+The `AsyncAPIClient` class is a robust async HTTP client for API interactions
+with proper resource management. It serves as a key component in Khive's
+resource access layer, providing a consistent interface for making HTTP requests
+to external APIs.
 
 ## Overview
 
@@ -46,7 +49,9 @@ class AsyncAPIClient:
 
 ### Async Context Manager Support
 
-The `AsyncAPIClient` implements the async context manager protocol (`__aenter__` and `__aexit__`), allowing it to be used with the `async with` statement for automatic resource management:
+The `AsyncAPIClient` implements the async context manager protocol (`__aenter__`
+and `__aexit__`), allowing it to be used with the `async with` statement for
+automatic resource management:
 
 ```python
 async with AsyncAPIClient(base_url="https://api.example.com") as client:
@@ -125,7 +130,8 @@ async def delete(self, url: str, **kwargs) -> Any:
 
 ### ResourceClient Protocol Support
 
-The `AsyncAPIClient` implements the `ResourceClient` protocol through the `call` method:
+The `AsyncAPIClient` implements the `ResourceClient` protocol through the `call`
+method:
 
 ```python
 async def call(self, request: dict[str, Any], **kwargs) -> Any:
@@ -179,7 +185,8 @@ The `AsyncAPIClient` integrates with the Connections Layer in several ways:
 
 ### Shared Interfaces
 
-Both `AsyncAPIClient` and `Endpoint` implement the `AsyncResourceManager` protocol, ensuring consistent resource management:
+Both `AsyncAPIClient` and `Endpoint` implement the `AsyncResourceManager`
+protocol, ensuring consistent resource management:
 
 ```python
 # AsyncResourceManager protocol
@@ -190,7 +197,8 @@ class AsyncResourceManager(Protocol):
 
 ### ResourceClient Protocol
 
-Both `AsyncAPIClient` and `Endpoint` implement the `ResourceClient` protocol, providing a consistent interface for making API calls:
+Both `AsyncAPIClient` and `Endpoint` implement the `ResourceClient` protocol,
+providing a consistent interface for making API calls:
 
 ```python
 # ResourceClient protocol
@@ -201,7 +209,8 @@ class ResourceClient(AsyncResourceManager, Protocol):
 
 ### Resilience Patterns
 
-Both `AsyncAPIClient` and `Endpoint` integrate with the same resilience patterns:
+Both `AsyncAPIClient` and `Endpoint` integrate with the same resilience
+patterns:
 
 ```python
 # Create a client with resilience patterns
@@ -224,7 +233,8 @@ endpoint = Endpoint(
 The `AsyncAPIClient` and `Endpoint` classes serve complementary roles:
 
 - `AsyncAPIClient`: General-purpose HTTP client for any REST API
-- `Endpoint`: Specialized client for specific API providers with additional features like SDK support
+- `Endpoint`: Specialized client for specific API providers with additional
+  features like SDK support
 
 ## Usage Examples
 
@@ -239,7 +249,7 @@ async def example():
         # Make a GET request
         user = await client.get("/users/123")
         print(f"User: {user['name']}")
-        
+
         # Make a POST request
         response = await client.post(
             "/users",
@@ -261,7 +271,7 @@ async def example():
         circuit_breaker=CircuitBreaker(failure_threshold=5, recovery_time=30.0),
         retry_config=RetryConfig(max_retries=3, base_delay=1.0)
     )
-    
+
     # Use the client with resilience patterns
     async with client:
         try:
@@ -288,11 +298,11 @@ from typing import Any
 async def make_api_call(client: ResourceClient, request: dict[str, Any]) -> Any:
     """
     Make an API call using any ResourceClient implementation.
-    
+
     Args:
         client: Any implementation of ResourceClient (AsyncAPIClient or Endpoint)
         request: The request parameters
-        
+
     Returns:
         The API response
     """
@@ -301,7 +311,7 @@ async def make_api_call(client: ResourceClient, request: dict[str, Any]) -> Any:
 async def example():
     # Create an API client
     api_client = AsyncAPIClient(base_url="https://api.example.com")
-    
+
     # Use the generic function with the API client
     async with api_client:
         response = await make_api_call(api_client, {
@@ -313,18 +323,25 @@ async def example():
 
 ## Best Practices
 
-1. **Always Use Context Managers**: Prefer the async context manager pattern (`async with`) over manual resource management to ensure proper cleanup.
+1. **Always Use Context Managers**: Prefer the async context manager pattern
+   (`async with`) over manual resource management to ensure proper cleanup.
 
-2. **Configure Appropriate Timeouts**: Set appropriate timeouts based on the expected response time of the API.
+2. **Configure Appropriate Timeouts**: Set appropriate timeouts based on the
+   expected response time of the API.
 
-3. **Use Resilience Patterns**: Configure circuit breakers and retry mechanisms for better resilience against transient failures.
+3. **Use Resilience Patterns**: Configure circuit breakers and retry mechanisms
+   for better resilience against transient failures.
 
-4. **Handle Specific Exceptions**: Catch and handle specific exception types (`APITimeoutError`, `RateLimitError`, etc.) for more precise error handling.
+4. **Handle Specific Exceptions**: Catch and handle specific exception types
+   (`APITimeoutError`, `RateLimitError`, etc.) for more precise error handling.
 
-5. **Reuse Client Instances**: Create a single client instance for each API and reuse it to benefit from connection pooling.
+5. **Reuse Client Instances**: Create a single client instance for each API and
+   reuse it to benefit from connection pooling.
 
 ## Related Documentation
 
 - [Endpoint](endpoint.md): Documentation on the Endpoint class
-- [Async Resource Management](../core-concepts/async_resource_management.md): Documentation on the standardized async resource cleanup patterns
-- [Resilience Patterns](../core-concepts/resilience_patterns.md): Documentation on the Circuit Breaker and Retry patterns
+- [Async Resource Management](../core-concepts/async_resource_management.md):
+  Documentation on the standardized async resource cleanup patterns
+- [Resilience Patterns](../core-concepts/resilience_patterns.md): Documentation
+  on the Circuit Breaker and Retry patterns

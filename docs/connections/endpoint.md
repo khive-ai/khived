@@ -1,10 +1,14 @@
 # Endpoint
 
-The `Endpoint` class is a core component of Khive's Connections Layer, responsible for managing connections to external APIs. It implements the `AsyncResourceManager` protocol to ensure proper resource initialization and cleanup.
+The `Endpoint` class is a core component of Khive's Connections Layer,
+responsible for managing connections to external APIs. It implements the
+`AsyncResourceManager` protocol to ensure proper resource initialization and
+cleanup.
 
 ## Overview
 
-The `Endpoint` class provides a unified interface for interacting with various API providers, handling:
+The `Endpoint` class provides a unified interface for interacting with various
+API providers, handling:
 
 - Connection lifecycle management
 - Request formatting and authentication
@@ -38,7 +42,9 @@ class Endpoint:
 
 ### Async Context Manager Support
 
-The `Endpoint` class implements the async context manager protocol (`__aenter__` and `__aexit__`), allowing it to be used with the `async with` statement for automatic resource management:
+The `Endpoint` class implements the async context manager protocol (`__aenter__`
+and `__aexit__`), allowing it to be used with the `async with` statement for
+automatic resource management:
 
 ```python
 async with Endpoint(config) as endpoint:
@@ -119,7 +125,8 @@ def create_payload(
     """
 ```
 
-The `create_payload` method prepares the request payload and headers for the API call, handling:
+The `create_payload` method prepares the request payload and headers for the API
+call, handling:
 
 - Authentication headers
 - Content type
@@ -139,7 +146,8 @@ async def aclose(self) -> None:
     """
 ```
 
-The `aclose` method provides a way to explicitly close the client session without using the context manager.
+The `aclose` method provides a way to explicitly close the client session
+without using the context manager.
 
 ## Internal Methods
 
@@ -155,10 +163,12 @@ def _create_client(self) -> Any:
     """
 ```
 
-The `_create_client` method creates the appropriate client based on the transport type:
+The `_create_client` method creates the appropriate client based on the
+transport type:
 
 - For HTTP transport, it creates an `aiohttp.ClientSession`
-- For SDK transport with OpenAI compatibility, it creates an `AsyncOpenAI` client
+- For SDK transport with OpenAI compatibility, it creates an `AsyncOpenAI`
+  client
 
 ### `_close_client`
 
@@ -172,7 +182,8 @@ async def _close_client(self) -> None:
     """
 ```
 
-The `_close_client` method ensures proper resource cleanup for both HTTP and SDK clients, handling:
+The `_close_client` method ensures proper resource cleanup for both HTTP and SDK
+clients, handling:
 
 - Different client types
 - Synchronous and asynchronous close methods
@@ -289,10 +300,10 @@ endpoint = Endpoint(config)
 try:
     # Initialize the client
     await endpoint._create_client()
-    
+
     # Make API calls
     response = await endpoint.call(request)
-    
+
 finally:
     # Ensure resources are cleaned up
     await endpoint.aclose()
@@ -310,28 +321,38 @@ endpoint = Endpoint(config)
 async with endpoint:
     # This response will be cached
     response = await endpoint.call(request, cache_control=True)
-    
+
     # Subsequent identical calls will use the cached response
     cached_response = await endpoint.call(request, cache_control=True)
 ```
 
 ## Best Practices
 
-1. **Always Use Context Managers**: Prefer the async context manager pattern (`async with`) over manual resource management to ensure proper cleanup.
+1. **Always Use Context Managers**: Prefer the async context manager pattern
+   (`async with`) over manual resource management to ensure proper cleanup.
 
-2. **Configure Resilience Patterns**: Use circuit breakers and retry configurations to handle transient failures and prevent cascading failures.
+2. **Configure Resilience Patterns**: Use circuit breakers and retry
+   configurations to handle transient failures and prevent cascading failures.
 
-3. **Use Appropriate Transport Type**: Choose the appropriate transport type (HTTP or SDK) based on the API provider and your needs.
+3. **Use Appropriate Transport Type**: Choose the appropriate transport type
+   (HTTP or SDK) based on the API provider and your needs.
 
-4. **Handle Exceptions**: Catch and handle exceptions appropriately, especially `CircuitBreakerOpenError` when using circuit breakers.
+4. **Handle Exceptions**: Catch and handle exceptions appropriately, especially
+   `CircuitBreakerOpenError` when using circuit breakers.
 
-5. **Use Request Validation**: Configure request validation through `EndpointConfig.request_options` to ensure valid requests.
+5. **Use Request Validation**: Configure request validation through
+   `EndpointConfig.request_options` to ensure valid requests.
 
-6. **Enable Caching When Appropriate**: Use the `cache_control` parameter to enable caching for appropriate requests.
+6. **Enable Caching When Appropriate**: Use the `cache_control` parameter to
+   enable caching for appropriate requests.
 
 ## Related Documentation
 
-- [EndpointConfig](endpoint_config.md): Documentation on the configuration options for endpoints
-- [HeaderFactory](header_factory.md): Documentation on the header creation utility
-- [Async Resource Management](../core-concepts/async_resource_management.md): Documentation on the standardized async resource cleanup patterns
-- [Resilience Patterns](../core-concepts/resilience_patterns.md): Documentation on the Circuit Breaker and Retry patterns
+- [EndpointConfig](endpoint_config.md): Documentation on the configuration
+  options for endpoints
+- [HeaderFactory](header_factory.md): Documentation on the header creation
+  utility
+- [Async Resource Management](../core-concepts/async_resource_management.md):
+  Documentation on the standardized async resource cleanup patterns
+- [Resilience Patterns](../core-concepts/resilience_patterns.md): Documentation
+  on the Circuit Breaker and Retry patterns
