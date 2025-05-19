@@ -15,7 +15,11 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
-from .rate_limiter import TokenBucketRateLimiter
+from .rate_limiter import (
+    AdaptiveRateLimiter,
+    EndpointRateLimiter,
+    TokenBucketRateLimiter,
+)
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -208,7 +212,8 @@ class RateLimitedExecutor:
 
     This executor combines a TokenBucketRateLimiter and an AsyncExecutor
     to provide both rate limiting and concurrency control for async
-    operations.
+    operations. It can be configured with different rate limiting strategies
+    including per-endpoint rate limiting and adaptive rate limiting.
 
     Example:
         ```python
@@ -225,28 +230,83 @@ class RateLimitedExecutor:
         executor = RateLimitedExecutor(rate=10, period=1.0, max_concurrency=5)
         result = await executor.execute(my_async_function, arg1, arg2, kwarg1=value1)
         await executor.shutdown()
+
+        # Create with endpoint-specific rate limiting
+        executor = RateLimitedExecutor(
+            endpoint_rate_limiting=True,
+            default_rate=10.0,
+            max_concurrency=5
+        )
+
+        # Execute with endpoint-specific rate limiting
+        result = await executor.execute(
+            my_async_function, arg1, kwarg1=value1,
+            endpoint="api/v1/users"
+        )
         ```
     """
 
     def __init__(
-        self, rate: float, period: float = 1.0, max_concurrency: int | None = None
+        self,
+        rate: float | None = None,
+        period: float = 1.0,
+        max_concurrency: int | None = None,
+        endpoint_rate_limiting: bool = False,
+        default_rate: float = 10.0,
+        adaptive_rate_limiting: bool = False,
+        min_rate: float = 1.0,
+        safety_factor: float = 0.9,
     ):
         """
         Initialize the rate-limited executor.
 
         Args:
-            rate: Maximum operations per period.
+            rate: Maximum operations per period. If None and endpoint_rate_limiting
+                 is False, defaults to default_rate.
             period: Time period in seconds.
             max_concurrency: Maximum concurrent operations.
                 If None, there is no limit on concurrency.
+            endpoint_rate_limiting: Whether to use per-endpoint rate limiting.
+            default_rate: Default rate for endpoint rate limiting.
+            adaptive_rate_limiting: Whether to use adaptive rate limiting.
+            min_rate: Minimum rate for adaptive rate limiting.
+            safety_factor: Safety factor for adaptive rate limiting.
         """
-        self.limiter = TokenBucketRateLimiter(rate, period)
         self.executor = AsyncExecutor(max_concurrency)
+        self.endpoint_rate_limiting = endpoint_rate_limiting
+        self.adaptive_rate_limiting = adaptive_rate_limiting
 
-        logger.debug(
-            f"Initialized RateLimitedExecutor with rate={rate}, "
-            f"period={period}, max_concurrency={max_concurrency}"
-        )
+        # Create the appropriate rate limiter based on configuration
+        if endpoint_rate_limiting:
+            self.limiter = EndpointRateLimiter(
+                default_rate=default_rate, default_period=period
+            )
+            logger.debug(
+                f"Initialized RateLimitedExecutor with endpoint rate limiting, "
+                f"default_rate={default_rate}, default_period={period}, "
+                f"max_concurrency={max_concurrency}"
+            )
+        elif adaptive_rate_limiting:
+            effective_rate = rate if rate is not None else default_rate
+            self.limiter = AdaptiveRateLimiter(
+                initial_rate=effective_rate,
+                initial_period=period,
+                min_rate=min_rate,
+                safety_factor=safety_factor,
+            )
+            logger.debug(
+                f"Initialized RateLimitedExecutor with adaptive rate limiting, "
+                f"initial_rate={effective_rate}, period={period}, "
+                f"min_rate={min_rate}, safety_factor={safety_factor}, "
+                f"max_concurrency={max_concurrency}"
+            )
+        else:
+            effective_rate = rate if rate is not None else default_rate
+            self.limiter = TokenBucketRateLimiter(effective_rate, period)
+            logger.debug(
+                f"Initialized RateLimitedExecutor with rate={effective_rate}, "
+                f"period={period}, max_concurrency={max_concurrency}"
+            )
 
     async def execute(
         self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any
@@ -258,6 +318,8 @@ class RateLimitedExecutor:
             func: The coroutine function to execute.
             *args: Positional arguments for the function.
             **kwargs: Keyword arguments for the function.
+                endpoint: Optional endpoint identifier for endpoint rate limiting.
+                tokens: Optional number of tokens to acquire (default: 1.0).
 
         Returns:
             The result of the function execution.
@@ -265,7 +327,68 @@ class RateLimitedExecutor:
         logger.debug(
             f"Executing {func.__name__} with rate limiting and concurrency control"
         )
+
+        # Extract endpoint parameter if present (for endpoint rate limiting)
+        endpoint = kwargs.pop("endpoint", None)
+
+        # Extract response_headers parameter if present (for adaptive rate limiting)
+        response_headers = kwargs.pop("response_headers", None)
+
+        # Update adaptive rate limiter if headers are provided
+        if (
+            self.adaptive_rate_limiting
+            and response_headers
+            and isinstance(self.limiter, AdaptiveRateLimiter)
+        ):
+            self.limiter.update_from_headers(response_headers)
+
+        # Execute with the appropriate rate limiter
+        if (
+            self.endpoint_rate_limiting
+            and endpoint
+            and isinstance(self.limiter, EndpointRateLimiter)
+        ):
+            return await self.limiter.execute(
+                endpoint, self.executor.execute, func, *args, **kwargs
+            )
+
+        # Default execution path
         return await self.limiter.execute(self.executor.execute, func, *args, **kwargs)
+
+    async def update_rate_limit(
+        self,
+        endpoint: str,
+        rate: float | None = None,
+        period: float | None = None,
+        max_tokens: float | None = None,
+        reset_tokens: bool = False,
+    ) -> None:
+        """
+        Update the rate limit parameters for an endpoint.
+
+        This method only works when endpoint_rate_limiting is enabled.
+
+        Args:
+            endpoint: API endpoint identifier.
+            rate: New maximum operations per period (if None, keep current).
+            period: New time period in seconds (if None, keep current).
+            max_tokens: New maximum token capacity (if None, keep current).
+            reset_tokens: If True, reset current tokens to max_tokens.
+
+        Raises:
+            TypeError: If endpoint_rate_limiting is not enabled.
+        """
+        if not self.endpoint_rate_limiting:
+            raise TypeError("Endpoint rate limiting is not enabled")
+
+        if isinstance(self.limiter, EndpointRateLimiter):
+            self.limiter.update_rate_limit(
+                endpoint=endpoint,
+                rate=rate,
+                period=period,
+                max_tokens=max_tokens,
+                reset_tokens=reset_tokens,
+            )
 
     async def shutdown(self, timeout: float | None = None) -> None:
         """
@@ -298,4 +421,5 @@ class RateLimitedExecutor:
             exc_tb: The exception traceback, if an exception was raised.
         """
         logger.debug("Exiting RateLimitedExecutor context")
+        await self.shutdown()
         await self.shutdown()

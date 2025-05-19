@@ -418,11 +418,14 @@ components can ensure reliable resource management, even in complex scenarios
 with multiple resources and error conditions.
 
 This system is particularly important for components that interact with external
-| services, manage connections, or allocate resources that need to be released
-| when no longer needed, helping to prevent resource leaks and ensure efficient
-| resource utilization.
+| services, manage connections, or allocate resources that need to be released |
+when no longer needed, helping to prevent resource leaks and ensure efficient |
+resource utilization.
 
 ## Related Documentation
 
-- [Bounded Async Queue with Backpressure](async_queue.md): Documentation on the `BoundedQueue` and `WorkQueue` classes that implement the `AsyncResourceManager` protocol for queue-based resource management.
-- [Resilience Patterns](resilience_patterns.md): Documentation on the Circuit Breaker and Retry patterns that enhance the reliability of API operations.
+- [Bounded Async Queue with Backpressure](async_queue.md): Documentation on the
+  `BoundedQueue` and `WorkQueue` classes that implement the
+  `AsyncResourceManager` protocol for queue-based resource management.
+- [Resilience Patterns](resilience_patterns.md): Documentation on the Circuit
+  Breaker and Retry patterns that enhance the reliability of API operations.
