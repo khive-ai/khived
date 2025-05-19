@@ -1,7 +1,7 @@
 # Resilience Patterns
 
 This document explains the resilience patterns implemented in Khive, focusing on
-the Circuit Breaker and Retry patterns that enhance the reliability of API
+the Circuit Breaker, Retry, and Rate Limiting patterns that enhance the reliability of API
 operations.
 
 ## Overview
@@ -11,12 +11,14 @@ asynchronous operations, particularly when interacting with external services.
 These patterns help prevent cascading failures, manage transient errors, and
 ensure system stability even when external dependencies are unreliable.
 
-The two primary resilience patterns implemented are:
+The three primary resilience patterns implemented are:
 
 1. **Circuit Breaker Pattern**: Prevents repeated calls to failing services,
    allowing them time to recover
 2. **Retry Pattern**: Handles transient failures by automatically retrying
    operations with exponential backoff
+3. **Rate Limiting Pattern**: Controls the rate of API requests to prevent
+   overwhelming external services and comply with API rate limits
 
 These patterns can be used independently or combined for comprehensive
 resilience.
@@ -338,20 +340,254 @@ except Exception as e:
 8. **Log Retry Attempts**: Log retry attempts and circuit state changes for
    debugging
 
+## Rate Limiting Pattern
+
+### Purpose
+
+The Rate Limiting pattern controls the frequency of API requests to prevent overwhelming external services, comply with API rate limits, and manage resource consumption. It ensures that applications maintain a sustainable request rate while allowing for controlled bursts when needed.
+
+### How It Works
+
+The Token Bucket algorithm is used for rate limiting:
+
+1. A "bucket" holds tokens that represent permission to make requests
+2. Tokens are added to the bucket at a constant rate (the refill rate)
+3. Each request consumes one or more tokens from the bucket
+4. If the bucket is empty, requests must wait until enough tokens are available
+5. The bucket has a maximum capacity, allowing for controlled bursts of requests
+
+![Token Bucket Algorithm](https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Token_bucket_with_leak.svg/440px-Token_bucket_with_leak.svg.png)
+
+### Implementation
+
+Khive implements the Rate Limiting pattern through several classes in `src/khive/clients/rate_limiter.py`:
+
+#### TokenBucketRateLimiter
+
+The core implementation of the token bucket algorithm:
+
+```python
+class TokenBucketRateLimiter:
+    """
+    Rate limiter using the token bucket algorithm.
+
+    The token bucket algorithm allows for controlled bursts of requests
+    while maintaining a long-term rate limit. Tokens are added to the
+    bucket at a constant rate, and each request consumes one or more tokens.
+    If the bucket is empty, requests must wait until enough tokens are
+    available.
+
+    Example:
+        ```python
+        # Create a rate limiter with 10 requests per second
+        limiter = TokenBucketRateLimiter(rate=10, period=1.0)
+
+        # Execute a function with rate limiting
+        result = await limiter.execute(my_async_function, arg1, arg2, kwarg1=value1)
+
+        # Execute with custom token cost
+        result = await limiter.execute(my_async_function, arg1, arg2, tokens=2.5)
+        ```
+    """
+```
+
+#### EndpointRateLimiter
+
+Manages per-endpoint rate limits:
+
+```python
+class EndpointRateLimiter:
+    """
+    Rate limiter that manages multiple endpoints with different rate limits.
+
+    This class maintains separate rate limiters for different API endpoints,
+    allowing for fine-grained control over rate limiting.
+
+    Example:
+        ```python
+        # Create an endpoint rate limiter with default limits
+        limiter = EndpointRateLimiter(default_rate=10.0, default_period=1.0)
+
+        # Execute with endpoint-specific rate limiting
+        result = await limiter.execute("api/v1/users", my_async_function, arg1, kwarg1=value1)
+
+        # Update rate limits for a specific endpoint
+        limiter.update_rate_limit("api/v1/users", rate=5.0, period=1.0)
+        ```
+    """
+```
+
+#### AdaptiveRateLimiter
+
+Adjusts rate limits based on API response headers:
+
+```python
+class AdaptiveRateLimiter(TokenBucketRateLimiter):
+    """
+    Rate limiter that can adapt its limits based on API response headers.
+
+    This class extends TokenBucketRateLimiter to automatically adjust
+    rate limits based on response headers from API calls. It supports
+    common rate limit header patterns used by various APIs.
+
+    Example:
+        ```python
+        # Create an adaptive rate limiter
+        limiter = AdaptiveRateLimiter(initial_rate=10.0)
+
+        # Execute a function with adaptive rate limiting
+        result = await limiter.execute(my_async_function, arg1, kwarg1=value1)
+
+        # Update rate limits based on response headers
+        limiter.update_from_headers(response.headers)
+        ```
+    """
+```
+
+### Key Features
+
+- **Token-Based Execution**: Control request rates with precise token costs
+- **Endpoint-Specific Rate Limiting**: Apply different rate limits to different endpoints
+- **Adaptive Rate Limiting**: Automatically adjust rate limits based on API response headers
+- **Configurable Parameters**: Customize rate, period, maximum tokens, and safety factors
+- **Integration with Executor**: Combine rate limiting with concurrency control
+- **Thread Safety**: Properly handle concurrent requests with asyncio locks
+
+### Usage Examples
+
+#### Basic Rate Limiting
+
+```python
+from khive.clients.rate_limiter import TokenBucketRateLimiter
+
+# Create a rate limiter with 10 requests per second
+limiter = TokenBucketRateLimiter(rate=10.0, period=1.0)
+
+# Execute a function with rate limiting
+result = await limiter.execute(api_client.get, "/endpoint")
+
+# Execute with custom token cost (e.g., for expensive operations)
+result = await limiter.execute(api_client.get, "/expensive-endpoint", tokens=2.5)
+```
+
+#### Endpoint-Specific Rate Limiting
+
+```python
+from khive.clients.rate_limiter import EndpointRateLimiter
+
+# Create an endpoint rate limiter with default limits
+limiter = EndpointRateLimiter(default_rate=10.0, default_period=1.0)
+
+# Execute with endpoint-specific rate limiting
+result = await limiter.execute("api/v1/users", api_client.get, "/users")
+result = await limiter.execute("api/v1/search", api_client.get, "/search")
+
+# Update rate limits for a specific endpoint
+limiter.update_rate_limit("api/v1/search", rate=5.0, period=1.0)
+```
+
+#### Adaptive Rate Limiting
+
+```python
+from khive.clients.rate_limiter import AdaptiveRateLimiter
+
+# Create an adaptive rate limiter
+limiter = AdaptiveRateLimiter(
+    initial_rate=10.0,
+    min_rate=1.0,
+    safety_factor=0.9
+)
+
+# Make a request
+response = await api_client.get("/endpoint")
+
+# Update rate limits based on response headers
+limiter.update_from_headers(response.headers)
+
+# Next request will use the adjusted rate
+result = await limiter.execute(api_client.get, "/endpoint")
+```
+
+#### Using RateLimitedExecutor
+
+```python
+from khive.clients.executor import RateLimitedExecutor
+
+# Create a rate-limited executor with both rate limiting and concurrency control
+executor = RateLimitedExecutor(
+    rate=10.0,                    # 10 requests per second
+    period=1.0,
+    max_concurrency=5,            # Maximum 5 concurrent requests
+    endpoint_rate_limiting=True,  # Enable per-endpoint rate limiting
+    default_rate=10.0             # Default rate for endpoints
+)
+
+# Execute with rate limiting and concurrency control
+result = await executor.execute(
+    api_client.get,
+    "/users",
+    endpoint="api/v1/users"  # Specify the endpoint for rate limiting
+)
+
+# Update rate limit for a specific endpoint
+await executor.update_rate_limit(
+    endpoint="api/v1/search",
+    rate=5.0,
+    period=1.0
+)
+```
+
+### Integration with Other Resilience Patterns
+
+Rate limiting can be combined with Circuit Breaker and Retry patterns for comprehensive resilience:
+
+```python
+from khive.clients.executor import RateLimitedExecutor
+from khive.clients.resilience import CircuitBreaker, retry_with_backoff
+
+# Create a rate-limited executor
+executor = RateLimitedExecutor(rate=10.0, max_concurrency=5)
+
+# Create a circuit breaker
+breaker = CircuitBreaker(failure_threshold=5, recovery_time=30.0)
+
+# Combine all three patterns
+async def call_api_with_resilience(endpoint, *args, **kwargs):
+    try:
+        return await breaker.execute(
+            retry_with_backoff,
+            executor.execute,
+            api_client.get,
+            endpoint,
+            *args,
+            **kwargs
+        )
+    except CircuitBreakerOpenError:
+        # Handle circuit breaker open
+        return get_cached_result()
+    except Exception as e:
+        # Handle other exceptions
+        logger.error(f"API call failed: {e}")
+        return get_default_result()
+```
+
 ## Conclusion
 
 The resilience patterns implemented in Khive provide robust error handling
-mechanisms for asynchronous operations. By using the Circuit Breaker and Retry
-patterns, applications can gracefully handle transient failures, prevent
-cascading failures, and ensure system stability even when external dependencies
-are unreliable.
+mechanisms for asynchronous operations. By using the Circuit Breaker, Retry,
+and Rate Limiting patterns, applications can gracefully handle transient failures,
+prevent cascading failures, control request rates, and ensure system stability
+even when external dependencies are unreliable.
 
-| These patterns are particularly valuable in distributed systems where network
-| calls and external service dependencies are common. By properly configuring and
-| combining these patterns, Khive applications can achieve high reliability and
-| fault tolerance.
+These patterns are particularly valuable in distributed systems where network
+calls and external service dependencies are common. By properly configuring
+and combining these patterns, Khive applications can achieve high reliability
+and fault tolerance.
 
 ## Related Documentation
 
-- [Async Resource Management](async_resource_management.md): Documentation on the standardized async resource cleanup patterns implemented in Khive.
-- [Bounded Async Queue with Backpressure](async_queue.md): Documentation on the queue-based backpressure mechanism that complements resilience patterns by preventing system overload.
+- [Async Resource Management](async_resource_management.md): Documentation on
+  the standardized async resource cleanup patterns implemented in Khive.
+- [Bounded Async Queue with Backpressure](async_queue.md): Documentation on the
+  queue-based backpressure mechanism that complements resilience patterns by
+  preventing system overload.
