@@ -11,7 +11,6 @@ from .api_call import APICalling
 
 
 class RateLimitedExecutor(Executor):
-
     def __init__(
         self,
         queue_capacity: int = 100,
@@ -63,7 +62,7 @@ class RateLimitedExecutor(Executor):
         except asyncio.CancelledError:
             logging.info("Rate limit replenisher task cancelled.")
         except Exception as e:
-            logging.error(f"Error in rate limit replenisher: {e}")
+            logging.exception(f"Error in rate limit replenisher: {e}")
 
     async def __aenter__(self) -> Self:
         """Enter async context."""

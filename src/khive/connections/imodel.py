@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
-from pydantic import Field, field_serializer, field_validator
+from pydantic import field_serializer, field_validator
 from pydapter.protocols import Temporal
 from pydapter.protocols.types import ExecutionStatus
 
@@ -12,10 +12,38 @@ from .rate_limited_executor import RateLimitedExecutor
 
 
 class iModel(Temporal):
-
     endpoint: Endpoint
     executor: RateLimitedExecutor
     last_used: datetime | None = None
+
+    def __init__(
+        self,
+        provider: str,
+        endpoint: Endpoint | dict | str,
+        queue_capacity: int = 100,
+        capacity_refresh_time: float = 1,
+        interval: float | None = None,
+        limit_requests: int = None,
+        limit_tokens: int = None,
+        concurrency_limit: int | None = None,
+        counter: int = None,
+    ):
+        if isinstance(endpoint, str):
+            from .match_endpoint import match_endpoint
+
+            endpoint = match_endpoint(provider, endpoint)
+        if isinstance(endpoint, dict):
+            endpoint = Endpoint(endpoint)
+        executor = RateLimitedExecutor(
+            queue_capacity=queue_capacity,
+            capacity_refresh_time=capacity_refresh_time,
+            interval=interval,
+            limit_requests=limit_requests,
+            limit_tokens=limit_tokens,
+            concurrency_limit=concurrency_limit,
+            counter=counter,
+        )
+        super().__init__(endpoint=endpoint, executor=executor)
 
     @field_serializer("executor")
     def _serialize_executor(self, value: RateLimitedExecutor) -> dict[str, Any]:
@@ -23,7 +51,7 @@ class iModel(Temporal):
 
     @field_validator("executor", mode="before")
     def _validate_executor(
-        self, value: RateLimitedExecutor | dict
+        cls, value: RateLimitedExecutor | dict
     ) -> RateLimitedExecutor:
         if isinstance(value, dict):
             return RateLimitedExecutor.from_dict(value)
@@ -34,7 +62,7 @@ class iModel(Temporal):
         return value.config.model_dump()
 
     @field_validator("endpoint", mode="before")
-    def _validate_endpoint(self, value: Endpoint | dict | None) -> Endpoint:
+    def _validate_endpoint(cls, value: Endpoint | dict | None) -> Endpoint:
         if isinstance(value, dict):
             return Endpoint(value)
         return value
@@ -60,12 +88,10 @@ class iModel(Temporal):
         return self._serialize_datetime(value)
 
     @field_validator("last_used", mode="before")
-    def _validate_last_used(self, value: str | None) -> datetime | None:
-        return self._validate_datetime(value)
+    def _validate_last_used(cls, value: str | None) -> datetime | None:
+        return cls._validate_datetime(value)
 
-    async def invoke(
-        self, api_call: APICalling | list[APICalling]
-    ) -> APICalling | list[APICalling]:
+    async def invoke(self, api_call: APICalling | list[APICalling]) -> list[APICalling]:
         try:
             async with self.executor as exe:
                 api_call = [api_call] if not isinstance(api_call, list) else api_call

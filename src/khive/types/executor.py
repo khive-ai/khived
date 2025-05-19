@@ -1,6 +1,6 @@
 import asyncio
 from collections import deque
-from typing import Any, Deque
+from typing import Any
 from uuid import UUID
 
 from pydapter.protocols.types import ExecutionStatus
@@ -10,7 +10,6 @@ from .queue import Event, Queue, QueueConfig
 
 
 class Executor:
-
     def __init__(
         self,
         event_type: type[Event],
@@ -18,9 +17,9 @@ class Executor:
         counter: int = None,
     ):
         self.event_type = event_type
-        self.queue_config = queue_config
+        self.queue_config = queue_config.model_dump() if hasattr(queue_config, "model_dump") else queue_config
         self.task_queue: Queue | None = None
-        self.pending: Deque[Event] = deque()
+        self.pending: deque[Event] = deque()
         self.execution_mode: bool = False
         self.events: dict[UUID, Event] = {}
         self.async_lock: asyncio.Lock = asyncio.Lock()
