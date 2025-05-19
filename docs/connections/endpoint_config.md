@@ -1,10 +1,13 @@
 # EndpointConfig
 
-The `EndpointConfig` class is a Pydantic model that defines the configuration options for endpoints in Khive's Connections Layer. It provides validation, serialization, and secure handling of API credentials.
+The `EndpointConfig` class is a Pydantic model that defines the configuration
+options for endpoints in Khive's Connections Layer. It provides validation,
+serialization, and secure handling of API credentials.
 
 ## Overview
 
-The `EndpointConfig` class serves as a configuration container for the `Endpoint` class, handling:
+The `EndpointConfig` class serves as a configuration container for the
+`Endpoint` class, handling:
 
 - API endpoint details and parameters
 - Authentication configuration
@@ -39,26 +42,26 @@ class EndpointConfig(BaseModel):
 
 ## Fields
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `name` | `str` | Required | Unique name for the endpoint |
-| `provider` | `str` | Required | API provider (e.g., "openai", "anthropic") |
-| `transport_type` | `Literal["http", "sdk"]` | `"http"` | Transport mechanism to use |
-| `base_url` | `str \| None` | `None` | Base URL for the API |
-| `endpoint` | `str` | Required | Specific API endpoint path |
-| `endpoint_params` | `list[str] \| None` | `None` | Parameters for endpoint URL formatting |
-| `method` | `str` | `"POST"` | HTTP method for the request |
-| `params` | `dict[str, str]` | `{}` | URL parameters for endpoint formatting |
-| `content_type` | `str` | `"application/json"` | Content type for the request |
-| `auth_type` | `AUTH_TYPES` | `"bearer"` | Authentication type ("bearer" or "x-api-key") |
-| `default_headers` | `dict` | `{}` | Default headers to include with every request |
-| `request_options` | `B \| None` | `None` | Pydantic model for request validation |
-| `api_key` | `str \| SecretStr \| None` | `None` | API key for authentication |
-| `timeout` | `int` | `300` | Request timeout in seconds |
-| `max_retries` | `int` | `3` | Maximum number of retry attempts |
-| `openai_compatible` | `bool` | `False` | Whether the API is OpenAI-compatible |
-| `kwargs` | `dict` | `{}` | Additional keyword arguments for the request |
-| `client_kwargs` | `dict` | `{}` | Additional keyword arguments for the client |
+| Field               | Type                       | Default              | Description                                   |
+| ------------------- | -------------------------- | -------------------- | --------------------------------------------- |
+| `name`              | `str`                      | Required             | Unique name for the endpoint                  |
+| `provider`          | `str`                      | Required             | API provider (e.g., "openai", "anthropic")    |
+| `transport_type`    | `Literal["http", "sdk"]`   | `"http"`             | Transport mechanism to use                    |
+| `base_url`          | `str \| None`              | `None`               | Base URL for the API                          |
+| `endpoint`          | `str`                      | Required             | Specific API endpoint path                    |
+| `endpoint_params`   | `list[str] \| None`        | `None`               | Parameters for endpoint URL formatting        |
+| `method`            | `str`                      | `"POST"`             | HTTP method for the request                   |
+| `params`            | `dict[str, str]`           | `{}`                 | URL parameters for endpoint formatting        |
+| `content_type`      | `str`                      | `"application/json"` | Content type for the request                  |
+| `auth_type`         | `AUTH_TYPES`               | `"bearer"`           | Authentication type ("bearer" or "x-api-key") |
+| `default_headers`   | `dict`                     | `{}`                 | Default headers to include with every request |
+| `request_options`   | `B \| None`                | `None`               | Pydantic model for request validation         |
+| `api_key`           | `str \| SecretStr \| None` | `None`               | API key for authentication                    |
+| `timeout`           | `int`                      | `300`                | Request timeout in seconds                    |
+| `max_retries`       | `int`                      | `3`                  | Maximum number of retry attempts              |
+| `openai_compatible` | `bool`                     | `False`              | Whether the API is OpenAI-compatible          |
+| `kwargs`            | `dict`                     | `{}`                 | Additional keyword arguments for the request  |
+| `client_kwargs`     | `dict`                     | `{}`                 | Additional keyword arguments for the client   |
 
 ## Key Features
 
@@ -100,7 +103,8 @@ def _validate_api_key(self):
 
 ### URL Construction
 
-The `EndpointConfig` class provides a `full_url` property that constructs the complete URL for the API request, handling parameter substitution:
+The `EndpointConfig` class provides a `full_url` property that constructs the
+complete URL for the API request, handling parameter substitution:
 
 ```python
 @property
@@ -112,7 +116,8 @@ def full_url(self):
 
 ### Request Validation
 
-The `EndpointConfig` class supports request validation through the `request_options` field, which can be a Pydantic model or a schema definition:
+The `EndpointConfig` class supports request validation through the
+`request_options` field, which can be a Pydantic model or a schema definition:
 
 ```python
 @field_validator("request_options", mode="before")
@@ -139,7 +144,8 @@ def _validate_request_options(cls, v):
 
 ### Dynamic Configuration Updates
 
-The `EndpointConfig` class provides an `update` method to dynamically update configuration values:
+The `EndpointConfig` class provides an `update` method to dynamically update
+configuration values:
 
 ```python
 def update(self, **kwargs):
@@ -154,7 +160,8 @@ def update(self, **kwargs):
 
 ### Payload Validation
 
-The `EndpointConfig` class provides a `validate_payload` method to validate request payloads against the `request_options` model:
+The `EndpointConfig` class provides a `validate_payload` method to validate
+request payloads against the `request_options` model:
 
 ```python
 def validate_payload(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -279,18 +286,26 @@ config.update(
 
 ## Best Practices
 
-1. **Use Environment Variables for API Keys**: Store API keys in environment variables and reference them by name in the configuration.
+1. **Use Environment Variables for API Keys**: Store API keys in environment
+   variables and reference them by name in the configuration.
 
-2. **Define Request Models**: Use Pydantic models for `request_options` to validate requests before sending them to the API.
+2. **Define Request Models**: Use Pydantic models for `request_options` to
+   validate requests before sending them to the API.
 
-3. **Set Appropriate Timeouts**: Configure appropriate timeouts based on the expected response time of the API.
+3. **Set Appropriate Timeouts**: Configure appropriate timeouts based on the
+   expected response time of the API.
 
-4. **Use Descriptive Names**: Choose descriptive names for endpoints to make them easily identifiable.
+4. **Use Descriptive Names**: Choose descriptive names for endpoints to make
+   them easily identifiable.
 
-5. **Configure Appropriate Retry Counts**: Set `max_retries` based on the reliability of the API and the importance of the request.
+5. **Configure Appropriate Retry Counts**: Set `max_retries` based on the
+   reliability of the API and the importance of the request.
 
 ## Related Documentation
 
-- [Endpoint](endpoint.md): Documentation on the Endpoint class that uses EndpointConfig
-- [HeaderFactory](header_factory.md): Documentation on the header creation utility
-- [Pydantic Documentation](https://docs.pydantic.dev/): Official documentation for Pydantic, which is used for model validation
+- [Endpoint](endpoint.md): Documentation on the Endpoint class that uses
+  EndpointConfig
+- [HeaderFactory](header_factory.md): Documentation on the header creation
+  utility
+- [Pydantic Documentation](https://docs.pydantic.dev/): Official documentation
+  for Pydantic, which is used for model validation
