@@ -3,61 +3,69 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-CLI wrapper around khive.services.reader.reader_service.ReaderService.
-
-❱  Examples
------------
-
-# 1.  Open a file / URL  → returns {"success":true,"content":{"doc_info":{…}}}
-reader_cli.py open  --path_or_url README.md
-
-# 2.  Read slice 200-400 characters from that document
-reader_cli.py read  --doc_id DOC_123456 --start_offset 200 --end_offset 400
-
-# 3.  Non-recursive directory listing of *.md files
-reader_cli.py list  --directory docs --file_types .md
-
-# 4. Recursive directory listing
-reader_cli.py list --directory project_src --recursive
-
-All responses are JSON (one line) printed to stdout.
-Errors go to stderr and a non-zero exit code.
+CLI for khive Reader services, including document operations and ingestion.
+Uses Typer for command-line interface structure.
 """
 
 from __future__ import annotations
 
-import argparse
+import asyncio
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Any, Final
+from typing import Annotated, Any, Final
+
+import typer
+from pydantic import HttpUrl, ValidationError
 
 # --------------------------------------------------------------------------- #
-# khive reader                                                                #
+# khive reader imports                                                        #
 # --------------------------------------------------------------------------- #
 try:
-    # Assuming parts.py and reader_service.py are in khive.services.reader
-    from khive.services.reader.parts import (  # Import specific param models
+    from khive.reader.services.ingestion_service import (
+        Document as IngestDocument,
+    )
+    from khive.reader.services.ingestion_service import (
+        DocumentIngestionService,
+        InMemoryDocumentRepository,  # Placeholder
+    )
+    from khive.reader.services.ingestion_service import (
+        DocumentStatus as IngestDocumentStatus,
+    )
+    from khive.reader.storage.minio_client import ObjectStorageClient
+    from khive.services.reader.parts import (
         ReaderAction,
         ReaderListDirParams,
         ReaderOpenParams,
         ReaderReadParams,
-        ReaderRequest,  # Main request model
-        ReaderResponse,  # Main response model
+        ReaderRequest,
+        ReaderResponse,
     )
     from khive.services.reader.reader_service import ReaderServiceGroup
 except ModuleNotFoundError as e:
     sys.stderr.write(
-        f"❌ Required modules not found. Ensure khive.services.reader is in PYTHONPATH.\nError: {e}\n"
+        f"❌ Required modules not found. Ensure khive.services.reader and related modules are in PYTHONPATH.\nError: {e}\n"
     )
     sys.exit(1)
 except ImportError as e:
-    sys.stderr.write(f"❌ Error importing from khive.services.reader.\nError: {e}\n")
+    sys.stderr.write(
+        f"❌ Error importing from khive.services.reader or ingestion service.\nError: {e}\n"
+    )
     sys.exit(1)
 
+# --------------------------------------------------------------------------- #
+# CLI App Initialization                                                      #
+# --------------------------------------------------------------------------- #
+app = typer.Typer(
+    name="reader",
+    help="Khive Reader: Document operations (open, read, list) and ingestion.",
+    add_completion=False,
+    no_args_is_help=True,
+)
 
 # --------------------------------------------------------------------------- #
-# Persistent cache (maps doc_id  →  {path: temp_file_path, length: int, num_tokens: int | None}) #
+# Persistent cache for 'open', 'read', 'list' commands                        #
 # --------------------------------------------------------------------------- #
 CACHE_FILE: Final[Path] = Path.home() / ".khive_reader_cache.json"
 
@@ -67,8 +75,9 @@ def _load_cache() -> dict[str, Any]:
         try:
             return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
         except Exception:
-            sys.stderr.write(
-                f"Failed to load cache from {CACHE_FILE}. Starting with an empty cache."
+            typer.echo(
+                f"Warning: Failed to load cache from {CACHE_FILE}. Starting with an empty cache.",
+                err=True,
             )
     return {}
 
@@ -81,43 +90,51 @@ def _save_cache(cache: dict[str, Any]) -> None:
 
 
 CACHE = _load_cache()
-
-# --------------------------------------------------------------------------- #
-# Instantiate service (kept in-process)                                       #
-# --------------------------------------------------------------------------- #
-# This global instance will persist self.documents within a single CLI execution
-# but not across multiple CLI executions unless we repopulate it from CACHE.
-reader_service = ReaderServiceGroup()
+reader_service_group_instance = (
+    ReaderServiceGroup()
+)  # Global instance for this CLI session
 
 
-def _handle_request_and_print(req_dict: dict[str, Any]) -> None:
-    """Validate, call ReaderService, persist cache if needed, pretty-print JSON."""
-    try:
-        # Construct the request with the correct nested params structure
-        action = req_dict.pop("action")  # Extract action
-        params_model = None
-        if action == ReaderAction.OPEN:
-            params_model = ReaderOpenParams(**req_dict)
-        elif action == ReaderAction.READ:
-            params_model = ReaderReadParams(**req_dict)
-        elif action == ReaderAction.LIST_DIR:
-            params_model = ReaderListDirParams(**req_dict)
-        else:
-            sys.stderr.write(
-                f"❌ Internal CLI error: Unknown action type '{action}' for param model mapping.\n"
+def _print_json_response(data: Any, success: bool = True, exit_code: int | None = None):
+    if isinstance(data, (ReaderResponse, IngestDocument)):
+        typer.echo(
+            json.dumps(
+                data.model_dump(exclude_none=True, by_alias=True), ensure_ascii=False
             )
-            sys.exit(1)
-
-        req = ReaderRequest(action=action, params=params_model)
-        res: ReaderResponse = reader_service.handle_request(req)
-
-    except Exception as e:  # Catch Pydantic ValidationError and other potential errors
-        sys.stderr.write(
-            f"❌ Request construction or handling failed:\n{type(e).__name__}: {e}\n"
         )
-        sys.exit(1)
+    elif isinstance(data, dict):
+        typer.echo(json.dumps(data, ensure_ascii=False))
+    else:
+        typer.echo(
+            json.dumps({"success": success, "detail": str(data)}, ensure_ascii=False)
+        )
 
-    # Persist mapping for open/list_dir so later 'read' works across CLI calls
+    if exit_code is not None:
+        raise typer.Exit(code=exit_code)
+    elif not success:
+        raise typer.Exit(code=1)
+
+
+@app.command("open")
+async def open_document(  # Made async
+    path_or_url: Annotated[
+        str, typer.Option(help="Local path or remote URL to open & convert to text.")
+    ],
+):
+    """Open a file or URL for later reading, returns document info including a doc_id."""
+    req_dict = {"path_or_url": path_or_url}
+    try:
+        params_model = ReaderOpenParams(**req_dict)
+        req = ReaderRequest(action=ReaderAction.OPEN, params=params_model)
+        res: ReaderResponse = await reader_service_group_instance.handle_request(
+            req
+        )  # Added await
+    except Exception as e:
+        _print_json_response(
+            {"success": False, "error": str(e), "type": type(e).__name__}, success=False
+        )
+        return  # Should be unreachable due to typer.Exit in _print_json_response
+
     if (
         res.success
         and res.content
@@ -125,126 +142,301 @@ def _handle_request_and_print(req_dict: dict[str, Any]) -> None:
         and res.content.doc_info
     ):
         doc_id = res.content.doc_info.doc_id
-        # The reader_service.documents stores (temp_file.name, doc_len)
-        # We need to access that internal temp_file.name to cache it.
-        if doc_id in reader_service.documents:
-            temp_file_path, _doc_len_internal = reader_service.documents[
+        if doc_id in reader_service_group_instance.documents:
+            temp_file_path, _doc_len_internal = reader_service_group_instance.documents[
                 doc_id
-            ]  # num_tokens not stored in service's self.documents yet
+            ]
             CACHE[doc_id] = {
-                "path": temp_file_path,  # This is the crucial part from the service's internal state
+                "path": temp_file_path,
                 "length": res.content.doc_info.length,
-                "num_tokens": res.content.doc_info.num_tokens,  # Cache this too
+                "num_tokens": res.content.doc_info.num_tokens,
             }
             _save_cache(CACHE)
         else:
-            sys.stderr.write(
-                f"⚠️ Warning: Doc_id '{doc_id}' reported success but not found in service's internal document map for caching path.\n"
+            typer.echo(
+                f"⚠️ Warning: Doc_id '{doc_id}' reported success but not found in service's internal document map for caching path.",
+                err=True,
             )
-
-    # Pretty JSON to STDOUT
-    # Use res.model_dump() for Pydantic models
-    print(
-        json.dumps(res.model_dump(exclude_none=True, by_alias=True), ensure_ascii=False)
-    )
-    sys.exit(0 if res.success else 2)
+    _print_json_response(res, success=res.success, exit_code=0 if res.success else 2)
 
 
-# --------------------------------------------------------------------------- #
-# Command-line parsing                                                        #
-# --------------------------------------------------------------------------- #
-def main() -> None:
-    ap = argparse.ArgumentParser(prog="reader_cli.py", description="khive Reader CLI")
-    sub = ap.add_subparsers(
-        dest="action_command", required=True, help="Action to perform"
-    )
+@app.command("read")
+async def read_document(  # Made async
+    doc_id: Annotated[
+        str, typer.Option(help="doc_id returned by 'open' or 'list_dir'.")
+    ],
+    start_offset: Annotated[
+        int | None, typer.Option(help="Start offset (chars).")
+    ] = None,
+    end_offset: Annotated[
+        int | None, typer.Option(help="End offset (chars, exclusive).")
+    ] = None,
+):
+    """Read a slice of an opened document."""
+    if doc_id not in reader_service_group_instance.documents and doc_id in CACHE:
+        cached_doc_info = CACHE[doc_id]
+        reader_service_group_instance.documents[doc_id] = (
+            cached_doc_info["path"],
+            cached_doc_info["length"],
+        )
 
-    # --- open --------------------------------------------------------------- #
-    sp_open = sub.add_parser(
-        ReaderAction.OPEN.value, help="Open a file or URL for later reading"
-    )
-    sp_open.add_argument(
-        "--path_or_url",  # Matches ReaderOpenParams field
-        required=True,
-        help="Local path or remote URL to open & convert to text",
-    )
+    req_dict = {
+        "doc_id": doc_id,
+        "start_offset": start_offset,
+        "end_offset": end_offset,
+    }
+    try:
+        params_model = ReaderReadParams(**req_dict)
+        req = ReaderRequest(action=ReaderAction.READ, params=params_model)
+        res: ReaderResponse = await reader_service_group_instance.handle_request(
+            req
+        )  # Added await
+    except Exception as e:
+        _print_json_response(
+            {"success": False, "error": str(e), "type": type(e).__name__}, success=False
+        )
+        return
+    _print_json_response(res, success=res.success, exit_code=0 if res.success else 2)
 
-    # --- read --------------------------------------------------------------- #
-    sp_read = sub.add_parser(
-        ReaderAction.READ.value, help="Read a slice of an opened document"
-    )
-    sp_read.add_argument(
-        "--doc_id", required=True, help="doc_id returned by 'open' or 'list_dir'"
-    )  # Matches ReaderReadParams
-    sp_read.add_argument(
-        "--start_offset", type=int, default=None, help="Start offset (chars)"
-    )  # Matches ReaderReadParams
-    sp_read.add_argument(
-        "--end_offset", type=int, default=None, help="End offset (chars, exclusive)"
-    )  # Matches ReaderReadParams
 
-    # --- list_dir ----------------------------------------------------------- #
-    sp_ls = sub.add_parser(
-        ReaderAction.LIST_DIR.value,
-        help="List directory contents and store as a document",
-    )
-    sp_ls.add_argument(
-        "--directory", required=True, help="Directory to list"
-    )  # Matches ReaderListDirParams
-    sp_ls.add_argument(
-        "--recursive",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Recurse into sub-directories",  # Matches ReaderListDirParams
-    )
-    sp_ls.add_argument(
-        "--file_types",  # Matches ReaderListDirParams
-        nargs="*",
-        metavar="EXT",
-        default=None,
-        help="Only list files with these extensions (e.g. .md .txt)",
-    )
+@app.command("list")
+async def list_directory(  # Made async
+    directory: Annotated[str, typer.Option(help="Directory to list.")],
+    recursive: Annotated[
+        bool,
+        typer.Option(
+            "--recursive/--no-recursive", help="Recurse into sub-directories."
+        ),
+    ] = False,
+    file_types: Annotated[
+        list[str] | None,
+        typer.Option(help="Only list files with these extensions (e.g. .md .txt)."),
+    ] = None,
+):
+    """List directory contents and store as a document, returning document info."""
+    req_dict = {
+        "directory": directory,
+        "recursive": recursive,
+        "file_types": file_types or [],  # Ensure it's a list
+    }
+    try:
+        params_model = ReaderListDirParams(**req_dict)
+        req = ReaderRequest(action=ReaderAction.LIST_DIR, params=params_model)
+        res: ReaderResponse = await reader_service_group_instance.handle_request(
+            req
+        )  # Added await
+    except Exception as e:
+        _print_json_response(
+            {"success": False, "error": str(e), "type": type(e).__name__}, success=False
+        )
+        return
 
-    args = ap.parse_args()
-    action_str = args.action_command  # This is 'open', 'read', or 'list_dir'
+    if (
+        res.success
+        and res.content
+        and hasattr(res.content, "doc_info")
+        and res.content.doc_info
+    ):  # Similar caching logic as 'open'
+        doc_id = res.content.doc_info.doc_id
+        if doc_id in reader_service_group_instance.documents:
+            temp_file_path, _doc_len_internal = reader_service_group_instance.documents[
+                doc_id
+            ]
+            CACHE[doc_id] = {
+                "path": temp_file_path,
+                "length": res.content.doc_info.length,
+                "num_tokens": res.content.doc_info.num_tokens,
+            }
+            _save_cache(CACHE)
+    _print_json_response(res, success=res.success, exit_code=0 if res.success else 2)
 
-    # Prepare request dictionary based on the subcommand
-    request_params_dict: dict[str, Any] = {}
-    if action_str == ReaderAction.OPEN.value:
-        request_params_dict = {"path_or_url": args.path_or_url}
-    elif action_str == ReaderAction.READ.value:
-        # Resolve doc_id from cache if it's not in the live service instance
-        # This allows 'read' to work across different CLI invocations for the same doc_id
-        if args.doc_id not in reader_service.documents and args.doc_id in CACHE:
-            cached_doc_info = CACHE[args.doc_id]
-            # Repopulate the live service's document mapping for this process
-            # The service stores (temp_file_path, doc_length)
-            reader_service.documents[args.doc_id] = (
-                cached_doc_info["path"],
-                cached_doc_info["length"],
+
+async def _ingest_document_async(
+    source_uri_str: str, metadata_file_path: str | None, json_output_flag: bool
+):
+    try:
+        source_uri = HttpUrl(source_uri_str)
+    except ValidationError as e:
+        if json_output_flag:
+            _print_json_response(
+                {
+                    "success": False,
+                    "error": f"Invalid source URI: {source_uri_str}",
+                    "details": str(e),
+                },
+                success=False,
             )
-            # Note: The actual content is in the temp file; the service reads it on demand.
-            # num_tokens is not directly used by the service's read logic, but was cached.
+        else:
+            typer.secho(
+                f"❌ Invalid source URI: {source_uri_str}\n{e}",
+                fg=typer.colors.RED,
+                err=True,
+            )
+        raise typer.Exit(code=1)
 
-        request_params_dict = {
-            "doc_id": args.doc_id,
-            "start_offset": args.start_offset,
-            "end_offset": args.end_offset,
-        }
-    elif action_str == ReaderAction.LIST_DIR.value:
-        request_params_dict = {
-            "directory": args.directory,
-            "recursive": args.recursive,
-            "file_types": args.file_types,
-        }
-    else:  # Should be caught by argparse
-        ap.error(f"Unknown command: {action_str}")
-        sys.exit(1)  # Should not be reached
+    metadata_content: dict[str, Any] | None = None
+    if metadata_file_path:
+        try:
+            metadata_path = Path(metadata_file_path)
+            if not metadata_path.exists():
+                err_msg = f"Metadata file not found: {metadata_file_path}"
+                if json_output_flag:
+                    _print_json_response(
+                        {"success": False, "error": err_msg}, success=False
+                    )
+                else:
+                    typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+                raise typer.Exit(code=1)
+            with open(metadata_path, encoding="utf-8") as f:
+                metadata_content = json.load(f)
+        except json.JSONDecodeError as e:
+            err_msg = (
+                f"Error decoding JSON from metadata file {metadata_file_path}: {e}"
+            )
+            if json_output_flag:
+                _print_json_response(
+                    {"success": False, "error": err_msg}, success=False
+                )
+            else:
+                typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        except Exception as e:
+            err_msg = f"Error reading metadata file {metadata_file_path}: {e}"
+            if json_output_flag:
+                _print_json_response(
+                    {"success": False, "error": err_msg}, success=False
+                )
+            else:
+                typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
 
-    # Add the action string to the dict that will be passed to build the Pydantic model
-    full_request_dict = {"action": ReaderAction(action_str), **request_params_dict}
-    _handle_request_and_print(full_request_dict)
+    minio_endpoint_url = os.getenv("MINIO_ENDPOINT_URL")
+    minio_access_key = os.getenv("MINIO_ACCESS_KEY")
+    minio_secret_key = os.getenv("MINIO_SECRET_KEY")
+    minio_bucket_name = os.getenv(
+        "MINIO_BUCKET_NAME_READER_INGEST", "khive-reader-ingest"
+    )
+
+    if not all([
+        minio_endpoint_url,
+        minio_access_key,
+        minio_secret_key,
+        minio_bucket_name,
+    ]):
+        err_msg = (
+            "MinIO client configuration not fully set. Please set MINIO_ENDPOINT_URL, "
+            "MINIO_ACCESS_KEY, MINIO_SECRET_KEY, and MINIO_BUCKET_NAME_READER_INGEST env vars."
+        )
+        if json_output_flag:
+            _print_json_response({"success": False, "error": err_msg}, success=False)
+        else:
+            typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        storage_client = ObjectStorageClient(
+            endpoint_url=minio_endpoint_url,
+            access_key=minio_access_key,
+            secret_key=minio_secret_key,
+            bucket_name=minio_bucket_name,
+            secure=minio_endpoint_url.startswith("https"),
+        )
+        if not storage_client.ensure_bucket_exists():
+            err_msg = f"Failed to ensure MinIO bucket '{minio_bucket_name}' exists."
+            if json_output_flag:
+                _print_json_response(
+                    {"success": False, "error": err_msg}, success=False
+                )
+            else:
+                typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+    except Exception as e:
+        err_msg = f"Failed to initialize ObjectStorageClient: {e}"
+        if json_output_flag:
+            _print_json_response(
+                {"success": False, "error": err_msg, "type": type(e).__name__},
+                success=False,
+            )
+        else:
+            typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    document_repository = InMemoryDocumentRepository()  # Placeholder
+    ingestion_service = DocumentIngestionService(document_repository, storage_client)
+
+    try:
+        ingested_doc: (
+            IngestDocument | None
+        ) = await ingestion_service.ingest_document_from_url(
+            source_uri=source_uri,
+            metadata_file_content=metadata_content,
+        )
+        if ingested_doc:
+            if json_output_flag:
+                # Directly print and exit for simplicity in debugging runner behavior
+                typer.echo(
+                    ingested_doc.model_dump_json(by_alias=True, exclude_none=True)
+                )
+            else:
+                typer.secho("Document Ingestion Summary:", fg=typer.colors.GREEN)
+                typer.echo(f"  ID: {ingested_doc.id}")
+                typer.echo(f"  Source URI: {ingested_doc.source_uri}")
+                typer.echo(f"  Status: {ingested_doc.status.value}")
+                typer.echo(f"  Storage Path: {ingested_doc.storage_path or 'N/A'}")
+                typer.echo(f"  Size (bytes): {ingested_doc.size_bytes or 'N/A'}")
+                if ingested_doc.error_message:
+                    typer.secho(
+                        f"  Error: {ingested_doc.error_message}", fg=typer.colors.YELLOW
+                    )
+            # Ensure this is the only exit path for success in this block
+            # The previous _print_json_response might have interfered with runner's exit code capture
+            # if it didn't raise an exit itself.
+            raise typer.Exit(code=0)
+        else:  # ingested_doc is None
+            err_msg = f"Document ingestion failed for URI: {source_uri_str}"
+            if json_output_flag:
+                _print_json_response(
+                    {"success": False, "error": err_msg}, success=False
+                )
+            else:
+                typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+    except Exception as e:
+        err_msg = f"An error occurred during ingestion: {type(e).__name__}: {e}"
+        if json_output_flag:
+            _print_json_response(
+                {"success": False, "error": err_msg, "type": type(e).__name__},
+                success=False,
+            )
+        else:
+            typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
+@app.command("ingest")
+def ingest_document_command(
+    source_uri: Annotated[
+        str, typer.Option(help="The source URI (URL) of the document to ingest.")
+    ],
+    metadata_file: Annotated[
+        Path | None,
+        typer.Option(
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Optional path to a JSON file containing metadata for the document.",
+        ),
+    ] = None,  # Removed exists=True
+    json_output: Annotated[
+        bool,
+        typer.Option("--json-output", help="Output ingestion result in JSON format."),
+    ] = False,
+):
+    """Ingest a document from a source URI into the system."""
+    metadata_file_str = str(metadata_file) if metadata_file else None
+    asyncio.run(_ingest_document_async(source_uri, metadata_file_str, json_output))
 
 
 if __name__ == "__main__":
-    main()
+    app()

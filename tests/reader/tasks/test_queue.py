@@ -1,12 +1,15 @@
 import asyncio
+
 import pytest
 import pytest_asyncio
 from khive.reader.tasks.queue import AsyncTaskQueue
+
 
 @pytest_asyncio.fixture
 async def task_queue() -> AsyncTaskQueue[str]:
     """Provides an instance of AsyncTaskQueue for testing."""
     return AsyncTaskQueue[str]()
+
 
 @pytest.mark.asyncio
 async def test_submit_and_get_task(task_queue: AsyncTaskQueue[str]):
@@ -31,12 +34,14 @@ async def test_submit_and_get_task(task_queue: AsyncTaskQueue[str]):
 
 
 @pytest.mark.asyncio
-async def test_get_task_from_empty_queue_blocks_and_retrieves(task_queue: AsyncTaskQueue[str]):
+async def test_get_task_from_empty_queue_blocks_and_retrieves(
+    task_queue: AsyncTaskQueue[str],
+):
     """Test that get_task blocks until an item is available and then retrieves it."""
     test_item = "document_id_456"
 
     async def producer():
-        await asyncio.sleep(0.01) # Ensure consumer starts waiting
+        await asyncio.sleep(0.01)  # Ensure consumer starts waiting
         await task_queue.submit_task(test_item)
 
     async def consumer():
@@ -47,10 +52,11 @@ async def test_get_task_from_empty_queue_blocks_and_retrieves(task_queue: AsyncT
     consumer_task = asyncio.create_task(consumer())
 
     retrieved_item = await consumer_task
-    await producer_task # Ensure producer completes
+    await producer_task  # Ensure producer completes
 
     assert retrieved_item == test_item
     task_queue.task_done()
+
 
 @pytest.mark.asyncio
 async def test_multiple_tasks_retrieved_in_order(task_queue: AsyncTaskQueue[str]):
@@ -62,10 +68,11 @@ async def test_multiple_tasks_retrieved_in_order(task_queue: AsyncTaskQueue[str]
     retrieved_items = []
     for _ in items:
         retrieved_items.append(await task_queue.get_task())
-        task_queue.task_done() # Mark each task as done
+        task_queue.task_done()  # Mark each task as done
 
     assert retrieved_items == items
     assert task_queue.empty()
+
 
 @pytest.mark.asyncio
 async def test_task_done_functionality(task_queue: AsyncTaskQueue[str]):
@@ -78,7 +85,7 @@ async def test_task_done_functionality(task_queue: AsyncTaskQueue[str]):
 
     # join() should block if task_done() hasn't been called
     join_task_before_done = asyncio.create_task(task_queue.join())
-    await asyncio.sleep(0.01) # Give join_task a chance to run and block
+    await asyncio.sleep(0.01)  # Give join_task a chance to run and block
     assert not join_task_before_done.done()
 
     task_queue.task_done()
@@ -87,17 +94,19 @@ async def test_task_done_functionality(task_queue: AsyncTaskQueue[str]):
     await asyncio.wait_for(join_task_before_done, timeout=0.1)
     assert join_task_before_done.done()
 
+
 @pytest.mark.asyncio
 async def test_join_empty_queue(task_queue: AsyncTaskQueue[str]):
     """Test that join() on an empty queue returns immediately."""
-    await asyncio.wait_for(task_queue.join(), timeout=0.01) # Should not block
+    await asyncio.wait_for(task_queue.join(), timeout=0.01)  # Should not block
+
 
 @pytest.mark.asyncio
 async def test_qsize_empty_full_methods(task_queue: AsyncTaskQueue[str]):
     """Test qsize, empty, and full methods."""
     assert task_queue.qsize() == 0
     assert task_queue.empty()
-    assert not task_queue.full() # Infinite size queue is never full
+    assert not task_queue.full()  # Infinite size queue is never full
 
     await task_queue.submit_task("task1")
     assert task_queue.qsize() == 1
@@ -109,6 +118,7 @@ async def test_qsize_empty_full_methods(task_queue: AsyncTaskQueue[str]):
     assert task_queue.qsize() == 0
     assert task_queue.empty()
 
+
 @pytest.mark.asyncio
 async def test_queue_with_maxsize(mocker):
     """Test queue behavior with a maxsize."""
@@ -119,17 +129,17 @@ async def test_queue_with_maxsize(mocker):
 
     # Test that submitting to a full queue blocks (or would raise if not awaited carefully)
     submit_block_task = asyncio.create_task(queue_max_size.submit_task(2))
-    await asyncio.sleep(0.01) # Give it a chance to block
-    assert not submit_block_task.done() # It should be blocked
+    await asyncio.sleep(0.01)  # Give it a chance to block
+    assert not submit_block_task.done()  # It should be blocked
 
     item = await queue_max_size.get_task()
     assert item == 1
     queue_max_size.task_done()
 
-    await asyncio.wait_for(submit_block_task, timeout=0.1) # Now it should complete
+    await asyncio.wait_for(submit_block_task, timeout=0.1)  # Now it should complete
     assert submit_block_task.done()
     assert not queue_max_size.empty()
-    assert queue_max_size.full() # Item 2 is now in
+    assert queue_max_size.full()  # Item 2 is now in
 
     item2 = await queue_max_size.get_task()
     assert item2 == 2

@@ -335,7 +335,8 @@ def create_document(
     custom_vars_cli: dict[str, str],
     force_overwrite: bool,
 ) -> dict[str, Any]:
-    results: dict[str, Any] = {"status": "failure"}
+    # Initialize results; status will be explicitly set to "success", "error", or "success_dry_run"
+    results: dict[str, Any] = {"status": "error", "message": "Operation failed"}
 
     # Merge default_vars from config with CLI vars (CLI takes precedence)
     final_custom_vars = {**config.default_vars, **custom_vars_cli}
@@ -430,10 +431,14 @@ def create_document(
         return results
 
     if output_path.exists() and not force_overwrite:
-        results["message"] = (
-            f"File already exists: {output_path.relative_to(config.project_root)}. Use --force to overwrite."
-        )
-        return results
+        msg = f"Output file '{output_path.relative_to(config.project_root)}' already exists. Use --force to overwrite."
+        if not config.json_output:
+            error_msg_doc(msg)
+        return {
+            "status": "error",
+            "message": msg,
+            "output_path": str(output_path.relative_to(config.project_root)),
+        }
 
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -449,8 +454,40 @@ def create_document(
             else template.path
         )
         info_msg_doc(results["message"], console=not config.json_output)
-    except Exception as e:
-        results["message"] = f"Failed to write document to {output_path}: {e}"
+    except PermissionError as e:
+        msg = f"Permission denied: Cannot create directory or write file at '{output_path}'. Details: {e}"
+        results["status"] = "error"
+        results["message"] = msg
+        if not config.json_output:
+            error_msg_doc(msg)
+    except FileExistsError as e:  # Raised by mkdir if a path component is a file
+        msg = f"Path conflict: A component of the destination path '{output_dir}' is a file, but a directory is needed. Details: {e}"
+        results["status"] = "error"
+        results["message"] = msg
+        if not config.json_output:
+            error_msg_doc(msg)
+    except (
+        NotADirectoryError
+    ) as e:  # Raised if a base path component is not a directory
+        msg = f"Invalid path: A component of the base destination path '{base_output_dir}' or template output subdir '{template.output_subdir}' is not a directory. Details: {e}"
+        results["status"] = "error"
+        results["message"] = msg
+        if not config.json_output:
+            error_msg_doc(msg)
+    except OSError as e:  # Catch other OS-level errors related to file system
+        msg = f"Filesystem error: Could not create directory or write file at '{output_path}'. Details: {e}"
+        results["status"] = "error"
+        results["message"] = msg
+        if not config.json_output:
+            error_msg_doc(msg)
+    except Exception as e:  # Fallback for any other unexpected error
+        msg = (
+            f"An unexpected error occurred while creating document '{output_path}': {e}"
+        )
+        results["status"] = "error"
+        results["message"] = msg
+        if not config.json_output:
+            error_msg_doc(msg)
 
     return results
 
@@ -621,12 +658,13 @@ def main() -> None:
 
     if config.json_output:
         print(json.dumps(results, indent=2))
-    # Human-readable summary is mostly handled by create_document
-    elif results.get("status") not in ["success", "success_dry_run"]:
-        # Error already printed by die_doc or create_document if it was a soft error
-        pass
+    # Human-readable error messages for non-JSON mode are now handled
+    # within create_document (for its specific errors) or by die_doc (for earlier CLI errors).
+    # create_document calls info_msg_doc on success.
 
-    if results.get("status") == "failure":
+    # Exit with error code if status indicates failure/error
+    # Note: die_doc exits on its own. This handles results from create_document.
+    if results.get("status") not in ["success", "success_dry_run"]:
         sys.exit(1)
 
 

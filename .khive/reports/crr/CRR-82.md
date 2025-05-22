@@ -340,19 +340,19 @@ except (ValueError, TypeError) as e:
 try:
     limit_str = lower_headers.get(f"{prefix}limit")
     remaining_str = lower_headers.get(f"{prefix}remaining")
-    
+
     if not limit_str or not remaining_str:
         logger.warning(f"Missing required rate limit headers: {prefix}limit or {prefix}remaining")
         return
-        
+
     try:
         limit = int(limit_str)
         remaining = int(remaining_str)
-        
+
         if limit <= 0:
             logger.warning(f"Invalid rate limit value: {limit}")
             return
-            
+
         # Continue with processing...
     except ValueError:
         logger.warning(f"Non-numeric rate limit values: limit={limit_str}, remaining={remaining_str}")
@@ -397,7 +397,7 @@ def __init__(
     # ...
     self.safety_factor = safety_factor
     self.provider_safety_factors = provider_safety_factors or {}
-    
+
 def get_safety_factor(self, provider: str = None) -> float:
     """Get the appropriate safety factor for the given provider."""
     if provider and provider in self.provider_safety_factors:

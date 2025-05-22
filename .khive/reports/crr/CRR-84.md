@@ -336,7 +336,7 @@ tests.
 @pytest.mark.skip("Endpoint integration tests require more complex mocking")
 class TestEndpointResilience:
     """Integration tests for Endpoint with resilience patterns."""
-    
+
     @pytest.mark.asyncio
     async def test_endpoint_with_circuit_breaker(self):
         # Test implementation...
@@ -344,14 +344,14 @@ class TestEndpointResilience:
 # Suggested implementation
 class TestEndpointResilience:
     """Integration tests for Endpoint with resilience patterns."""
-    
+
     @pytest.fixture
     def mock_endpoint_client(self):
         # Implement proper mocking for the Endpoint client
         client = AsyncMock()
         # Configure the mock
         return client
-    
+
     @pytest.mark.asyncio
     async def test_endpoint_with_circuit_breaker(self, mock_endpoint_client):
         # Test implementation with proper mocking
@@ -388,20 +388,20 @@ if self.state == CircuitState.HALF_OPEN:
 async def _handle_half_open_state(self) -> bool:
     """
     Handle the half-open state of the circuit breaker.
-    
+
     Returns:
         bool: True if the request can proceed, False otherwise.
     """
     if self._half_open_calls >= self.half_open_max_calls:
         self._metrics["rejected_count"] += 1
-        
+
         logger.warning(
             f"Circuit '{self.name}' is HALF_OPEN and at capacity. "
             f"Try again later."
         )
-        
+
         return False
-    
+
     self._half_open_calls += 1
     return True
 ```

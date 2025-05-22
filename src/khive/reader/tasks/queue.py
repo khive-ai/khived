@@ -1,12 +1,14 @@
 import asyncio
-from typing import Any, TypeVar, Generic
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
+
 
 class AsyncTaskQueue(Generic[T]):
     """
     An asynchronous task queue based on asyncio.Queue.
     """
+
     def __init__(self, maxsize: int = 0):
         """
         Initializes the task queue.

@@ -12,9 +12,11 @@ dependencies = [
     "lionfuncs>=3.2.0",
     "orjson>=3.10.18",
     "pydantic-settings>=2.0.0",
-    "pydapter>=0.1.7",
+    "pydapter>=0.1.8",
     "pyyaml>=6.0.0",
     "tiktoken>=0.9.0",
+    "boto3>=1.34.0", # For S3/MinIO object storage
+    "docling>=2.33.0", # For reader open/read/list functionality
 ]
 
 [dependency-groups]
@@ -36,7 +38,7 @@ dev = [
 reader = [
     "docling>=2.31.0",
     "openai>=1.70.0",
-    "sentence-transformers>=2.2.0",
+    "sentence-transformers>=4.1.0",
     "PyPDF2>=3.0.0",
     "python-docx>=1.0.0",
     "html2text>=2020.1.16",
@@ -65,11 +67,13 @@ all = [
     "PyPDF2>=3.0.0",
     "python-docx>=1.0.0",
     "html2text>=2020.1.16",
+    "sentence-transformers>=4.1.0",
 ]
 
 [tool.pytest.ini_options]
 addopts = "-ra --cov=khive --cov-report=term-missing"
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["hatchling"]
