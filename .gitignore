@@ -182,4 +182,6 @@ khive/third_party/openai_models.py
 
 .roomodes
 .roo
-.khive/
+.khive/dev/
+.khive/mcps/
+.khive/prompts/
