@@ -32,6 +32,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Any, Final
+from uuid import UUID
 
 # --------------------------------------------------------------------------- #
 # khive reader                                                                #
@@ -48,7 +49,28 @@ try:
         ReaderRequest,  # Main request model
         ReaderResponse,  # Main response model
     )
-    from khive.services.reader.reader_service import ReaderServiceGroup
+    from khive.services.reader.reader_service import (
+        ReaderServiceGroup,  # Existing service
+    )
+
+    # Attempt to import the new DocumentSearchService and its dependencies
+    try:
+        # Assuming EmbeddingGenerator and DocumentChunkRepository might be in these locations or similar
+        # These are placeholders for now, actual imports will depend on project structure
+        from khive.reader.services.search_service import (
+            DocumentChunkRepository,  # Placeholder from search_service.py
+            DocumentSearchService,
+            EmbeddingGenerator,  # Placeholder from search_service.py
+        )
+    except ImportError as e_search:
+        # This allows the rest of the CLI to function if search service parts are not yet finalized/available
+        DocumentSearchService = None  # type: ignore
+        EmbeddingGenerator = None  # type: ignore
+        DocumentChunkRepository = None  # type: ignore
+        print(
+            f"Warning: Could not import DocumentSearchService or its dependencies: {e_search}",
+            file=sys.stderr,
+        )
 
     # Attempt to import DB and task queue, provide fallbacks if not found for CLI standalone use
     try:
@@ -281,13 +303,43 @@ def main() -> None:
         help="Only list files with these extensions (e.g. .md .txt)",
     )
 
+    # --- search ------------------------------------------------------------- #
+    sp_search = sub.add_parser(
+        "search", help="Search for document chunks based on a query"
+    )
+    sp_search.add_argument(
+        "--query",
+        required=True,
+        help="The search query string.",
+    )
+    sp_search.add_argument(
+        "--document-id",
+        default=None,
+        type=str,  # Read as string, convert to UUID in handler
+        help="Optional UUID of a specific document to filter search by.",
+    )
+    sp_search.add_argument(
+        "--top-k",
+        default=5,
+        type=int,
+        help="The maximum number of results to return (default: 5).",
+    )
+    sp_search.add_argument(
+        "--json-output",
+        action=argparse.BooleanOptionalAction,  # Use BooleanOptionalAction for --json-output/--no-json-output
+        default=False,
+        help="Output results in JSON format.",
+    )
 
-# --- performance -------------------------------------------------------- #
-perf_parser = sub.add_parser("performance", help="Check performance thresholds")
-perf_parser.add_argument("--json", action="store_true", help="Output results as JSON")
+    # --- performance -------------------------------------------------------- #
+    perf_parser = sub.add_parser("performance", help="Check performance thresholds")
+    perf_parser.add_argument(
+        "--json", action="store_true", help="Output results as JSON"
+    )
+
+    args = ap.parse_args()
 
 
-args = ap.parse_args()
 action_str = args.action_command
 
 # Prepare request dictionary based on the subcommand
@@ -319,6 +371,80 @@ elif action_str == ReaderAction.LIST_DIR.value:
         "recursive": args.recursive,
         "file_types": args.file_types,
     }
+elif action_str == "search":
+    if (
+        not DocumentSearchService
+        or not EmbeddingGenerator
+        or not DocumentChunkRepository
+    ):
+        sys.stderr.write(
+            "❌ Search functionality is not available due to missing service components.\n"
+        )
+        sys.exit(1)
+
+    try:
+        # Instantiate dependencies for DocumentSearchService
+        # These would ideally be injected or retrieved from a service locator
+        # For CLI simplicity, direct instantiation or placeholders are used
+        embedding_gen = EmbeddingGenerator()  # Placeholder instantiation
+        doc_chunk_repo = DocumentChunkRepository()  # Placeholder instantiation
+
+        search_service = DocumentSearchService(
+            embedding_generator=embedding_gen,
+            document_chunk_repository=doc_chunk_repo,
+        )
+
+        doc_id_uuid: UUID | None = None
+        if args.document_id:
+            try:
+                doc_id_uuid = UUID(args.document_id)
+            except ValueError:
+                sys.stderr.write(
+                    f"❌ Invalid Document ID format: {args.document_id}. Must be a valid UUID.\n"
+                )
+                sys.exit(1)
+
+        if args.top_k <= 0:
+            sys.stderr.write(
+                f"❌ Top K must be a positive integer, got: {args.top_k}.\n"
+            )
+            sys.exit(1)
+
+        search_results: list[dict[str, Any]] = search_service.search(
+            query=args.query,
+            document_id=doc_id_uuid,
+            top_k=args.top_k,
+        )
+
+        if args.json_output:
+            print(json.dumps(search_results, ensure_ascii=False, indent=2))
+        else:
+            if search_results:
+                print(f'Search results for query: "{args.query}"')
+                for i, res in enumerate(search_results):
+                    print(f"  Result {i + 1}:")
+                    print(f"    Chunk ID: {res.get('chunk_id', 'N/A')}")
+                    print(f"    Document ID: {res.get('document_id', 'N/A')}")
+                    print(f"    Score: {res.get('score', 0.0):.4f}")
+                    text_snippet = (res.get("text", "") or "")[
+                        :200
+                    ]  # Ensure text is not None
+                    print(f"    Text: {text_snippet}...")
+            else:
+                print(f'No results found for query: "{args.query}"')
+        sys.exit(0)
+
+    except NotImplementedError:
+        sys.stderr.write(
+            "❌ Search service or its dependencies are not fully implemented.\n"
+        )
+        sys.exit(1)
+    except Exception as e:
+        sys.stderr.write(
+            f"❌ An error occurred during search: {type(e).__name__}: {e}\n"
+        )
+        sys.exit(1)
+
 elif action_str == "performance":
     result = asyncio.run(check_performance())
 
@@ -354,11 +480,15 @@ else:  # Should be caught by argparse
     sys.exit(1)  # Should not be reached
 
 # Add the action string to the dict that will be passed to build the Pydantic model
-if action_str in [
-    ReaderAction.OPEN.value,
-    ReaderAction.READ.value,
-    ReaderAction.LIST_DIR.value,
-]:
+if (
+    action_str
+    in [
+        ReaderAction.OPEN.value,
+        ReaderAction.READ.value,
+        ReaderAction.LIST_DIR.value,
+    ]
+    and action_str != "search"
+):  # Ensure search command doesn't go through this path
     full_request_dict = {"action": ReaderAction(action_str), **request_params_dict}
     _handle_request_and_print(full_request_dict)
 
