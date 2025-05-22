@@ -27,16 +27,20 @@ Errors go to stderr and a non-zero exit code.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import sys
 from pathlib import Path
 from typing import Any, Final
+from uuid import UUID
 
 # --------------------------------------------------------------------------- #
 # khive reader                                                                #
 # --------------------------------------------------------------------------- #
 try:
     # Assuming parts.py and reader_service.py are in khive.services.reader
+    # Imports for performance command
+    from khive.reader.monitoring.thresholds import PerformanceMonitor
     from khive.services.reader.parts import (  # Import specific param models
         ReaderAction,
         ReaderListDirParams,
@@ -45,7 +49,73 @@ try:
         ReaderRequest,  # Main request model
         ReaderResponse,  # Main response model
     )
-    from khive.services.reader.reader_service import ReaderServiceGroup
+    from khive.services.reader.reader_service import (
+        ReaderServiceGroup,  # Existing service
+    )
+
+    # Attempt to import the new DocumentSearchService and its dependencies
+    try:
+        # Assuming EmbeddingGenerator and DocumentChunkRepository might be in these locations or similar
+        # These are placeholders for now, actual imports will depend on project structure
+        from khive.reader.services.search_service import (
+            DocumentChunkRepository,  # Placeholder from search_service.py
+            DocumentSearchService,
+            EmbeddingGenerator,  # Placeholder from search_service.py
+        )
+    except ImportError as e_search:
+        # This allows the rest of the CLI to function if search service parts are not yet finalized/available
+        DocumentSearchService = None  # type: ignore
+        EmbeddingGenerator = None  # type: ignore
+        DocumentChunkRepository = None  # type: ignore
+        print(
+            f"Warning: Could not import DocumentSearchService or its dependencies: {e_search}",
+            file=sys.stderr,
+        )
+
+    # Attempt to import DB and task queue, provide fallbacks if not found for CLI standalone use
+    try:
+        from khive.reader.db import get_db_session  # type: ignore
+    except ImportError:
+
+        async def get_db_session():  # Placeholder
+            print(
+                "Warning: khive.reader.db.get_db_session not found for CLI performance check.",
+                file=sys.stderr,
+            )
+
+            class MockAsyncSession:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, tb):
+                    pass
+
+                async def execute(self, _stmt):  # Prefixed stmt with underscore
+                    class MockResult:
+                        def scalar(self):
+                            return 0
+
+                    return MockResult()
+
+            return MockAsyncSession()
+
+    try:
+        from khive.reader.tasks.queue import task_queue  # type: ignore
+    except ImportError:
+
+        class MockTaskQueue:  # Placeholder
+            def __init__(self):
+                self.pending_tasks = []
+
+            def qsize(self):
+                return len(self.pending_tasks)
+
+        task_queue = MockTaskQueue()
+        print(
+            "Warning: khive.reader.tasks.queue.task_queue not found for CLI performance check.",
+            file=sys.stderr,
+        )
+
 except ModuleNotFoundError as e:
     sys.stderr.write(
         f"❌ Required modules not found. Ensure khive.services.reader is in PYTHONPATH.\nError: {e}\n"
@@ -88,6 +158,34 @@ CACHE = _load_cache()
 # This global instance will persist self.documents within a single CLI execution
 # but not across multiple CLI executions unless we repopulate it from CACHE.
 reader_service = ReaderServiceGroup()
+
+# ANSI colors for performance command output
+ANSI = {
+    "R": "\033[91m",  # Red
+    "G": "\033[92m",  # Green
+    "Y": "\033[93m",  # Yellow
+    "N": "\033[0m",  # Normal (reset)
+}
+
+
+async def check_performance():
+    """Check performance thresholds and report status."""
+    try:
+        # Create performance monitor
+        # Ensure get_db_session and task_queue are available in this scope
+        # They are imported/defined above with fallbacks.
+        monitor = PerformanceMonitor(get_db_session, task_queue)
+
+        # Check all thresholds
+        results = await monitor.check_all_thresholds()
+
+        return {
+            "status": "success",
+            "thresholds": results,
+            "exceeded": any(t["exceeded"] for t in results.values()),
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Error checking performance: {e}"}
 
 
 def _handle_request_and_print(req_dict: dict[str, Any]) -> None:
@@ -205,46 +303,194 @@ def main() -> None:
         help="Only list files with these extensions (e.g. .md .txt)",
     )
 
+    # --- search ------------------------------------------------------------- #
+    sp_search = sub.add_parser(
+        "search", help="Search for document chunks based on a query"
+    )
+    sp_search.add_argument(
+        "--query",
+        required=True,
+        help="The search query string.",
+    )
+    sp_search.add_argument(
+        "--document-id",
+        default=None,
+        type=str,  # Read as string, convert to UUID in handler
+        help="Optional UUID of a specific document to filter search by.",
+    )
+    sp_search.add_argument(
+        "--top-k",
+        default=5,
+        type=int,
+        help="The maximum number of results to return (default: 5).",
+    )
+    sp_search.add_argument(
+        "--json-output",
+        action=argparse.BooleanOptionalAction,  # Use BooleanOptionalAction for --json-output/--no-json-output
+        default=False,
+        help="Output results in JSON format.",
+    )
+
+    # --- performance -------------------------------------------------------- #
+    perf_parser = sub.add_parser("performance", help="Check performance thresholds")
+    perf_parser.add_argument(
+        "--json", action="store_true", help="Output results as JSON"
+    )
+
     args = ap.parse_args()
-    action_str = args.action_command  # This is 'open', 'read', or 'list_dir'
 
-    # Prepare request dictionary based on the subcommand
-    request_params_dict: dict[str, Any] = {}
-    if action_str == ReaderAction.OPEN.value:
-        request_params_dict = {"path_or_url": args.path_or_url}
-    elif action_str == ReaderAction.READ.value:
-        # Resolve doc_id from cache if it's not in the live service instance
-        # This allows 'read' to work across different CLI invocations for the same doc_id
-        if args.doc_id not in reader_service.documents and args.doc_id in CACHE:
-            cached_doc_info = CACHE[args.doc_id]
-            # Repopulate the live service's document mapping for this process
-            # The service stores (temp_file_path, doc_length)
-            reader_service.documents[args.doc_id] = (
-                cached_doc_info["path"],
-                cached_doc_info["length"],
+
+action_str = args.action_command
+
+# Prepare request dictionary based on the subcommand
+request_params_dict: dict[str, Any] = {}
+if action_str == ReaderAction.OPEN.value:
+    request_params_dict = {"path_or_url": args.path_or_url}
+elif action_str == ReaderAction.READ.value:
+    # Resolve doc_id from cache if it's not in the live service instance
+    # This allows 'read' to work across different CLI invocations for the same doc_id
+    if args.doc_id not in reader_service.documents and args.doc_id in CACHE:
+        cached_doc_info = CACHE[args.doc_id]
+        # Repopulate the live service's document mapping for this process
+        # The service stores (temp_file_path, doc_length)
+        reader_service.documents[args.doc_id] = (
+            cached_doc_info["path"],
+            cached_doc_info["length"],
+        )
+        # Note: The actual content is in the temp file; the service reads it on demand.
+        # num_tokens is not directly used by the service's read logic, but was cached.
+
+    request_params_dict = {
+        "doc_id": args.doc_id,
+        "start_offset": args.start_offset,
+        "end_offset": args.end_offset,
+    }
+elif action_str == ReaderAction.LIST_DIR.value:
+    request_params_dict = {
+        "directory": args.directory,
+        "recursive": args.recursive,
+        "file_types": args.file_types,
+    }
+elif action_str == "search":
+    if (
+        not DocumentSearchService
+        or not EmbeddingGenerator
+        or not DocumentChunkRepository
+    ):
+        sys.stderr.write(
+            "❌ Search functionality is not available due to missing service components.\n"
+        )
+        sys.exit(1)
+
+    try:
+        # Instantiate dependencies for DocumentSearchService
+        # These would ideally be injected or retrieved from a service locator
+        # For CLI simplicity, direct instantiation or placeholders are used
+        embedding_gen = EmbeddingGenerator()  # Placeholder instantiation
+        doc_chunk_repo = DocumentChunkRepository()  # Placeholder instantiation
+
+        search_service = DocumentSearchService(
+            embedding_generator=embedding_gen,
+            document_chunk_repository=doc_chunk_repo,
+        )
+
+        doc_id_uuid: UUID | None = None
+        if args.document_id:
+            try:
+                doc_id_uuid = UUID(args.document_id)
+            except ValueError:
+                sys.stderr.write(
+                    f"❌ Invalid Document ID format: {args.document_id}. Must be a valid UUID.\n"
+                )
+                sys.exit(1)
+
+        if args.top_k <= 0:
+            sys.stderr.write(
+                f"❌ Top K must be a positive integer, got: {args.top_k}.\n"
             )
-            # Note: The actual content is in the temp file; the service reads it on demand.
-            # num_tokens is not directly used by the service's read logic, but was cached.
+            sys.exit(1)
 
-        request_params_dict = {
-            "doc_id": args.doc_id,
-            "start_offset": args.start_offset,
-            "end_offset": args.end_offset,
-        }
-    elif action_str == ReaderAction.LIST_DIR.value:
-        request_params_dict = {
-            "directory": args.directory,
-            "recursive": args.recursive,
-            "file_types": args.file_types,
-        }
-    else:  # Should be caught by argparse
-        ap.error(f"Unknown command: {action_str}")
-        sys.exit(1)  # Should not be reached
+        search_results: list[dict[str, Any]] = search_service.search(
+            query=args.query,
+            document_id=doc_id_uuid,
+            top_k=args.top_k,
+        )
 
-    # Add the action string to the dict that will be passed to build the Pydantic model
+        if args.json_output:
+            print(json.dumps(search_results, ensure_ascii=False, indent=2))
+        else:
+            if search_results:
+                print(f'Search results for query: "{args.query}"')
+                for i, res in enumerate(search_results):
+                    print(f"  Result {i + 1}:")
+                    print(f"    Chunk ID: {res.get('chunk_id', 'N/A')}")
+                    print(f"    Document ID: {res.get('document_id', 'N/A')}")
+                    print(f"    Score: {res.get('score', 0.0):.4f}")
+                    text_snippet = (res.get("text", "") or "")[
+                        :200
+                    ]  # Ensure text is not None
+                    print(f"    Text: {text_snippet}...")
+            else:
+                print(f'No results found for query: "{args.query}"')
+        sys.exit(0)
+
+    except NotImplementedError:
+        sys.stderr.write(
+            "❌ Search service or its dependencies are not fully implemented.\n"
+        )
+        sys.exit(1)
+    except Exception as e:
+        sys.stderr.write(
+            f"❌ An error occurred during search: {type(e).__name__}: {e}\n"
+        )
+        sys.exit(1)
+
+elif action_str == "performance":
+    result = asyncio.run(check_performance())
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        if result["status"] == "success":
+            print("Performance Threshold Check Results:")
+            for name, data in result["thresholds"].items():
+                status_text = "EXCEEDED" if data["exceeded"] else "OK"
+                color = ANSI["R"] if data["exceeded"] else ANSI["G"]
+                # Ensure values are float for formatting, handle None if necessary
+                current_val = data.get("current_value", 0.0)
+                threshold_val = data.get("threshold_value", 0.0)
+                print(
+                    f"{color}{name}{ANSI['N']}: {current_val:.2f} / {threshold_val:.2f} [{status_text}]"
+                )
+
+            if result["exceeded"]:
+                print(
+                    f"\n{ANSI['Y']}Some thresholds exceeded. Consider architecture changes.{ANSI['N']}"
+                )
+            else:
+                print(
+                    f"\n{ANSI['G']}All thresholds within acceptable limits.{ANSI['N']}"
+                )
+        else:
+            print(f"❌ {result['message']}", file=sys.stderr)
+            sys.exit(1)
+    sys.exit(0)  # Successful CLI execution for performance check
+else:  # Should be caught by argparse
+    ap.error(f"Unknown command: {action_str}")
+    sys.exit(1)  # Should not be reached
+
+# Add the action string to the dict that will be passed to build the Pydantic model
+if (
+    action_str
+    in [
+        ReaderAction.OPEN.value,
+        ReaderAction.READ.value,
+        ReaderAction.LIST_DIR.value,
+    ]
+    and action_str != "search"
+):  # Ensure search command doesn't go through this path
     full_request_dict = {"action": ReaderAction(action_str), **request_params_dict}
     _handle_request_and_print(full_request_dict)
-
 
 if __name__ == "__main__":
     main()

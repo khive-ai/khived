@@ -229,26 +229,26 @@ async def test_perplexity_search_success(self, mocker):
     # Arrange
     mock_endpoint = mocker.Mock()
     mock_endpoint.call = AsyncMock(return_value={"result": "success"})
-    
+
     # Mock the match_endpoint function
     mocker.patch(
         "khive.services.info.info_service.match_endpoint",
         return_value=mock_endpoint
     )
-    
+
     # Mock the PerplexityChatRequest class
     mock_request = mocker.Mock()
     mocker.patch(
         "khive.connections.providers.perplexity_.PerplexityChatRequest",
         return_value=mock_request
     )
-    
+
     service = InfoServiceGroup()
     params = {"query": "test"}
-    
+
     # Act
     response = await service._perplexity_search(params)
-    
+
     # Assert
     assert response.success is True
     assert response.action_performed == InfoAction.SEARCH
