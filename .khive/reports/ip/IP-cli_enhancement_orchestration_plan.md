@@ -398,14 +398,14 @@ async def run_iterative_precommit(config: CIConfig) -> dict[str, Any]:
     for iteration in range(config.max_iterations):
         # Run pre-commit
         result = await run_precommit()
-        
+
         # Check for convergence
         current_hashes = get_file_hashes()
         if detect_loop(file_hashes, current_hashes):
             break
-            
+
         file_hashes[iteration] = current_hashes
-        
+
     # Create approval stamp
     create_approval_stamp(config)
 ```
