@@ -1,1101 +1,315 @@
 ---
-title: Layered Resource Control Architecture
-by: khive-architect
-created: 2025-05-18
-updated: 2025-05-18
-version: 1.0
-doc_type: TDS
-output_subdir: tds
-description: Technical design specification for the layered resource control architecture, defining component responsibilities for async operations, connections, and endpoints
-date: 2025-05-18
+title: "Technical Design Specification: Layered Resource Control Architecture (Issue #80)"
+by: "@khive-architect"
+created: "2025-05-22"
+updated: "2025-05-22"
+version: "1.0"
+doc_type: "TDS"
+identifier: "80"
+output_subdir: "tds"
+description: "Defines a layered resource control architecture for khive, leveraging lionfuncs components as per Issue #80 and TDS-100."
 ---
 
-# Technical Design Specification: Layered Resource Control Architecture
+# Guidance
+
+**Purpose**
+Lay out an **implementation-ready** blueprint for `khive`'s resource control architecture, detailing how it leverages the `lionfuncs` package for external API interactions, rate limiting, and concurrency.
+
+**When to Use**
+- After Research and initial architectural proposals (Issue #80, Issue #100, TDS-100.md).
+- Before the Implementation Plan for these architectural changes.
+
+**Best Practices**
+- Keep the design as **complete** as possible.
+- Emphasize how `lionfuncs` components map to the architectural layers.
+- Use diagrams (Mermaid) for clarity.
+
+---
+
+# Technical Design Specification: Layered Resource Control Architecture (Issue #80)
 
 ## 1. Overview
 
 ### 1.1 Purpose
-
-Define a comprehensive layered architecture pattern for the async resource
-control system, establishing clear separation of concerns and component
-responsibilities to ensure reliable, maintainable, and efficient access to
-external resources.
+This document details the technical design for a layered resource control architecture within `khive`. This architecture aims to provide clear separation of concerns for handling external API interactions, focusing on rate limiting, concurrent execution, and resource management. It heavily leverages the `lionfuncs` package, as outlined in Issue #100 and `TDS-100.md`, to provide the underlying infrastructure for these concerns.
 
 ### 1.2 Scope
+**In Scope:**
+- Definition of the architectural layers for resource control in `khive`.
+- Specification of which `lionfuncs` components (e.g., `NetworkExecutor`, `AsyncAPIClient`, `BoundedQueue`) are used at each layer.
+- Definition of `khive`-specific wrapper classes or service layers that utilize `lionfuncs`.
+- Clear definition of component responsibilities and their interfaces (Python Protocols).
+- Interaction diagrams illustrating request flows.
+- Description of resource lifecycle management within `khive`.
 
-This specification covers:
-
-- The overall layered architecture pattern
-- Component responsibilities and interfaces
-- Implementation patterns for rate limiting and concurrency control
-- Error handling and resilience mechanisms
-- Integration with existing codebase
-
-This specification does not cover:
-
-- Specific UI components or user interactions
-- Deployment infrastructure details
-- Authentication and authorization mechanisms (beyond API key handling)
+**Out of Scope:**
+- The actual implementation of the code changes.
+- Detailed design of `lionfuncs` itself (assumed to be a provided, functional library).
+- Changes to `khive`'s core business logic unrelated to resource control and external API communication.
 
 ### 1.3 Background
+This design is based on the architectural proposal in **Issue #80: "Architecture: Define a layered resource control architecture with clear component responsibilities"** and the strategic direction to use `lionfuncs` for network and concurrency primitives as detailed in **Issue #100: "Architectural Refactor: Align Clients, Executor, Queue with New Design Philosophy"** and **`TDS-100.md`**.
 
-The current implementation includes components for API calls, model definitions,
-rate-limited execution, and queuing, but would benefit from a more formalized
-architecture with clearly defined interfaces and responsibilities. This need was
-identified in Issue #80.
+The proposed layers from Issue #80 are:
+1.  User-Facing API (e.g., `khive` CLI)
+2.  Service Layer (`khive` specific, e.g., `InfoService`)
+3.  Rate Limited Executor
+4.  Resource Client
 
-The existing code in `src/khive/connections/` and `src/khive/services/`
-demonstrates patterns that can be extended and formalized in this architecture.
+This TDS will adapt this layered model to incorporate `lionfuncs` components.
 
 ### 1.4 Design Goals
-
-- **Separation of concerns**: Each component should have a clear, single
-  responsibility
-- **Resilience**: Gracefully handle failures in external resources
-- **Efficiency**: Optimize resource usage and prevent overwhelming external
-  services
-- **Maintainability**: Enable independent evolution of components
-- **Testability**: Support unit testing of components in isolation
-- **Extensibility**: Allow for adding new resource types and rate limiting
-  strategies
+-   **Clear Layering:** Establish well-defined layers for resource control.
+-   **`lionfuncs` Integration:** Effectively utilize `lionfuncs` for rate limiting, execution, and client interactions.
+-   **Decoupling:** Decouple `khive` application logic from the complexities of direct external API management.
+-   **Maintainability:** Improve code organization and maintainability.
+-   **Testability:** Ensure components are easily testable, with clear mocking points for `lionfuncs`.
+-   **Lifecycle Management:** Define robust lifecycle management for all components.
 
 ### 1.5 Key Constraints
-
-- Must support asynchronous operations with Python's asyncio
-- Must handle rate limits of various external APIs
-- Must provide backpressure mechanisms to prevent overload
-- Must ensure proper resource cleanup in all circumstances
-- Must be compatible with existing codebase patterns
+-   All external API calls from `khive` must be routed through this new architecture, utilizing `lionfuncs`.
+-   Existing `khive` user-facing interfaces (CLI) should remain largely unchanged.
+-   The design must align with the principles outlined in Issue #80 and `TDS-100.md`.
 
 ## 2. Architecture
 
 ### 2.1 Component Diagram
+The architecture integrates `khive`'s service layer with `lionfuncs` for resource control and external communication.
 
 ```mermaid
 graph TD
-    A[User-Facing API] --> B[Service Layer]
-    B --> C[Rate Limited Executor]
-    C --> D[Resource Client]
-    B --> E[Models]
-    C --> F[Executor]
-    F --> G[Queue]
-    
-    subgraph "Presentation Layer"
-        A
+    subgraph khive Application
+        UserCLI["User-Facing API (khive CLI)"]
+        KhiveServiceLayer["khive Service Layer (e.g., InfoService, Future Services)"]
     end
-    
-    subgraph "Service Layer"
-        B
-        E
+
+    subgraph Resource Control Layer (Powered by lionfuncs)
+        direction LR
+        LionfuncsExecutor["lionfuncs.network.Executor (Handles Rate Limiting, Concurrency, Execution)"]
+        LionfuncsClient["lionfuncs.network.AsyncAPIClient / Endpoint Interactions (via Executor or directly if appropriate)"]
+        LionfuncsConcurrency["lionfuncs.concurrency (e.g., BoundedQueue, Semaphores - used by Executor or Service Layer)"]
     end
-    
-    subgraph "Resource Control Layer"
-        C
-        F
-        G
+
+    subgraph External Services
+        direction LR
+        ExtAPI1["External API 1 (e.g., Exa)"]
+        ExtAPI2["External API 2 (e.g., Perplexity)"]
+        ExtAPI_N["... Other APIs"]
     end
-    
-    subgraph "Resource Access Layer"
-        D
-    end
+
+    UserCLI --> KhiveServiceLayer
+    KhiveServiceLayer --> LionfuncsExecutor
+    %% KhiveServiceLayer might also directly use LionfuncsClient if Executor is purely for rate-limited execution of arbitrary functions
+    %% KhiveServiceLayer -.-> LionfuncsClient
+
+    LionfuncsExecutor --> LionfuncsClient %% Executor uses Client or configured Endpoints
+    LionfuncsClient --> ExtAPI1
+    LionfuncsClient --> ExtAPI2
+    LionfuncsClient --> ExtAPI_N
+
+    KhiveServiceLayer -.-> LionfuncsConcurrency %% For managing service-level concurrency if needed
+    LionfuncsExecutor -.-> LionfuncsConcurrency %% Executor internally uses concurrency primitives
 ```
+
+**Layer Mapping (Issue #80 to `lionfuncs`):**
+-   **User-Facing API:** Remains `khive` CLI and potentially other future interfaces.
+-   **Service Layer:** `khive`-specific services (e.g., [`InfoService`](src/khive/services/info/info_service.py:0)). This layer is responsible for:
+    -   Understanding `khive`'s application logic.
+    -   Preparing requests and interpreting responses.
+    -   Orchestrating calls to the `lionfuncs`-powered layers.
+-   **Rate Limited Executor:** Primarily fulfilled by `lionfuncs.network.Executor`, which is expected to handle rate limiting, retry logic, and concurrent execution of tasks (API calls). (Ref: `TDS-100.md`, conceptual `lionfuncs` Network Executor Usage Guide)
+-   **Resource Client:** Interactions with external APIs will be managed via `lionfuncs.network.AsyncAPIClient` or through endpoint configurations passed to `lionfuncs.network.Executor`. (Ref: `TDS-100.md`, conceptual `lionfuncs` Network Client Guide)
 
 ### 2.2 Dependencies
+-   **`khive` on `lionfuncs`:** `khive`'s service layer will directly depend on `lionfuncs` interfaces.
+-   **`lionfuncs`:** Provides `NetworkExecutor`, `AsyncAPIClient`, `EndpointConfig`, `RequestModel`, `ResponseModel`, and concurrency utilities (e.g., `BoundedQueue`). (Ref: `TDS-100.md`)
 
-- **Internal**:
-  - Python 3.10+ asyncio
-  - Pydantic for model validation
-  - Existing `khive` infrastructure
+## 3. Component Responsibilities & Interfaces
 
-- **External**:
-  - `httpx` for async HTTP requests
-  - `backoff` for retry mechanisms
-  - `aiocache` for caching responses
-  - Various API provider libraries (as needed)
+### 3.1 `khive` Service Layer (e.g., `InfoService`)
+-   **Responsibilities:**
+    -   Translate `khive` application requests into parameters suitable for `lionfuncs`.
+    -   Invoke `lionfuncs.network.Executor` (or `AsyncAPIClient` via Executor) with appropriate `EndpointConfig` and request data.
+    -   Handle responses and errors from `lionfuncs`, mapping them to `khive` domain models and exceptions.
+    -   Manage application-specific logic before and after external calls.
+    -   Potentially manage higher-level concurrency or batching using `lionfuncs.concurrency` if needed beyond what the `Executor` provides for individual calls.
+-   **Interface (Conceptual):**
+    ```python
+    from typing import Protocol, Any, Dict
+    from lionfuncs.network import NetworkExecutor # Assuming import
+    # from lionfuncs.models import ResponseModel # Assuming import
 
-### 2.3 Data Flow
+    class KhiveResourceService(Protocol):
+        def __init__(self, executor: NetworkExecutor, #... other dependencies
+                     ): ...
+
+        async def make_external_call(self, service_identifier: str, request_data: Dict[str, Any]) -> Any: # Actually lionfuncs.ResponseModel or mapped khive model
+            """
+            Makes a call to an external service identified by service_identifier.
+            Uses the lionfuncs.network.Executor for the actual call.
+            """
+            ...
+    ```
+
+### 3.2 `lionfuncs.network.Executor`
+-   **Responsibilities (as per `TDS-100.md` and conceptual docs):**
+    -   Execute tasks (functions, API calls via configured endpoints) concurrently.
+    -   Enforce rate limits per endpoint or globally.
+    -   Manage retry logic for failed attempts.
+    -   Utilize `lionfuncs.concurrency` primitives (e.g., `BoundedQueue`, semaphores) for managing concurrent operations.
+    -   Handle lifecycle of underlying resources if it manages clients directly (e.g., session pooling if `AsyncAPIClient` instances are created and managed per endpoint by the executor).
+-   **Interface (Conceptual, from `TDS-100.md` and Issue #80):**
+    ```python
+    from typing import Protocol, Any, Awaitable, Callable
+    # from lionfuncs.network import EndpointConfig, RequestModel, ResponseModel # Assuming imports
+
+    class ILionfuncsNetworkExecutor(Protocol):
+        async def execute(
+            self,
+            # Option 1: Pass a pre-configured client/callable
+            # func: Callable[..., Awaitable[ResponseModel]], *args, **kwargs
+            # Option 2: Pass endpoint config and request data (more likely for this layer)
+            endpoint_config: Any, # lionfuncs.network.EndpointConfig
+            request_data: Any, # lionfuncs.models.RequestModel
+            **kwargs # For additional execution options
+        ) -> Any: # lionfuncs.models.ResponseModel
+            ...
+
+        async def shutdown(self, timeout: float = None) -> None:
+            ...
+
+        # May also include methods for direct function execution if it's a general executor
+        # async def submit(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T: ...
+    ```
+    *Note: The exact signature will depend on `lionfuncs`'s actual API. `TDS-100.md` suggests `execute(endpoint_config, request_data)`.*
+
+### 3.3 `lionfuncs.network.AsyncAPIClient` / Endpoint Interaction
+-   **Responsibilities (as per `TDS-100.md` and conceptual docs):**
+    -   Direct interaction with a specific external API endpoint.
+    -   Handling HTTP request/response serialization/deserialization.
+    -   Managing connection pooling for its specific endpoint (if it's a long-lived client).
+    -   Authentication specific to an endpoint.
+-   **Interface (Conceptual):**
+    ```python
+    from typing import Protocol, Any
+    # from lionfuncs.models import RequestModel, ResponseModel # Assuming imports
+
+    class ILionfuncsAsyncAPIClient(Protocol):
+        async def request(self, request_data: Any # lionfuncs.models.RequestModel
+                          ) -> Any: # lionfuncs.models.ResponseModel
+            ...
+
+        async def close(self) -> None: ...
+        async def __aenter__(self) -> 'ILionfuncsAsyncAPIClient': ...
+        async def __aexit__(self, *args) -> None: ...
+    ```
+    *Note: `khive` services might not interact with `AsyncAPIClient` directly if the `NetworkExecutor` abstracts this away by taking `EndpointConfig`.*
+
+### 3.4 `lionfuncs.concurrency` (e.g., `BoundedQueue`)
+-   **Responsibilities (as per `TDS-100.md` and conceptual docs):**
+    -   Provide concurrency primitives like bounded queues, semaphores, etc.
+-   **Interface:** Standard interfaces for these primitives (e.g., `put`, `get` for a queue).
+    *`khive` services might use these directly for managing batches of tasks to submit to the `NetworkExecutor`, or the `NetworkExecutor` might use them internally.*
+
+## 4. Interaction Diagrams
+
+### 4.1 Request Flow: `khive info search`
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant Service as Service Layer
-    participant RateLimiter as Rate Limited Executor
-    participant ResourceClient as Resource Client
-    participant ExternalAPI as External API
-    
-    Client->>Service: Request operation
-    Service->>Service: Validate & transform request
-    Service->>RateLimiter: Execute controlled operation
-    
-    alt Rate limit allows immediate execution
-        RateLimiter->>ResourceClient: Call external resource
-    else Rate limit requires waiting
-        RateLimiter-->>RateLimiter: Wait for token availability
-        RateLimiter->>ResourceClient: Call external resource
-    end
-    
-    ResourceClient->>ExternalAPI: Make API request
-    ExternalAPI-->>ResourceClient: API response
-    ResourceClient-->>RateLimiter: Processed response
-    RateLimiter-->>Service: Rate-controlled response
-    Service-->>Client: Response with domain models
+    participant User
+    participant khive_CLI
+    participant InfoService_khive
+    participant Lionfuncs_NetworkExecutor
+    participant Lionfuncs_AsyncAPIClient_or_EndpointLogic
+    participant External_API (e.g., Exa)
+
+    User->>khive_CLI: khive info search --provider exa --query "..."
+    khive_CLI->>InfoService_khive: search(provider="exa", query="...")
+    InfoService_khive->>InfoService_khive: Prepare lionfuncs.EndpointConfig for Exa
+    InfoService_khive->>InfoService_khive: Prepare lionfuncs.RequestModel for Exa query
+    InfoService_khive->>Lionfuncs_NetworkExecutor: execute(exa_endpoint_config, exa_request_model)
+    Lionfuncs_NetworkExecutor->>Lionfuncs_NetworkExecutor: Acquire rate limit token
+    Lionfuncs_NetworkExecutor->>Lionfuncs_AsyncAPIClient_or_EndpointLogic: Make HTTP Call(request_model)
+    Lionfuncs_AsyncAPIClient_or_EndpointLogic->>External_API: HTTP POST /search
+    External_API-->>Lionfuncs_AsyncAPIClient_or_EndpointLogic: HTTP Response
+    Lionfuncs_AsyncAPIClient_or_EndpointLogic-->>Lionfuncs_NetworkExecutor: lionfuncs.ResponseModel
+    Lionfuncs_NetworkExecutor-->>InfoService_khive: lionfuncs.ResponseModel
+    InfoService_khive->>InfoService_khive: Process response, map to khive domain model
+    InfoService_khive-->>khive_CLI: Formatted results / khive model
+    khive_CLI-->>User: Display results
 ```
 
-## 3. Interface Definitions
-
-### 3.1 Component Interfaces
-
-#### 3.1.1 ResourceClient Interface
-
-```python
-from typing import Protocol, TypeVar, Any, Awaitable
-
-T = TypeVar('T')
-
-class ResourceClient(Protocol):
-    async def call(self, request: Any, **kwargs) -> Any: ...
-    async def close(self) -> None: ...
-    async def __aenter__(self) -> 'ResourceClient': ...
-    async def __aexit__(self, *args) -> None: ...
-```
-
-#### 3.1.2 Executor Interface
-
-```python
-from typing import Protocol, TypeVar, Any, Awaitable, Callable
-
-T = TypeVar('T')
-
-class Executor(Protocol):
-    async def execute(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T: ...
-    async def shutdown(self, timeout: float = None) -> None: ...
-```
-
-#### 3.1.3 RateLimiter Interface
-
-```python
-from typing import Protocol, TypeVar, Any, Awaitable, Callable
-
-T = TypeVar('T')
-
-class RateLimiter(Protocol):
-    async def acquire(self, tokens: float = 1.0) -> float: ...
-    async def execute(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T: ...
-```
-
-#### 3.1.4 Queue Interface
-
-```python
-from typing import Protocol, TypeVar, Callable, Awaitable, Any
-
-T = TypeVar('T')
-
-class Queue(Protocol):
-    async def put(self, item: T) -> bool: ...
-    async def get(self) -> T: ...
-    def task_done(self) -> None: ...
-    async def join(self) -> None: ...
-    async def start_workers(self, worker_func: Callable[[T], Awaitable[Any]], num_workers: int) -> None: ...
-    async def stop_workers(self, timeout: float = None) -> None: ...
-```
-
-#### 3.1.5 Service Interface
-
-```python
-from typing import Protocol, TypeVar, Any
-
-T = TypeVar('T')
-R = TypeVar('R')
-
-class Service(Protocol):
-    async def handle_request(self, request: T) -> R: ...
-```
-
-### 3.2 API Usage Examples
-
-```python
-# Example: Service using rate-limited resource client
-class APIService:
-    def __init__(self, client: ResourceClient, executor: Executor, rate_limiter: RateLimiter):
-        self.client = client
-        self.executor = executor
-        self.rate_limiter = rate_limiter
-    
-    async def call(self, request):
-        return await self.rate_limiter.execute(
-            self.executor.execute,
-            self.client.call,
-            request
-        )
-
-# Example: Using the service with async context manager
-async def example_usage():
-    async with APIService() as service:
-        # Resources automatically cleaned up
-        result = await service.call(request)
-```
-
-## 4. Data Models
-
-### 4.1 Core Models
-
-#### 4.1.1 Request Model
-
-```python
-from pydantic import BaseModel
-from typing import Dict, Any
-from datetime import datetime
-
-class RequestModel(BaseModel):
-    """Base model for API requests."""
-    request_id: str
-    timestamp: datetime = datetime.now()
-    
-    class Config:
-        frozen = True  # Make instances immutable
-```
-
-#### 4.1.2 Response Model
-
-```python
-class ResponseModel(BaseModel):
-    """Base model for API responses."""
-    response_id: str
-    request_id: str
-    timestamp: datetime
-    status: str
-    data: Dict[str, Any]
-    
-    class Config:
-        frozen = True
-```
-
-#### 4.1.3 Endpoint Configuration Model
-
-```python
-from pydantic import BaseModel, Field, PrivateAttr, SecretStr
-from typing import Optional, Dict, Any, Literal
-
-class EndpointConfig(BaseModel):
-    name: str
-    provider: str
-    transport_type: Literal["http", "sdk"] = "http"
-    base_url: Optional[str] = None
-    endpoint: str
-    method: str = "POST"
-    content_type: str = "application/json"
-    auth_type: str = "bearer"
-    api_key: Optional[str] = None
-    timeout: int = 300
-    max_retries: int = 3
-    default_headers: Dict[str, str] = Field(default_factory=dict)
-    client_kwargs: Dict[str, Any] = Field(default_factory=dict)
-    _api_key: Optional[str] = PrivateAttr(None)
-```
-
-## 5. Component Implementations
-
-### 5.1 ResourceClient Implementation
-
-The ResourceClient handles direct interaction with external APIs, including:
-
-- Session management and connection pooling
-- HTTP request/response handling
-- Authentication
-- Serialization/deserialization
-
-```python
-import httpx
-import asyncio
-from typing import Optional, Dict, Any
-
-class AsyncAPIClient:
-    """Generic async HTTP client for API interactions."""
-    def __init__(self, base_url: str, timeout: float = 10.0):
-        self.base_url = base_url
-        self.timeout = timeout
-        self._session: Optional[httpx.AsyncClient] = None
-        self._session_lock = asyncio.Lock()
-        
-    async def _get_session(self) -> httpx.AsyncClient:
-        """Get or create the shared session."""
-        async with self._session_lock:
-            if self._session is None:
-                self._session = httpx.AsyncClient(
-                    base_url=self.base_url,
-                    timeout=self.timeout
-                )
-            return self._session
-    
-    async def close(self) -> None:
-        """Close the client session."""
-        async with self._session_lock:
-            if self._session is not None:
-                await self._session.aclose()
-                self._session = None
-    
-    async def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Make a GET request to the API."""
-        session = await self._get_session()
-        response = await session.get(path, params=params)
-        response.raise_for_status()
-        return response.json()
-        
-    async def post(self, path: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Make a POST request to the API."""
-        session = await self._get_session()
-        response = await session.post(path, json=data)
-        response.raise_for_status()
-        return response.json()
-    
-    async def __aenter__(self):
-        await self._get_session()
-        return self
-        
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-```
-
-### 5.2 Rate Limiter Implementation
-
-The Rate Limiter manages resource usage by controlling the frequency of
-operations, using the token bucket algorithm (pplx:84684e8d) for smooth traffic
-shaping:
-
-```python
-import time
-import asyncio
-from typing import Callable, TypeVar, Any, Awaitable, Optional
-
-T = TypeVar('T')
-
-class TokenBucketRateLimiter:
-    """
-    Rate limiter using token bucket algorithm.
-    """
-    def __init__(
-        self, 
-        rate: float, 
-        period: float = 1.0, 
-        max_tokens: Optional[float] = None
-    ):
-        """
-        Initialize rate limiter.
-        
-        Args:
-            rate: Maximum number of tokens per period
-            period: Time period in seconds
-            max_tokens: Maximum token bucket capacity (defaults to rate)
-        """
-        self.rate = rate
-        self.period = period
-        self.max_tokens = max_tokens if max_tokens is not None else rate
-        self.tokens = self.max_tokens
-        self.last_refill = time.monotonic()
-        self._lock = asyncio.Lock()
-    
-    async def _refill(self) -> None:
-        """Refill tokens based on elapsed time."""
-        now = time.monotonic()
-        elapsed = now - self.last_refill
-        new_tokens = elapsed * (self.rate / self.period)
-        
-        if new_tokens > 0:
-            self.tokens = min(self.tokens + new_tokens, self.max_tokens)
-            self.last_refill = now
-    
-    async def acquire(self, tokens: float = 1.0) -> float:
-        """
-        Acquire tokens from the bucket.
-        
-        Args:
-            tokens: Number of tokens to acquire
-            
-        Returns:
-            Wait time in seconds before tokens are available
-        """
-        async with self._lock:
-            await self._refill()
-            
-            if self.tokens >= tokens:
-                self.tokens -= tokens
-                return 0.0
-            
-            # Calculate wait time until enough tokens are available
-            deficit = tokens - self.tokens
-            wait_time = deficit * self.period / self.rate
-            return wait_time
-            
-    async def execute(
-        self, 
-        func: Callable[..., Awaitable[T]], 
-        *args: Any, 
-        **kwargs: Any
-    ) -> T:
-        """
-        Execute a coroutine with rate limiting.
-        
-        Args:
-            func: Async function to execute
-            args: Positional arguments for func
-            kwargs: Keyword arguments for func
-            
-        Returns:
-            Result from func
-        """
-        wait_time = await self.acquire()
-        
-        if wait_time > 0:
-            await asyncio.sleep(wait_time)
-            
-        return await func(*args, **kwargs)
-```
-
-### 5.3 Executor Implementation
-
-The Executor manages concurrent operations:
-
-```python
-import asyncio
-from typing import Callable, List, TypeVar, Any, Awaitable, Optional, Dict
-
-T = TypeVar('T')
-R = TypeVar('R')
-
-class AsyncExecutor:
-    """
-    Manages concurrent execution of async tasks.
-    """
-    def __init__(self, max_concurrency: Optional[int] = None):
-        """
-        Initialize the executor.
-        
-        Args:
-            max_concurrency: Maximum number of concurrent tasks (None for unlimited)
-        """
-        self.semaphore = asyncio.Semaphore(max_concurrency) if max_concurrency else None
-        self._active_tasks: Dict[asyncio.Task, None] = {}
-        self._lock = asyncio.Lock()
-    
-    async def _track_task(self, task: asyncio.Task) -> None:
-        """Track an active task and remove it when done."""
-        try:
-            await task
-        finally:
-            async with self._lock:
-                self._active_tasks.pop(task, None)
-    
-    async def execute(
-        self, 
-        func: Callable[..., Awaitable[T]], 
-        *args: Any, 
-        **kwargs: Any
-    ) -> T:
-        """
-        Execute a coroutine with concurrency control.
-        """
-        async def _wrapped_execution():
-            if self.semaphore:
-                async with self.semaphore:
-                    return await func(*args, **kwargs)
-            else:
-                return await func(*args, **kwargs)
-                
-        task = asyncio.create_task(_wrapped_execution())
-        
-        async with self._lock:
-            self._active_tasks[task] = None
-            asyncio.create_task(self._track_task(task))
-            
-        return await task
-        
-    async def map(
-        self, 
-        func: Callable[[T], Awaitable[R]], 
-        items: List[T]
-    ) -> List[R]:
-        """
-        Apply function to each item with concurrency control.
-        """
-        tasks = [self.execute(func, item) for item in items]
-        return await asyncio.gather(*tasks)
-        
-    async def shutdown(self, timeout: Optional[float] = None) -> None:
-        """
-        Wait for active tasks to complete and shut down the executor.
-        
-        Args:
-            timeout: Maximum time to wait for tasks to complete
-        """
-        async with self._lock:
-            active_tasks = list(self._active_tasks.keys())
-            
-        if active_tasks:
-            if timeout is not None:
-                done, pending = await asyncio.wait(
-                    active_tasks, 
-                    timeout=timeout
-                )
-                for task in pending:
-                    task.cancel()
-            else:
-                await asyncio.gather(*active_tasks)
-```
-
-### 5.4 Rate-Limited Executor
-
-The RateLimitedExecutor combines the Executor and RateLimiter:
-
-```python
-class RateLimitedExecutor:
-    """
-    Executor that applies rate limiting to operations.
-    """
-    def __init__(
-        self, 
-        rate: float, 
-        period: float = 1.0,
-        max_concurrency: Optional[int] = None
-    ):
-        """
-        Initialize the rate-limited executor.
-        
-        Args:
-            rate: Maximum operations per period
-            period: Time period in seconds
-            max_concurrency: Maximum concurrent operations (None for unlimited)
-        """
-        self.limiter = TokenBucketRateLimiter(rate, period)
-        self.executor = AsyncExecutor(max_concurrency)
-        
-    async def execute(
-        self, 
-        func: Callable[..., Awaitable[T]], 
-        *args: Any, 
-        **kwargs: Any
-    ) -> T:
-        """
-        Execute a coroutine with rate limiting and concurrency control.
-        """
-        return await self.limiter.execute(
-            self.executor.execute,
-            func, *args, **kwargs
-        )
-    
-    async def shutdown(self, timeout: Optional[float] = None) -> None:
-        """
-        Shut down the executor.
-        """
-        await self.executor.shutdown(timeout=timeout)
-```
-
-### 5.5 Queue Implementation
-
-The Queue provides backpressure and work distribution:
-
-```python
-import asyncio
-from typing import TypeVar, Generic, List, Optional, Callable, Awaitable, Any
-
-T = TypeVar('T')
-
-class AsyncWorkQueue(Generic[T]):
-    """
-    Queue for distributing async work with backpressure.
-    """
-    def __init__(
-        self, 
-        maxsize: int = 0,  # 0 means unlimited
-        executor = None
-    ):
-        """
-        Initialize the work queue.
-        
-        Args:
-            maxsize: Maximum queue size (0 for unlimited)
-            executor: Optional executor for processing items
-        """
-        self.queue = asyncio.Queue(maxsize=maxsize)
-        self.executor = executor
-        self._workers: List[asyncio.Task] = []
-        self._running = False
-        self._lock = asyncio.Lock()
-    
-    async def put(self, item: T) -> bool:
-        """
-        Add an item to the queue with backpressure.
-        
-        Returns:
-            True if item was added, False if queue is full
-        """
-        try:
-            # Use wait_for to implement backpressure with timeout
-            await asyncio.wait_for(self.queue.put(item), timeout=0.1)
-            return True
-        except asyncio.TimeoutError:
-            # Queue is full - backpressure
-            return False
-    
-    async def get(self) -> T:
-        """Get an item from the queue."""
-        return await self.queue.get()
-    
-    def task_done(self) -> None:
-        """Mark task as done."""
-        self.queue.task_done()
-    
-    async def join(self) -> None:
-        """Wait for all items to be processed."""
-        await self.queue.join()
-    
-    async def start_workers(
-        self, 
-        worker_func: Callable[[T], Awaitable[Any]], 
-        num_workers: int
-    ) -> None:
-        """
-        Start worker tasks to process queue items.
-        
-        Args:
-            worker_func: Async function to process each item
-            num_workers: Number of worker tasks to start
-        """
-        async with self._lock:
-            if self._running:
-                return
-                
-            self._running = True
-            
-            for _ in range(num_workers):
-                task = asyncio.create_task(self._worker(worker_func))
-                self._workers.append(task)
-    
-    async def _worker(self, worker_func: Callable[[T], Awaitable[Any]]) -> None:
-        """Worker task that processes items from the queue."""
-        while self._running:
-            try:
-                item = await self.queue.get()
-                try:
-                    if self.executor:
-                        await self.executor.execute(worker_func, item)
-                    else:
-                        await worker_func(item)
-                finally:
-                    self.queue.task_done()
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                # Log error but continue processing
-                print(f"Error processing queue item: {e}")
-    
-    async def stop_workers(self, timeout: Optional[float] = None) -> None:
-        """
-        Stop worker tasks.
-        
-        Args:
-            timeout: Maximum time to wait for tasks to finish
-        """
-        async with self._lock:
-            self._running = False
-            
-            for task in self._workers:
-                task.cancel()
-                
-            if self._workers:
-                await asyncio.gather(*self._workers, return_exceptions=True)
-                self._workers.clear()
-```
-
-## 6. Behavior
-
-### 6.1 Core Workflows
-
-#### 6.1.1 Basic Resource Request
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Service
-    participant R as RateLimitedExecutor
-    participant A as ResourceClient
-    
-    C->>S: Request operation
-    S->>R: Execute with rate control
-    R->>A: Call API if rate allows
-    A->>A: Format request
-    A->>External: API Request
-    External-->>A: API Response
-    A-->>R: Parsed response
-    R-->>S: Rate-controlled response
-    S-->>C: Formatted domain response
-```
-
-#### 6.1.2 Rate Limited Request
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant S as Service
-    participant R as RateLimitedExecutor
-    participant A as ResourceClient
-    
-    C->>S: Request operation
-    S->>R: Execute with rate control
-    R->>R: Check token bucket
-    R->>R: Wait for tokens
-    R->>A: Call API after delay
-    A->>External: API Request
-    External-->>A: API Response
-    A-->>R: Parsed response
-    R-->>S: Rate-controlled response
-    S-->>C: Formatted domain response
-```
-
-### 6.2 Error Handling
-
-The architecture implements multiple error handling strategies:
-
-#### 6.2.1 Circuit Breaker
-
-The circuit breaker pattern prevents repeated calls to a failing service, based
-on the principle of "fail fast" for better system resilience (pplx:a39a562d).
-
-```python
-import time
-import asyncio
-from enum import Enum
-
-class CircuitState(Enum):
-    CLOSED = "closed"       # Normal operation
-    OPEN = "open"           # Failing, rejecting requests
-    HALF_OPEN = "half_open" # Testing if service recovered
-
-class CircuitBreaker:
-    def __init__(
-        self, 
-        failure_threshold: int = 5,
-        recovery_time: float = 30.0
-    ):
-        self.failure_threshold = failure_threshold
-        self.recovery_time = recovery_time
-        self.failure_count = 0
-        self.state = CircuitState.CLOSED
-        self.last_failure_time = 0
-        self._lock = asyncio.Lock()
-    
-    async def execute(
-        self, 
-        func: Callable[..., Awaitable[T]], 
-        *args: Any, 
-        **kwargs: Any
-    ) -> T:
-        async with self._lock:
-            if self.state == CircuitState.OPEN:
-                if time.time() - self.last_failure_time > self.recovery_time:
-                    # Try to recover
-                    self.state = CircuitState.HALF_OPEN
-                else:
-                    raise CircuitBreakerOpenError(
-                        f"Circuit breaker is open. Retry after {self.recovery_time} seconds"
-                    )
-        
-        try:
-            result = await func(*args, **kwargs)
-            
-            async with self._lock:
-                if self.state == CircuitState.HALF_OPEN:
-                    # Success in half-open state means service recovered
-                    self.state = CircuitState.CLOSED
-                    self.failure_count = 0
-            
-            return result
-            
-        except Exception as e:
-            async with self._lock:
-                self.failure_count += 1
-                self.last_failure_time = time.time()
-                
-                if (self.failure_count >= self.failure_threshold or 
-                    self.state == CircuitState.HALF_OPEN):
-                    self.state = CircuitState.OPEN
-            
-            raise e
-```
-
-#### 6.2.2 Retry with Exponential Backoff
-
-For handling transient failures, we implement a retry mechanism with exponential
-backoff:
-
-```python
-import random
-import asyncio
-from typing import TypeVar, Callable, Any, Awaitable, Optional, Type
-
-T = TypeVar('T')
-
-async def retry_with_backoff(
-    func: Callable[..., Awaitable[T]],
-    *args: Any,
-    retry_exceptions: tuple[Type[Exception], ...] = (Exception,),
-    exclude_exceptions: tuple[Type[Exception], ...] = (),
-    max_retries: int = 3,
-    base_delay: float = 1.0,
-    max_delay: float = 60.0,
-    backoff_factor: float = 2.0,
-    jitter: bool = True,
-    **kwargs: Any
-) -> T:
-    """
-    Retry an async function with exponential backoff.
-    """
-    retries = 0
-    delay = base_delay
-    
-    while True:
-        try:
-            return await func(*args, **kwargs)
-        except exclude_exceptions:
-            # Don't retry these exceptions
-            raise
-        except retry_exceptions as e:
-            retries += 1
-            if retries > max_retries:
-                raise
-            
-            # Calculate backoff with optional jitter
-            if jitter:
-                jitter_amount = random.uniform(0.8, 1.2)
-                current_delay = min(delay * jitter_amount, max_delay)
-            else:
-                current_delay = min(delay, max_delay)
-                
-            # Increase delay for next iteration
-            delay = delay * backoff_factor
-            
-            # Wait before retrying
-            await asyncio.sleep(current_delay)
-```
-
-### 6.3 Security Considerations
-
-- All API keys are handled securely using Pydantic's `SecretStr` to prevent
-  accidental logging
-- Timeouts are enforced on all external operations to prevent resource
-  exhaustion
-- Rate limiting protects external services from overload and prevents quota
-  exhaustion
-- Proper resource cleanup through async context managers prevents resource leaks
-- Validation of all request and response payloads prevents data injection
-  attacks
-
-## 7. External Interactions
-
-### 7.1 Dependencies on Other Services
-
-The architecture is designed to work with various external providers and
-services:
-
-- **API Providers**: OpenAI, Anthropic, Perplexity, Exa, etc.
-- **Local Development**: Ollama, local endpoints
-- **Internal Services**: Other khive microservices
-
-### 7.2 Integration with Existing Services
-
-```python
-# Example: Integration with Khive info service
-from khive.services.info.parts import InfoRequest, InfoResponse
-from khive.connections.providers.perplexity_ import PerplexityChatEndpoint
-
-class EnhancedInfoService:
-    def __init__(self):
-        self.client = None
-        self.rate_limiter = TokenBucketRateLimiter(rate=3, period=1)  # 3 per second
-        self.executor = AsyncExecutor(max_concurrency=10)
-    
-    async def _get_client(self):
-        if self.client is None:
-            self.client = PerplexityChatEndpoint()
-        return self.client
-    
-    async def handle_request(self, request: InfoRequest) -> InfoResponse:
-        client = await self._get_client()
-        
-        # Apply rate limiting and concurrency control
-        return await self.rate_limiter.execute(
-            self.executor.execute,
-            client.call,
-            request.params.provider_params,
-            cache_control=True
-        )
-```
-
-## 8. Performance Considerations
-
-### 8.1 Expected Load
-
-The system should handle:
-
-- Multiple concurrent clients making requests
-- Varying response times from external services (from milliseconds to minutes)
-- Bursty request patterns
-
-### 8.2 Optimizations
-
-- **Connection Pooling**: Reuse HTTP connections to reduce overhead
-- **Rate Limiting**: Use token bucket algorithm to allow controlled bursts while
-  maintaining long-term rate compliance
-- **Caching**: Cache responses where appropriate to reduce external API calls
-- **Bounded Queues**: Implement backpressure with bounded queues to prevent
-  memory exhaustion
-
-### 8.3 Scalability Approach
-
-The architecture scales horizontally by:
-
-- Using stateless services that can be replicated
-- Separating responsibilities to enable independent scaling of components
-- Managing global rate limits across instances through distributed rate limiters
-  (future enhancement)
-
-## 9. Observability
-
-### 9.1 Logging
-
-Comprehensive logging should be implemented at each layer:
-
-```python
-import logging
-
-logger = logging.getLogger(__name__)
-
-class ObservableRateLimiter:
-    def __init__(self, rate_limiter):
-        self.rate_limiter = rate_limiter
-        
-    async def execute(self, func, *args, **kwargs):
-        start_time = time.monotonic()
-        wait_time = await self.rate_limiter.acquire()
-        
-        if wait_time > 0:
-            logger.info(f"Rate limited: waiting {wait_time:.2f}s")
-            await asyncio.sleep(wait_time)
-        
-        try:
-            result = await func(*args, **kwargs)
-            duration = time.monotonic() - start_time
-            logger.info(f"Rate limited operation completed in {duration:.2f}s")
-            return result
-        except Exception as e:
-            logger.error(f"Rate limited operation failed: {str(e)}")
-            raise
-```
-
-### 9.2 Metrics
-
-Key metrics to track:
-
-- Rate limit wait times
-- API call success/failure rates
-- API call latencies
-- Queue depths
-- Circuit breaker state changes
-
-## 10. Testing Strategy
-
-### 10.1 Unit Testing
-
-Each component should be tested in isolation:
-
-```python
-# Example: Testing rate limiter with mocked time
-import pytest
-from unittest.mock import patch
-import time
-
-@pytest.mark.asyncio
-async def test_rate_limiter():
-    # Set up initial time
-    current_time = 1000.0
-    
-    # Create a side effect that advances time with each call
-    time_values = [current_time, current_time + 1, current_time + 2]
-    
-    with patch('time.monotonic', side_effect=time_values):
-        limiter = TokenBucketRateLimiter(rate=1, period=1)
-        
-        # First call should succeed immediately
-        assert await limiter.acquire() == 0.0
-        
-        # Second call would normally require waiting, but we've mocked time to advance
-        assert await limiter.acquire() == 0.0
-```
-
-### 10.2 Integration Testing
-
-Test interactions between components:
-
-```python
-@pytest.mark.asyncio
-async def test_rate_limited_executor():
-    executor = RateLimitedExecutor(rate=2, period=1.0)
-    
-    async def test_operation(i):
-        return i * 2
-    
-    # Should execute with rate limiting
-    results = await asyncio.gather(*[
-        executor.execute(test_operation, i) for i in range(5)
-    ])
-    
-    assert results == [0, 2, 4, 6, 8]
-```
-
-## 11. Open Questions
-
-- Should we implement distributed rate limiting for multi-instance deployments?
-- How should we handle quota management across multiple users/services?
-- Should we implement adaptive rate limiting based on response headers?
-
-## 12. Implementation Plan
-
-The implementation will proceed in phases:
-
-1. **Phase 1**: Core interfaces and base implementations
-   - Define Protocol classes for each component
-   - Implement ResourceClient with session management
-   - Implement basic TokenBucketRateLimiter
-
-2. **Phase 2**: Integration and composition
-   - Implement RateLimitedExecutor combining rate limiting and concurrency
-     control
-   - Integrate with existing services
-
-3. **Phase 3**: Enhanced resilience
-   - Add circuit breaker pattern implementation
-   - Implement comprehensive retry strategies
-
-4. **Phase 4**: Observability and testing
-   - Add logging and metrics
-   - Create test suite for all components
-
-## 13. Appendices
-
-### Appendix A: Alternative Designs
-
-#### A.1 Global Rate Limiter Singleton
-
-An alternative approach would be to use a global rate limiter singleton that
-manages all rate limits for a service. While simpler to implement, this approach
-limits flexibility and makes testing more difficult.
-
-#### A.2 Inheritance-Based Component Model
-
-An inheritance-based model where components extend base classes was considered
-but rejected in favor of a composition-based approach with Protocol interfaces.
-This allows more flexibility and better separation of concerns.
-
-### Appendix B: Research References
-
-- Research on async patterns and resource control: (pplx:a39a562d)
-- Token bucket algorithm implementation details: (pplx:84684e8d)
+## 5. Lifecycle Management
+
+### 5.1 Initialization
+-   **`lionfuncs.network.Executor`:**
+    -   An instance of `NetworkExecutor` should be created globally or per application scope within `khive` (e.g., when the `khive` application starts or on first use by a service).
+    -   Configuration for the executor (e.g., global concurrency limits, default rate limits if not per-endpoint) would be passed during its instantiation.
+    -   This executor instance will be injected into `khive` services (like `InfoService`).
+-   **`khive` Services (e.g., `InfoService`):**
+    -   Instantiated with a reference to the shared `lionfuncs.network.Executor`.
+    -   Load their specific configurations (e.g., how to prepare `EndpointConfig` for various external APIs).
+
+### 5.2 Startup
+-   The `lionfuncs.network.Executor` might have an explicit startup phase if it needs to initialize internal resources (e.g., worker pools, internal queues). This should be called during `khive`'s application startup.
+-   If `lionfuncs.network.AsyncAPIClient` instances are managed by `khive` services (less likely if Executor handles endpoints), they would be initialized, potentially using async context managers.
+
+### 5.3 Execution
+-   `khive` services prepare `EndpointConfig` and `RequestModel` objects.
+-   These are passed to the `lionfuncs.network.Executor.execute()` method.
+-   The Executor manages the call lifecycle, including rate limiting, retries, and actual dispatch to the external API (likely via an internal `AsyncAPIClient` or similar mechanism).
+
+### 5.4 Shutdown
+-   **`lionfuncs.network.Executor`:**
+    -   Must provide a graceful shutdown mechanism (e.g., `await executor.shutdown(timeout=...)`).
+    -   This should allow pending tasks to complete up to a certain timeout and clean up all internal resources (threads, connections, queues).
+    -   This shutdown method will be called during `khive`'s application shutdown sequence.
+-   **`khive` Services:**
+    -   If they manage any `lionfuncs` resources directly (e.g., client instances not managed by the Executor), they must ensure these are closed during shutdown, preferably using `async with` for individual clients if used ad-hoc, or an explicit close if long-lived and managed by the service.
+
+### 5.5 Resource Cleanup
+-   `lionfuncs` components are responsible for cleaning up their internal resources (e.g., HTTP client sessions within `AsyncAPIClient` or the `NetworkExecutor`).
+-   `khive` is responsible for ensuring that `lionfuncs` components it manages (like the global `NetworkExecutor`) are properly shut down.
+-   Use of `async with` for any `lionfuncs` clients or resources that support the context manager protocol is highly recommended within `khive` service methods if they are created on-the-fly (though a central Executor is preferred).
+
+## 6. Error Handling
+-   `lionfuncs` is expected to raise specific exceptions for network issues, API errors, timeouts, rate limit exceeded errors, etc. (Ref: `TDS-100.md`, Section 5.2).
+-   `khive` Service Layer will catch these `lionfuncs` exceptions and:
+    -   Map them to appropriate `khive`-specific exceptions (e.g., from [`src/khive/clients/errors.py`](src/khive/clients/errors.py:0), which may be adapted).
+    -   Log them with relevant context.
+    -   Propagate them in a way that the `khive` CLI can present informative messages to the user.
+
+## 7. Security Considerations
+-   API Key Management: `khive` services will continue to manage API keys, passing them to `lionfuncs` components (e.g., within `EndpointConfig`) as needed. `lionfuncs` should not store these keys beyond the scope of a request or its client configuration.
+-   `lionfuncs` is assumed to use HTTPS for all communications.
+
+## 8. Testing Strategy
+-   **Unit Tests for `khive` Services:**
+    -   Mock the `lionfuncs.network.Executor` interface.
+    -   Verify that `khive` services correctly prepare `EndpointConfig` and `RequestModel` for `lionfuncs`.
+    -   Verify correct handling of responses and exceptions from the mocked `Executor`.
+-   **Integration Tests:**
+    -   Test the `khive` Service Layer interacting with a real (or well-mocked at its boundary) `lionfuncs.network.Executor`.
+    -   These tests might involve `lionfuncs` making calls to mock external API servers or, in controlled environments, to actual sandboxed external APIs.
+    -   Focus on the interaction between `khive` services and the `lionfuncs` layer.
+
+## 9. Risks and Mitigations
+-   **Risk:** `lionfuncs.network.Executor` does not provide sufficient granularity for rate limiting or concurrency control as envisioned by Issue #80.
+    -   **Mitigation:** Early validation of `lionfuncs.network.Executor` capabilities against Issue #80 requirements. If gaps exist, `khive` Service Layer might need to implement additional controls using `lionfuncs.concurrency` primitives before submitting tasks to the `Executor`, or this needs to be flagged as a required enhancement for `lionfuncs`.
+-   **Risk:** Complexity in managing the lifecycle of `lionfuncs` components.
+    -   **Mitigation:** Ensure `lionfuncs` provides clear startup and shutdown procedures. Implement robust lifecycle management in `khive`'s main application setup and teardown.
+
+## 10. Open Questions
+-   What are the precise configuration options for `lionfuncs.network.Executor` regarding rate limits (per-host, per-endpoint, global)?
+-   How does `lionfuncs.network.Executor` manage authentication details? Are they solely part of `EndpointConfig` or can the Executor be configured with default auth providers?
+-   What specific exceptions are raised by `lionfuncs.network.Executor` for different failure scenarios (rate limit, timeout, connection error, API error)?
+-   Does `lionfuncs.network.Executor` handle retries internally, and how configurable is this retry behavior?
+
+## 11. Appendices
+
+### Appendix A: Research References
+-   Issue #80: "Architecture: Define a layered resource control architecture with clear component responsibilities"
+-   Issue #100: "Architectural Refactor: Align Clients, Executor, Queue with New Design Philosophy"
+-   `TDS-100.md`: "Technical Design Specification: Migration to lionfuncs (Issue #100)"
+-   Conceptual `lionfuncs` Documentation (Network Executor Usage Guide, Network Client Guide, Async Operations Guide, lionfuncs.concurrency module documentation) - (Ref: `TDS-100.md`)
