@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 import pytest_asyncio
+
 from khive.reader.tasks.queue import AsyncTaskQueue
 
 

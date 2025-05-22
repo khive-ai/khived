@@ -15,6 +15,7 @@ import weakref
 from unittest.mock import AsyncMock
 
 import pytest
+
 from khive.clients.errors import TestError
 from khive.clients.executor import AsyncExecutor, RateLimitedExecutor
 from khive.connections.endpoint import Endpoint, EndpointConfig

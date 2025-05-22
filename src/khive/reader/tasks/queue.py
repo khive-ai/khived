@@ -60,7 +60,7 @@ class AsyncTaskQueue(Generic[T]):
     def qsize(self) -> int:
         """
         Returns the approximate size of the queue.
-        Note, qsize() > 0 doesn’t guarantee that a subsequent get()
+        Note, qsize() > 0 doesn't guarantee that a subsequent get()
         will not block, nor will qsize() < maxsize guarantee that put()
         will not block.
         """

@@ -1,8 +1,10 @@
 import uuid
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
+import httpx  # Changed from requests to httpx
 import pytest
-import requests  # Added for requests.exceptions.RequestException
+from pydantic import HttpUrl
+
 from khive.reader.services.ingestion_service import (
     Document,
     DocumentCreate,
@@ -11,7 +13,6 @@ from khive.reader.services.ingestion_service import (
     DocumentStatus,
 )
 from khive.reader.storage.minio_client import ObjectStorageClient
-from pydantic import HttpUrl
 
 
 @pytest.fixture
@@ -119,12 +120,15 @@ async def test_ingest_document_from_url_success(
 
     mock_storage_client.upload_object.return_value = True
 
-    with patch("requests.get") as mock_requests_get:
+    with patch("httpx.AsyncClient") as mock_httpx_client:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.content = raw_content
         mock_response.raise_for_status = MagicMock()
-        mock_requests_get.return_value = mock_response
+
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get.return_value = mock_response
+        mock_httpx_client.return_value.__aenter__.return_value = mock_client_instance
 
         result_doc = await ingestion_service.ingest_document_from_url(source_uri)
 
@@ -147,7 +151,7 @@ async def test_ingest_document_from_url_success(
         status_calls, any_order=False
     )  # Order matters here
 
-    mock_requests_get.assert_called_once_with(str(source_uri), timeout=30)
+    mock_client_instance.get.assert_called_once_with(str(source_uri), timeout=30)
 
     expected_object_name = (
         f"{sample_document.id}/raw_content.pdf"  # Assuming extension from URI
@@ -199,10 +203,10 @@ async def test_ingest_document_from_url_download_fails(
 
     mock_document_repo.update_document_status.side_effect = update_status_side_effect
 
-    with patch("requests.get") as mock_requests_get:
-        mock_requests_get.side_effect = requests.exceptions.RequestException(
-            "Network error"
-        )
+    with patch("httpx.AsyncClient") as mock_httpx_client:
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get.side_effect = httpx.RequestError("Network error")
+        mock_httpx_client.return_value.__aenter__.return_value = mock_client_instance
 
         result_doc = await ingestion_service.ingest_document_from_url(
             sample_document_create.source_uri
@@ -247,11 +251,14 @@ async def test_ingest_document_from_url_s3_upload_fails(
 
     mock_storage_client.upload_object.return_value = False  # Simulate S3 upload failure
 
-    with patch("requests.get") as mock_requests_get:
+    with patch("httpx.AsyncClient") as mock_httpx_client:
         mock_response = MagicMock()
         mock_response.content = raw_content
         mock_response.raise_for_status = MagicMock()
-        mock_requests_get.return_value = mock_response
+
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get.return_value = mock_response
+        mock_httpx_client.return_value.__aenter__.return_value = mock_client_instance
 
         result_doc = await ingestion_service.ingest_document_from_url(
             sample_document_create.source_uri
@@ -315,11 +322,14 @@ async def test_ingest_document_from_url_update_storage_path_fails(
     )
     mock_storage_client.upload_object.return_value = True  # Upload itself is fine
 
-    with patch("requests.get") as mock_requests_get:
+    with patch("httpx.AsyncClient") as mock_httpx_client:
         mock_response = MagicMock()
         mock_response.content = raw_content
         mock_response.raise_for_status = MagicMock()
-        mock_requests_get.return_value = mock_response
+
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get.return_value = mock_response
+        mock_httpx_client.return_value.__aenter__.return_value = mock_client_instance
 
         result_doc = await ingestion_service.ingest_document_from_url(
             sample_document_create.source_uri
@@ -389,7 +399,7 @@ async def test_ingest_document_from_url_queueing_fails_placeholder(
     mock_storage_client.upload_object.return_value = True
 
     with (
-        patch("requests.get") as mock_requests_get,
+        patch("httpx.AsyncClient") as mock_httpx_client,
         patch.object(
             ingestion_service, "_queue_document_for_processing", new_callable=AsyncMock
         ) as mock_queue_call,
@@ -397,7 +407,10 @@ async def test_ingest_document_from_url_queueing_fails_placeholder(
         mock_response = MagicMock()
         mock_response.content = raw_content
         mock_response.raise_for_status = MagicMock()
-        mock_requests_get.return_value = mock_response
+
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get.return_value = mock_response
+        mock_httpx_client.return_value.__aenter__.return_value = mock_client_instance
 
         mock_queue_call.return_value = False  # Simulate queueing failure
 

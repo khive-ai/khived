@@ -165,7 +165,7 @@ class ReaderServiceGroup(Service):
                 )
 
             # Read the file content asynchronously
-            async with aiofiles.open(file_path, mode="r", encoding="utf-8") as f:
+            async with aiofiles.open(file_path, encoding="utf-8") as f:
                 # If we need the whole file
                 if s == 0 and e == length:
                     content = await f.read()

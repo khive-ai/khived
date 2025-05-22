@@ -9,6 +9,7 @@ Integration tests for the rate limiter components with API client and executor.
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from khive.clients.executor import RateLimitedExecutor
 from khive.clients.rate_limiter import (
     AdaptiveRateLimiter,

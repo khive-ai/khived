@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import urlparse
 
 import pytest
+
 from khive.cli.khive_info import (
     create_perplexity_messages,
     main,

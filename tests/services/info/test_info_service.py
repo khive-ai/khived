@@ -5,6 +5,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from khive.clients.executor import AsyncExecutor
 from khive.services.info.info_service import InfoServiceGroup
 from khive.services.info.parts import (
@@ -258,8 +259,8 @@ class TestInfoServiceGroup:
         service._executor = mock_executor
 
         # Create a mock for InfoConsultParams that bypasses validation
-        with patch("khive.services.info.parts.InfoConsultParams") as MockParams:
-            mock_params = MockParams.return_value
+        with patch("khive.services.info.parts.InfoConsultParams") as mock_params_patch:
+            mock_params = mock_params_patch.return_value
             mock_params.models = ["model1", "model2"]
             mock_params.question = "test question"
             mock_params.system_prompt = "test prompt"
@@ -286,8 +287,8 @@ class TestInfoServiceGroup:
         service = InfoServiceGroup()
 
         # Create a mock for InfoConsultParams that bypasses validation
-        with patch("khive.services.info.parts.InfoConsultParams") as MockParams:
-            mock_params = MockParams.return_value
+        with patch("khive.services.info.parts.InfoConsultParams") as mock_params_patch:
+            mock_params = mock_params_patch.return_value
             mock_params.models = ["model1"]
             mock_params.question = "test question"
             mock_params.system_prompt = "test prompt"
@@ -319,13 +320,15 @@ class TestInfoServiceGroup:
 
         # Create a mock for InfoRequest that bypasses validation
         with (
-            patch("khive.services.info.parts.InfoRequest") as MockRequest,
-            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+            patch("khive.services.info.parts.InfoRequest") as mock_request_patch,
+            patch(
+                "khive.services.info.parts.InfoSearchParams"
+            ) as mock_search_params_patch,
         ):
-            mock_request = MockRequest.return_value
+            mock_request = mock_request_patch.return_value
             mock_request.action = InfoAction.SEARCH
 
-            mock_params = MockSearchParams.return_value
+            mock_params = mock_search_params_patch.return_value
             mock_params.provider = SearchProvider.PERPLEXITY
             mock_params.provider_params = {"query": "test"}
 
@@ -359,13 +362,15 @@ class TestInfoServiceGroup:
 
         # Create a mock for InfoRequest that bypasses validation
         with (
-            patch("khive.services.info.parts.InfoRequest") as MockRequest,
-            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+            patch("khive.services.info.parts.InfoRequest") as mock_request_patch,
+            patch(
+                "khive.services.info.parts.InfoSearchParams"
+            ) as mock_search_params_patch,
         ):
-            mock_request = MockRequest.return_value
+            mock_request = mock_request_patch.return_value
             mock_request.action = InfoAction.SEARCH
 
-            mock_params = MockSearchParams.return_value
+            mock_params = mock_search_params_patch.return_value
             mock_params.provider = SearchProvider.EXA
             mock_params.provider_params = {"query": "test"}
 
@@ -399,13 +404,15 @@ class TestInfoServiceGroup:
 
         # Create a mock for InfoRequest that bypasses validation
         with (
-            patch("khive.services.info.parts.InfoRequest") as MockRequest,
-            patch("khive.services.info.parts.InfoConsultParams") as MockConsultParams,
+            patch("khive.services.info.parts.InfoRequest") as mock_request_patch,
+            patch(
+                "khive.services.info.parts.InfoConsultParams"
+            ) as mock_consult_params_patch,
         ):
-            mock_request = MockRequest.return_value
+            mock_request = mock_request_patch.return_value
             mock_request.action = InfoAction.CONSULT
 
-            mock_params = MockConsultParams.return_value
+            mock_params = mock_consult_params_patch.return_value
             mock_params.question = "test question"
             mock_params.models = ["model1"]
             mock_params.system_prompt = "test prompt"
@@ -422,14 +429,14 @@ class TestInfoServiceGroup:
         mock_consult.assert_called_once_with(service, mock_params)
 
     @pytest.mark.asyncio
-    async def test_handle_request_invalid_action(self, mocker):
+    async def test_handle_request_invalid_action(self):
         """Test that handle_request correctly handles invalid actions."""
         # Arrange
         service = InfoServiceGroup()
 
         # Create a mock for InfoRequest that bypasses validation
-        with patch("khive.services.info.parts.InfoRequest") as MockRequest:
-            mock_request = MockRequest.return_value
+        with patch("khive.services.info.parts.InfoRequest") as mock_request_patch:
+            mock_request = mock_request_patch.return_value
             mock_request.action = "INVALID_ACTION"
 
             # Act
@@ -496,13 +503,15 @@ class TestInfoServiceIntegration:
 
         # Create a mock for InfoRequest that bypasses validation
         with (
-            patch("khive.services.info.parts.InfoRequest") as MockRequest,
-            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+            patch("khive.services.info.parts.InfoRequest") as mock_request_patch,
+            patch(
+                "khive.services.info.parts.InfoSearchParams"
+            ) as mock_search_params_patch,
         ):
-            mock_request = MockRequest.return_value
+            mock_request = mock_request_patch.return_value
             mock_request.action = InfoAction.SEARCH
 
-            mock_params = MockSearchParams.return_value
+            mock_params = mock_search_params_patch.return_value
             mock_params.provider = SearchProvider.PERPLEXITY
             mock_params.provider_params = {"query": "test"}
 
@@ -543,13 +552,15 @@ class TestInfoServiceIntegration:
 
         # Create a mock for InfoRequest that bypasses validation
         with (
-            patch("khive.services.info.parts.InfoRequest") as MockRequest,
-            patch("khive.services.info.parts.InfoSearchParams") as MockSearchParams,
+            patch("khive.services.info.parts.InfoRequest") as mock_request_patch,
+            patch(
+                "khive.services.info.parts.InfoSearchParams"
+            ) as mock_search_params_patch,
         ):
-            mock_request = MockRequest.return_value
+            mock_request = mock_request_patch.return_value
             mock_request.action = InfoAction.SEARCH
 
-            mock_params = MockSearchParams.return_value
+            mock_params = mock_search_params_patch.return_value
             mock_params.provider = SearchProvider.EXA
             mock_params.provider_params = {"query": "test"}
 
@@ -591,13 +602,15 @@ class TestInfoServiceIntegration:
 
         # Create a mock for InfoRequest that bypasses validation
         with (
-            patch("khive.services.info.parts.InfoRequest") as MockRequest,
-            patch("khive.services.info.parts.InfoConsultParams") as MockConsultParams,
+            patch("khive.services.info.parts.InfoRequest") as mock_request_patch,
+            patch(
+                "khive.services.info.parts.InfoConsultParams"
+            ) as mock_consult_params_patch,
         ):
-            mock_request = MockRequest.return_value
+            mock_request = mock_request_patch.return_value
             mock_request.action = InfoAction.CONSULT
 
-            mock_params = MockConsultParams.return_value
+            mock_params = mock_consult_params_patch.return_value
             mock_params.question = "test question"
             mock_params.models = ["model1"]
             mock_params.system_prompt = "test prompt"

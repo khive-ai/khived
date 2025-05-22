@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+
 from khive.cli.khive_fmt import (
     MAX_FILES_PER_BATCH,
     FmtConfig,

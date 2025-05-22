@@ -30,9 +30,6 @@ try:
         DocumentIngestionService,
         InMemoryDocumentRepository,  # Placeholder
     )
-    from khive.reader.services.ingestion_service import (
-        DocumentStatus as IngestDocumentStatus,
-    )
     from khive.reader.storage.minio_client import ObjectStorageClient
     from khive.services.reader.parts import (
         ReaderAction,
@@ -96,7 +93,7 @@ reader_service_group_instance = (
 
 
 def _print_json_response(data: Any, success: bool = True, exit_code: int | None = None):
-    if isinstance(data, (ReaderResponse, IngestDocument)):
+    if isinstance(data, ReaderResponse | IngestDocument):
         typer.echo(
             json.dumps(
                 data.model_dump(exclude_none=True, by_alias=True), ensure_ascii=False
@@ -111,7 +108,7 @@ def _print_json_response(data: Any, success: bool = True, exit_code: int | None 
 
     if exit_code is not None:
         raise typer.Exit(code=exit_code)
-    elif not success:
+    if not success:
         raise typer.Exit(code=1)
 
 
@@ -287,8 +284,11 @@ async def _ingest_document_async(
                 else:
                     typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
                 raise typer.Exit(code=1)
-            with open(metadata_path, encoding="utf-8") as f:
-                metadata_content = json.load(f)
+
+            # ASYNC230: Temporary fix using blocking read_text.
+            # A proper fix would involve aiofiles.
+            metadata_content = json.loads(metadata_path.read_text(encoding="utf-8"))
+
         except json.JSONDecodeError as e:
             err_msg = (
                 f"Error decoding JSON from metadata file {metadata_file_path}: {e}"
@@ -363,17 +363,15 @@ async def _ingest_document_async(
 
     document_repository = InMemoryDocumentRepository()  # Placeholder
     ingestion_service = DocumentIngestionService(document_repository, storage_client)
+    ingested_doc: IngestDocument | None = None  # Initialize ingested_doc
 
     try:
-        ingested_doc: (
-            IngestDocument | None
-        ) = await ingestion_service.ingest_document_from_url(
+        ingested_doc = await ingestion_service.ingest_document_from_url(
             source_uri=source_uri,
             metadata_file_content=metadata_content,
         )
         if ingested_doc:
             if json_output_flag:
-                # Directly print and exit for simplicity in debugging runner behavior
                 typer.echo(
                     ingested_doc.model_dump_json(by_alias=True, exclude_none=True)
                 )
@@ -381,26 +379,16 @@ async def _ingest_document_async(
                 typer.secho("Document Ingestion Summary:", fg=typer.colors.GREEN)
                 typer.echo(f"  ID: {ingested_doc.id}")
                 typer.echo(f"  Source URI: {ingested_doc.source_uri}")
-                typer.echo(f"  Status: {ingested_doc.status.value}")
+                typer.echo(f"  Status: {ingested_doc.status}")
                 typer.echo(f"  Storage Path: {ingested_doc.storage_path or 'N/A'}")
                 typer.echo(f"  Size (bytes): {ingested_doc.size_bytes or 'N/A'}")
                 if ingested_doc.error_message:
                     typer.secho(
                         f"  Error: {ingested_doc.error_message}", fg=typer.colors.YELLOW
                     )
-            # Ensure this is the only exit path for success in this block
-            # The previous _print_json_response might have interfered with runner's exit code capture
-            # if it didn't raise an exit itself.
             raise typer.Exit(code=0)
-        else:  # ingested_doc is None
-            err_msg = f"Document ingestion failed for URI: {source_uri_str}"
-            if json_output_flag:
-                _print_json_response(
-                    {"success": False, "error": err_msg}, success=False
-                )
-            else:
-                typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1)
+    except typer.Exit:  # Specifically catch typer.Exit and re-raise
+        raise
     except Exception as e:
         err_msg = f"An error occurred during ingestion: {type(e).__name__}: {e}"
         if json_output_flag:
@@ -408,6 +396,14 @@ async def _ingest_document_async(
                 {"success": False, "error": err_msg, "type": type(e).__name__},
                 success=False,
             )
+        else:
+            typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    if ingested_doc is None:
+        err_msg = f"Document ingestion failed for URI: {source_uri_str}"
+        if json_output_flag:
+            _print_json_response(err_msg, success=False)
         else:
             typer.secho(f"❌ {err_msg}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
@@ -427,7 +423,7 @@ def ingest_document_command(
             resolve_path=True,
             help="Optional path to a JSON file containing metadata for the document.",
         ),
-    ] = None,  # Removed exists=True
+    ] = None,
     json_output: Annotated[
         bool,
         typer.Option("--json-output", help="Output ingestion result in JSON format."),

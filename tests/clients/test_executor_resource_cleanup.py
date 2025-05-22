@@ -13,6 +13,7 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from khive.clients.errors import TestError
 from khive.clients.executor import AsyncExecutor, RateLimitedExecutor
 

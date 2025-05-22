@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+
 from khive.clients.errors import TestError
 from khive.connections.endpoint import Endpoint, EndpointConfig
 from khive.utils import is_package_installed
