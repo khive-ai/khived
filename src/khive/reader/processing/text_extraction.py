@@ -1,6 +1,9 @@
 import logging
-from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +58,7 @@ class TextExtractor:
                 exc_info=True,
             )
             # Consider re-raising a more specific custom exception if needed
-            raise ValueError(f"Failed to extract text from {file_path}: {e}")
+            raise ValueError(f"Failed to extract text from {file_path}: {e}") from e
 
     def _extract_pdf(self, file_path: Path) -> str:
         """Extracts text from a PDF file."""
@@ -83,7 +86,7 @@ class TextExtractor:
                             # Depending on policy, could return empty string or raise specific error
                             return ""
                     except Exception as decrypt_exc:
-                        logger.error(
+                        logger.exception(
                             f"Failed to decrypt PDF {file_path}: {decrypt_exc}"
                         )
                         raise ValueError(
@@ -97,14 +100,14 @@ class TextExtractor:
                     )  # Ensure None is handled
             return "\n".join(text_parts)
         except ImportError:
-            logger.error(
+            logger.exception(
                 "PyPDF2 library is not installed. Please install it to extract text from PDF files."
             )
             raise ImportError(
                 "PyPDF2 library is not installed. Required for PDF extraction."
-            )
+            ) from None
         except PyPDF2.errors.PdfReadError as e:
-            logger.error(f"Error reading PDF file {file_path}: {e}")
+            logger.exception(f"Error reading PDF file {file_path}: {e}")
             raise ValueError(f"Invalid or corrupted PDF file: {file_path}") from e
         except Exception as e:
             logger.error(
@@ -122,12 +125,12 @@ class TextExtractor:
             text_parts = [paragraph.text for paragraph in doc.paragraphs]
             return "\n".join(text_parts)
         except ImportError:
-            logger.error(
+            logger.exception(
                 "python-docx library is not installed. Please install it to extract text from DOCX files."
             )
             raise ImportError(
                 "python-docx library is not installed. Required for DOCX extraction."
-            )
+            ) from None
         except (
             Exception
         ) as e:  # docx library might raise various exceptions for corrupted files
@@ -150,12 +153,12 @@ class TextExtractor:
                 html_content = f.read()
             return h.handle(html_content)
         except ImportError:
-            logger.error(
+            logger.exception(
                 "html2text library is not installed. Please install it to extract text from HTML files."
             )
             raise ImportError(
                 "html2text library is not installed. Required for HTML extraction."
-            )
+            ) from None
         except Exception as e:
             logger.error(
                 f"Failed to extract text from HTML {file_path}: {e}", exc_info=True

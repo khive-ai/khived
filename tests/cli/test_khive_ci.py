@@ -159,74 +159,90 @@ class TestToolValidation:
 class TestTestExecution:
     """Test test execution functionality."""
 
-    @patch("subprocess.run")
-    def test_execute_python_tests_success(self, mock_run):
+    @patch("subprocess.Popen")
+    def test_execute_python_tests_success(self, mock_popen):
         """Test successful Python test execution."""
         # Arrange
-        mock_run.return_value = Mock(returncode=0, stdout="2 passed", stderr="")
+        mock_process = Mock()
+        mock_process.returncode = 0
+        mock_process.wait = Mock()
+        mock_popen.return_value = mock_process
         config = {"test_paths": ["tests"]}
 
         # Act
-        result = execute_tests(Path("/tmp"), "python", config)
+        result = execute_tests(Path("."), "python", config) # Use current dir for Popen
 
         # Assert
         assert result.test_type == "python"
         assert result.success is True
         assert result.exit_code == 0
         assert "pytest" in result.command
+        assert result.stdout == "" # Output is streamed
+        assert result.stderr == "" # Output is streamed
 
-    @patch("subprocess.run")
-    def test_execute_python_tests_failure(self, mock_run):
+    @patch("subprocess.Popen")
+    def test_execute_python_tests_failure(self, mock_popen):
         """Test failed Python test execution."""
         # Arrange
-        mock_run.return_value = Mock(
-            returncode=1,
-            stdout="1 failed, 1 passed",
-            stderr="FAILED tests/test_example.py::test_fail",
-        )
+        mock_process = Mock()
+        mock_process.returncode = 1
+        mock_process.wait = Mock()
+        mock_popen.return_value = mock_process
         config = {"test_paths": ["tests"]}
 
         # Act
-        result = execute_tests(Path("/tmp"), "python", config)
+        result = execute_tests(Path("."), "python", config) # Use current dir
 
         # Assert
         assert result.test_type == "python"
         assert result.success is False
         assert result.exit_code == 1
+        assert result.stdout == ""
+        assert result.stderr == ""
 
-    @patch("subprocess.run")
-    def test_execute_rust_tests_success(self, mock_run):
+    @patch("subprocess.Popen")
+    def test_execute_rust_tests_success(self, mock_popen):
         """Test successful Rust test execution."""
         # Arrange
-        mock_run.return_value = Mock(
-            returncode=0, stdout="test result: ok. 2 passed; 0 failed", stderr=""
-        )
+        mock_process = Mock()
+        mock_process.returncode = 0
+        mock_process.wait = Mock()
+        mock_popen.return_value = mock_process
         config = {"test_paths": ["src"]}
 
         # Act
-        result = execute_tests(Path("/tmp"), "rust", config)
+        result = execute_tests(Path("."), "rust", config) # Use current dir
 
         # Assert
         assert result.test_type == "rust"
         assert result.success is True
         assert result.exit_code == 0
         assert "cargo test" in result.command
+        assert result.stdout == ""
+        assert result.stderr == ""
 
-    @patch("subprocess.run")
-    def test_execute_tests_timeout(self, mock_run):
+    @patch("subprocess.Popen")
+    def test_execute_tests_timeout(self, mock_popen):
         """Test test execution timeout."""
         # Arrange
-        mock_run.side_effect = subprocess.TimeoutExpired("pytest", 300)
+        mock_process = Mock()
+        mock_process.wait.side_effect = subprocess.TimeoutExpired("pytest", 0.1) # Use a small timeout for testing
+        # Popen itself doesn't set returncode on timeout until process.kill() and another wait()
+        # The code in ci.py handles this by setting exit_code to 124.
+        mock_process.kill = Mock() # Mock kill as it's called in the SUT
+        mock_popen.return_value = mock_process
         config = {"test_paths": ["tests"]}
 
         # Act
-        result = execute_tests(Path("/tmp"), "python", config, timeout=300)
+        result = execute_tests(Path("."), "python", config, timeout=0.1) # Use current dir and small timeout
 
         # Assert
         assert result.test_type == "python"
         assert result.success is False
         assert result.exit_code == 124
         assert "timed out" in result.stderr
+        assert result.stdout == ""
+        mock_process.kill.assert_called_once()
 
     def test_execute_tests_unsupported_type(self):
         """Test execution with unsupported project type."""

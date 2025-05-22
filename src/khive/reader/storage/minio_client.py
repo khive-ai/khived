@@ -359,7 +359,7 @@ if __name__ == "__main__":
                     downloaded_data = client.download_object(test_object_name)
                     if downloaded_data:
                         logger.info(f"Downloaded data: {downloaded_data.decode()}")
-                        assert downloaded_data == test_data
+                        assert downloaded_data == test_data  # noqa: S101
 
                     # 4. Get a presigned URL for GET
                     get_url = client.get_presigned_url(

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Protocol
 
-import requests
+import httpx  # Replaced requests with httpx
 from khive.reader.storage.minio_client import ObjectStorageClient
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -87,15 +87,24 @@ class DocumentIngestionService:
         """Downloads content from the given URL."""
         try:
             logger.info(f"Attempting to download content from URL: {url}")
-            response = requests.get(str(url), timeout=30)  # 30 seconds timeout
+            async with httpx.AsyncClient() as client:
+                response = await client.get(str(url), timeout=30)
             response.raise_for_status()  # Raise an exception for HTTP errors
             logger.info(
                 f"Successfully downloaded content from URL: {url}, status: {response.status_code}"
             )
             return response.content
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:  # Changed to httpx.RequestError
             logger.error(
                 f"Failed to download content from URL '{url}': {e}", exc_info=True
+            )
+            return None
+        except (
+            httpx.HTTPStatusError
+        ) as e:  # Added specific handling for HTTPStatusError
+            logger.error(
+                f"HTTP error {e.response.status_code} while downloading from URL '{url}': {e.response.text}",
+                exc_info=True,
             )
             return None
         except Exception as e:
@@ -116,12 +125,11 @@ class DocumentIngestionService:
                 f"Document '{document.id}' would be queued for processing (Task Queue TBD)."
             )
             return True  # Assume success for now
-        else:
-            logger.warning(
-                f"Task queue client not available. Document '{document.id}' not queued for processing."
-            )
-            # For now, we'll consider it successfully "queued" as a placeholder step
-            return True
+        logger.warning(
+            f"Task queue client not available. Document '{document.id}' not queued for processing."
+        )
+        # For now, we'll consider it successfully "queued" as a placeholder step
+        return True
 
     async def ingest_document_from_url(
         self,
@@ -168,12 +176,11 @@ class DocumentIngestionService:
             logger.error(
                 f"Failed to download content for document ID: {document.id} from {source_uri}"
             )
-            error_document = await self.document_repository.update_document_status(
+            return await self.document_repository.update_document_status(
                 document.id,
                 DocumentStatus.DOWNLOAD_FAILED,
                 error_message="Failed to download content from source URI.",
             )
-            return error_document  # Return document with updated status
 
         document.size_bytes = len(raw_content)
         # Infer content_type if possible, or use what's provided/default
@@ -201,12 +208,11 @@ class DocumentIngestionService:
                 f"Failed to upload raw content to S3 for document ID: {document.id}"
             )
             # Get the updated document after setting status to ERROR
-            error_document = await self.document_repository.update_document_status(
+            return await self.document_repository.update_document_status(
                 document.id,
                 DocumentStatus.ERROR,
                 error_message="Failed to store raw content in object storage.",
             )
-            return error_document  # Return the document with the ERROR status
 
         logger.info(
             f"Successfully stored raw content for document ID: {document.id} at S3 path: {storage_object_name}"
@@ -229,12 +235,11 @@ class DocumentIngestionService:
             # However, the test expects the service to return None if this specific update fails and subsequent ones also fail.
             # Let's ensure we try to set an error status and return that document.
             # If update_document_status itself fails, then we might return None from the whole function.
-            error_doc = await self.document_repository.update_document_status(
+            return await self.document_repository.update_document_status(
                 original_document_id,
                 DocumentStatus.ERROR,
                 error_message="Failed to update document with storage path.",
             )
-            return error_doc  # This might be None if update_document_status also fails
 
         document = updated_doc_after_storage_path  # Continue with the updated document
 
