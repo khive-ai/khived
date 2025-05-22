@@ -1324,6 +1324,7 @@ all = [
     { name = "fastmcp" },
     { name = "ollama" },
     { name = "openai" },
+    { name = "prometheus-client" },
 ]
 mcp = [
     { name = "fastmcp" },
@@ -1337,6 +1338,7 @@ openai = [
 ]
 reader = [
     { name = "docling" },
+    { name = "prometheus-client" },
 ]
 schema = [
     { name = "datamodel-code-generator" },
@@ -1375,6 +1377,8 @@ requires-dist = [
     { name = "openai", marker = "extra == 'ollama'", specifier = ">=1.70.0" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.70.0" },
     { name = "orjson", specifier = ">=3.10.18" },
+    { name = "prometheus-client", marker = "extra == 'all'", specifier = ">=0.20.0" },
+    { name = "prometheus-client", marker = "extra == 'reader'", specifier = ">=0.20.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "pydapter", specifier = ">=0.1.7" },
     { name = "pyyaml", specifier = ">=6.0.0" },
@@ -2397,6 +2401,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/08/39/679ca9b26c7bb2999ff122d50faa301e49af82ca9c066ec061cfbc0c6784/pre_commit-4.2.0.tar.gz", hash = "sha256:601283b9757afd87d40c4c4a9b2b5de9637a8ea02eaff7adc2d0fb4e04841146", size = 193424, upload-time = "2025-03-18T21:35:20.987Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/74/a88bf1b1efeae488a0c0b7bdf71429c313722d1fc0f377537fbe554e6180/pre_commit-4.2.0-py2.py3-none-any.whl", hash = "sha256:a009ca7205f1eb497d10b845e52c838a98b6cdd2102a6c8e4540e94ee75c58bd", size = 220707, upload-time = "2025-03-18T21:35:19.343Z" },
+]
+
+[[package]]
+name = "prometheus-client"
+version = "0.22.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/5a/3fa1fa7e91a203759aaf316be394f70f2ef598d589b9785a8611b6094c00/prometheus_client-0.22.0.tar.gz", hash = "sha256:18da1d2241ac2d10c8d2110f13eedcd5c7c0c8af18c926e8731f04fc10cd575c", size = 74443, upload-time = "2025-05-16T20:50:18.333Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/c7/cee159ba3d7192e84a4c166ec1752f44a5fa859ac0eeda2d73a1da65ab47/prometheus_client-0.22.0-py3-none-any.whl", hash = "sha256:c8951bbe64e62b96cd8e8f5d917279d1b9b91ab766793f33d4dce6c228558713", size = 62658, upload-time = "2025-05-16T20:50:16.978Z" },
 ]
 
 [[package]]

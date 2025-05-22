@@ -27,6 +27,7 @@ Errors go to stderr and a non-zero exit code.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import sys
 from pathlib import Path
@@ -37,6 +38,8 @@ from typing import Any, Final
 # --------------------------------------------------------------------------- #
 try:
     # Assuming parts.py and reader_service.py are in khive.services.reader
+    # Imports for performance command
+    from khive.reader.monitoring.thresholds import PerformanceMonitor
     from khive.services.reader.parts import (  # Import specific param models
         ReaderAction,
         ReaderListDirParams,
@@ -46,6 +49,51 @@ try:
         ReaderResponse,  # Main response model
     )
     from khive.services.reader.reader_service import ReaderServiceGroup
+
+    # Attempt to import DB and task queue, provide fallbacks if not found for CLI standalone use
+    try:
+        from khive.reader.db import get_db_session  # type: ignore
+    except ImportError:
+
+        async def get_db_session():  # Placeholder
+            print(
+                "Warning: khive.reader.db.get_db_session not found for CLI performance check.",
+                file=sys.stderr,
+            )
+
+            class MockAsyncSession:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, tb):
+                    pass
+
+                async def execute(self, _stmt):  # Prefixed stmt with underscore
+                    class MockResult:
+                        def scalar(self):
+                            return 0
+
+                    return MockResult()
+
+            return MockAsyncSession()
+
+    try:
+        from khive.reader.tasks.queue import task_queue  # type: ignore
+    except ImportError:
+
+        class MockTaskQueue:  # Placeholder
+            def __init__(self):
+                self.pending_tasks = []
+
+            def qsize(self):
+                return len(self.pending_tasks)
+
+        task_queue = MockTaskQueue()
+        print(
+            "Warning: khive.reader.tasks.queue.task_queue not found for CLI performance check.",
+            file=sys.stderr,
+        )
+
 except ModuleNotFoundError as e:
     sys.stderr.write(
         f"❌ Required modules not found. Ensure khive.services.reader is in PYTHONPATH.\nError: {e}\n"
@@ -88,6 +136,34 @@ CACHE = _load_cache()
 # This global instance will persist self.documents within a single CLI execution
 # but not across multiple CLI executions unless we repopulate it from CACHE.
 reader_service = ReaderServiceGroup()
+
+# ANSI colors for performance command output
+ANSI = {
+    "R": "\033[91m",  # Red
+    "G": "\033[92m",  # Green
+    "Y": "\033[93m",  # Yellow
+    "N": "\033[0m",  # Normal (reset)
+}
+
+
+async def check_performance():
+    """Check performance thresholds and report status."""
+    try:
+        # Create performance monitor
+        # Ensure get_db_session and task_queue are available in this scope
+        # They are imported/defined above with fallbacks.
+        monitor = PerformanceMonitor(get_db_session, task_queue)
+
+        # Check all thresholds
+        results = await monitor.check_all_thresholds()
+
+        return {
+            "status": "success",
+            "thresholds": results,
+            "exceeded": any(t["exceeded"] for t in results.values()),
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Error checking performance: {e}"}
 
 
 def _handle_request_and_print(req_dict: dict[str, Any]) -> None:
@@ -205,46 +281,86 @@ def main() -> None:
         help="Only list files with these extensions (e.g. .md .txt)",
     )
 
-    args = ap.parse_args()
-    action_str = args.action_command  # This is 'open', 'read', or 'list_dir'
 
-    # Prepare request dictionary based on the subcommand
-    request_params_dict: dict[str, Any] = {}
-    if action_str == ReaderAction.OPEN.value:
-        request_params_dict = {"path_or_url": args.path_or_url}
-    elif action_str == ReaderAction.READ.value:
-        # Resolve doc_id from cache if it's not in the live service instance
-        # This allows 'read' to work across different CLI invocations for the same doc_id
-        if args.doc_id not in reader_service.documents and args.doc_id in CACHE:
-            cached_doc_info = CACHE[args.doc_id]
-            # Repopulate the live service's document mapping for this process
-            # The service stores (temp_file_path, doc_length)
-            reader_service.documents[args.doc_id] = (
-                cached_doc_info["path"],
-                cached_doc_info["length"],
-            )
-            # Note: The actual content is in the temp file; the service reads it on demand.
-            # num_tokens is not directly used by the service's read logic, but was cached.
+# --- performance -------------------------------------------------------- #
+perf_parser = sub.add_parser("performance", help="Check performance thresholds")
+perf_parser.add_argument("--json", action="store_true", help="Output results as JSON")
 
-        request_params_dict = {
-            "doc_id": args.doc_id,
-            "start_offset": args.start_offset,
-            "end_offset": args.end_offset,
-        }
-    elif action_str == ReaderAction.LIST_DIR.value:
-        request_params_dict = {
-            "directory": args.directory,
-            "recursive": args.recursive,
-            "file_types": args.file_types,
-        }
-    else:  # Should be caught by argparse
-        ap.error(f"Unknown command: {action_str}")
-        sys.exit(1)  # Should not be reached
 
-    # Add the action string to the dict that will be passed to build the Pydantic model
+args = ap.parse_args()
+action_str = args.action_command
+
+# Prepare request dictionary based on the subcommand
+request_params_dict: dict[str, Any] = {}
+if action_str == ReaderAction.OPEN.value:
+    request_params_dict = {"path_or_url": args.path_or_url}
+elif action_str == ReaderAction.READ.value:
+    # Resolve doc_id from cache if it's not in the live service instance
+    # This allows 'read' to work across different CLI invocations for the same doc_id
+    if args.doc_id not in reader_service.documents and args.doc_id in CACHE:
+        cached_doc_info = CACHE[args.doc_id]
+        # Repopulate the live service's document mapping for this process
+        # The service stores (temp_file_path, doc_length)
+        reader_service.documents[args.doc_id] = (
+            cached_doc_info["path"],
+            cached_doc_info["length"],
+        )
+        # Note: The actual content is in the temp file; the service reads it on demand.
+        # num_tokens is not directly used by the service's read logic, but was cached.
+
+    request_params_dict = {
+        "doc_id": args.doc_id,
+        "start_offset": args.start_offset,
+        "end_offset": args.end_offset,
+    }
+elif action_str == ReaderAction.LIST_DIR.value:
+    request_params_dict = {
+        "directory": args.directory,
+        "recursive": args.recursive,
+        "file_types": args.file_types,
+    }
+elif action_str == "performance":
+    result = asyncio.run(check_performance())
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        if result["status"] == "success":
+            print("Performance Threshold Check Results:")
+            for name, data in result["thresholds"].items():
+                status_text = "EXCEEDED" if data["exceeded"] else "OK"
+                color = ANSI["R"] if data["exceeded"] else ANSI["G"]
+                # Ensure values are float for formatting, handle None if necessary
+                current_val = data.get("current_value", 0.0)
+                threshold_val = data.get("threshold_value", 0.0)
+                print(
+                    f"{color}{name}{ANSI['N']}: {current_val:.2f} / {threshold_val:.2f} [{status_text}]"
+                )
+
+            if result["exceeded"]:
+                print(
+                    f"\n{ANSI['Y']}Some thresholds exceeded. Consider architecture changes.{ANSI['N']}"
+                )
+            else:
+                print(
+                    f"\n{ANSI['G']}All thresholds within acceptable limits.{ANSI['N']}"
+                )
+        else:
+            print(f"❌ {result['message']}", file=sys.stderr)
+            sys.exit(1)
+    sys.exit(0)  # Successful CLI execution for performance check
+else:  # Should be caught by argparse
+    ap.error(f"Unknown command: {action_str}")
+    sys.exit(1)  # Should not be reached
+
+# Add the action string to the dict that will be passed to build the Pydantic model
+if action_str in [
+    ReaderAction.OPEN.value,
+    ReaderAction.READ.value,
+    ReaderAction.LIST_DIR.value,
+]:
     full_request_dict = {"action": ReaderAction(action_str), **request_params_dict}
     _handle_request_and_print(full_request_dict)
-
 
 if __name__ == "__main__":
     main()

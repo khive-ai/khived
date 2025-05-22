@@ -134,28 +134,28 @@ addressed:
 ```python
 # Example of good code style
 async def execute(
-    self, 
-    func: Callable[..., Awaitable[T]], 
-    *args: Any, 
+    self,
+    func: Callable[..., Awaitable[T]],
+    *args: Any,
     **kwargs: Any
 ) -> T:
     """
     Execute a coroutine with rate limiting.
-    
+
     Args:
         func: Async function to execute.
         *args: Positional arguments for func.
         **kwargs: Keyword arguments for func.
-        
+
     Returns:
         Result from func.
     """
     wait_time = await self.acquire()
-    
+
     if wait_time > 0:
         logger.debug(f"Rate limited: waiting {wait_time:.2f}s before execution")
         await asyncio.sleep(wait_time)
-    
+
     logger.debug(f"Executing rate-limited function: {func.__name__}")
     return await func(*args, **kwargs)
 ```
@@ -411,31 +411,31 @@ characteristics.
 async def acquire(self, tokens: float = 1.0) -> float:
     """
     Acquire tokens from the bucket.
-    
+
     Args:
         tokens: Number of tokens to acquire.
-        
+
     Returns:
         Wait time in seconds before tokens are available.
         Returns 0.0 if tokens are immediately available.
     """
     async with self._lock:
         await self._refill()
-        
+
         if self.tokens >= tokens:
             self.tokens -= tokens
             logger.debug(f"Acquired {tokens} tokens, remaining: {self.tokens:.2f}")
             return 0.0
-        
+
         # Calculate wait time until enough tokens are available
         deficit = tokens - self.tokens
         wait_time = deficit * self.period / self.rate
-        
+
         logger.debug(
             f"Not enough tokens (requested: {tokens}, available: {self.tokens:.2f}), "
             f"wait time: {wait_time:.2f}s"
         )
-        
+
         return wait_time
 ```
 

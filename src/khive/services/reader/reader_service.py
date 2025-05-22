@@ -8,6 +8,7 @@ from typing import Any
 
 import aiofiles
 
+from khive.reader.monitoring.prometheus import monitor_async
 from khive.services.reader.parts import (
     DocumentInfo,
     ReaderAction,
@@ -101,6 +102,7 @@ class ReaderServiceGroup(Service):
             error="Unknown action type, must be one of: open, read, list_dir",
         )
 
+    @monitor_async("ingestion")
     async def _open_doc(self, params: ReaderOpenParams) -> ReaderResponse:
         # Check if it's a URL
         is_url = params.path_or_url.startswith(("http://", "https://", "ftp://"))
@@ -139,6 +141,7 @@ class ReaderServiceGroup(Service):
         doc_id = f"DOC_{abs(hash(params.path_or_url))}"
         return await self._save_to_temp(text, doc_id)
 
+    @monitor_async("search")
     async def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
         if params.doc_id not in self.documents_index:
             return ReaderResponse(success=False, error="doc_id not found in cache")

@@ -23,7 +23,10 @@
 6. [Configuration](#configuration)
 7. [Prerequisites](#prerequisites)
 8. [Project Layout](#project-layout)
-9. [Contributing](#contributing)
+9. [Services](#services)
+   - [Reader Microservice](docs/reader/README.md)
+   - [Info Service](docs/services/info_service.md)
+10. [Contributing](#contributing)
 
 ---
 
@@ -80,21 +83,31 @@ $ pip install "khive[reader]"
 $ pip install "khive[all]"
 ```
 
+The Reader Microservice supports a wide range of file formats:
+
+- **Documents**: PDF, DOCX, PPTX, XLSX
+- **Web**: HTML, HTM
+- **Text**: Markdown (MD), AsciiDoc (ADOC), CSV
+- **Images**: JPG, JPEG, PNG, TIFF, BMP (with OCR)
+
+For more information about the Reader Microservice, see the
+[Reader documentation](docs/reader/README.md).
+
 ---
 
 ## Command Catalogue
 
-| Command         | What it does (TL;DR)                                                                       |
-| --------------- | ------------------------------------------------------------------------------------------ |
-| `khive init`    | Verifies toolchain, installs JS & Python deps, runs `cargo check`, wires Husky hooks.      |
-| `khive fmt`     | Opinionated multi-stack formatter (`ruff` + `black`, `cargo fmt`, `deno fmt`, `markdown`). |
-| `khive commit`  | Stages → (optional patch-select) → conventional commit → (optional) push.                  |
-| `khive pr`      | Pushes branch & opens/creates GitHub PR (uses `gh`).                                       |
-| `khive ci`      | Local CI gate - lints, tests, coverage, template checks. Mirrors GH Actions.               |
-| `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                 |
-| `khive new-doc` | Scaffolds markdown docs (ADR, RFC, IP…) from templates with front-matter placeholders.     |
-| `khive reader`  | Opens/reads arbitrary docs via `docling`; returns JSON over stdout.                        |
-| `khive info`    | Information service for web search (`info search`) and LLM consultation (`info consult`).  |
+| Command         | What it does (TL;DR)                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `khive init`    | Verifies toolchain, installs JS & Python deps, runs `cargo check`, wires Husky hooks.       |
+| `khive fmt`     | Opinionated multi-stack formatter (`ruff` + `black`, `cargo fmt`, `deno fmt`, `markdown`).  |
+| `khive commit`  | Stages → (optional patch-select) → conventional commit → (optional) push.                   |
+| `khive pr`      | Pushes branch & opens/creates GitHub PR (uses `gh`).                                        |
+| `khive ci`      | Local CI gate - lints, tests, coverage, template checks. Mirrors GH Actions.                |
+| `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                  |
+| `khive new-doc` | Scaffolds markdown docs (ADR, RFC, IP…) from templates with front-matter placeholders.      |
+| `khive reader`  | Opens/reads arbitrary docs (PDF, DOCX, HTML, etc.) via `docling`; returns JSON over stdout. |
+| `khive info`    | Information service for web search (`info search`) and LLM consultation (`info consult`).   |
 
 Run `khive <command> --help` for full flag reference.
 
@@ -125,8 +138,15 @@ khive clean feature/old-experiment --dry-run
 khive new-doc RFC 001-streaming-api
 
 # open a PDF & read slice 0-500 chars
-DOC=$(khive reader open --source paper.pdf | jq -r .doc_id)
-khive reader read --doc "$DOC" --end 500
+DOC_ID=$(khive reader open --path_or_url paper.pdf | jq -r '.content.doc_info.doc_id')
+khive reader read --doc_id "$DOC_ID" --end_offset 500
+
+# open a web URL and extract its content
+DOC_ID=$(khive reader open --path_or_url https://example.com/article | jq -r '.content.doc_info.doc_id')
+khive reader read --doc_id "$DOC_ID"
+
+# list Python files in a directory recursively
+khive reader list_dir --directory ./src --recursive --file_types .py
 
 # search the web using Exa
 khive info search --provider exa --query "Latest developments in rust programming language"
