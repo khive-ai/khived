@@ -15,6 +15,7 @@ import logging
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
+
 from khive.clients.executor import AsyncExecutor
 from khive.clients.queue import QueueConfig, WorkQueue
 

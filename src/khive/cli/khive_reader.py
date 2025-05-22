@@ -387,8 +387,8 @@ async def _ingest_document_async(
                         f"  Error: {ingested_doc.error_message}", fg=typer.colors.YELLOW
                     )
             raise typer.Exit(code=0)
-    except typer.Exit as e: # Specifically catch typer.Exit and re-raise
-        raise e
+    except typer.Exit:  # Specifically catch typer.Exit and re-raise
+        raise
     except Exception as e:
         err_msg = f"An error occurred during ingestion: {type(e).__name__}: {e}"
         if json_output_flag:

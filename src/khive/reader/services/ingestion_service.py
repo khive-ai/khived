@@ -6,8 +6,9 @@ from enum import Enum
 from typing import Any, Protocol
 
 import httpx  # Replaced requests with httpx
-from khive.reader.storage.minio_client import ObjectStorageClient
 from pydantic import BaseModel, Field, HttpUrl
+
+from khive.reader.storage.minio_client import ObjectStorageClient
 
 logger = logging.getLogger(__name__)
 

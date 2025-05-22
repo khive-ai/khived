@@ -10,8 +10,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
-from khive.connections.endpoint import Endpoint, EndpointConfig
 from pydantic import BaseModel, Field
+
+from khive.connections.endpoint import Endpoint, EndpointConfig
 
 
 @pytest.fixture

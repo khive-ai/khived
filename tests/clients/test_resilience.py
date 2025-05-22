@@ -12,6 +12,7 @@ implemented in the resilience module.
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from khive.clients.errors import CircuitBreakerOpenError
 from khive.clients.resilience import (
     CircuitBreaker,

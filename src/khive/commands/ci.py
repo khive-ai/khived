@@ -205,8 +205,10 @@ def execute_tests(
         # Execute the command
         # For real-time output, we don't capture stdout/stderr here.
         # They will be inherited from the parent process and print directly.
-        process = subprocess.Popen(cmd, cwd=project_root, stdout=sys.stdout, stderr=sys.stderr)
-        
+        process = subprocess.Popen(
+            cmd, cwd=project_root, stdout=sys.stdout, stderr=sys.stderr
+        )
+
         try:
             # Wait for the process to complete with a timeout
             process.wait(timeout=timeout)
@@ -215,20 +217,20 @@ def execute_tests(
             stdout_cap = ""
             stderr_cap = ""
         except subprocess.TimeoutExpired:
-            process.kill() # Ensure the process is killed if it times out
-            process.wait() # Wait for the process to terminate
-            exit_code = 124 # Standard timeout exit code
+            process.kill()  # Ensure the process is killed if it times out
+            process.wait()  # Wait for the process to terminate
+            exit_code = 124  # Standard timeout exit code
             stdout_cap = ""
             stderr_cap = f"Test execution timed out after {timeout} seconds"
-        
+
         duration = time.time() - start_time
 
         return CITestResult(
             test_type=project_type,
             command=" ".join(cmd),
             exit_code=exit_code,
-            stdout=stdout_cap, # Will be empty as output is streamed
-            stderr=stderr_cap, # Will be empty or timeout message
+            stdout=stdout_cap,  # Will be empty as output is streamed
+            stderr=stderr_cap,  # Will be empty or timeout message
             duration=duration,
             success=exit_code == 0,
         )

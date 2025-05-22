@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+
 from khive.clients.api_client import AsyncAPIClient
 from khive.clients.errors import (
     APIConnectionError,

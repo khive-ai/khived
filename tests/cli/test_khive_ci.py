@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+
 from khive.commands.ci import (
     CIResult,
     CITestResult,
@@ -170,15 +171,15 @@ class TestTestExecution:
         config = {"test_paths": ["tests"]}
 
         # Act
-        result = execute_tests(Path("."), "python", config) # Use current dir for Popen
+        result = execute_tests(Path("."), "python", config)  # Use current dir for Popen
 
         # Assert
         assert result.test_type == "python"
         assert result.success is True
         assert result.exit_code == 0
         assert "pytest" in result.command
-        assert result.stdout == "" # Output is streamed
-        assert result.stderr == "" # Output is streamed
+        assert result.stdout == ""  # Output is streamed
+        assert result.stderr == ""  # Output is streamed
 
     @patch("subprocess.Popen")
     def test_execute_python_tests_failure(self, mock_popen):
@@ -191,7 +192,7 @@ class TestTestExecution:
         config = {"test_paths": ["tests"]}
 
         # Act
-        result = execute_tests(Path("."), "python", config) # Use current dir
+        result = execute_tests(Path("."), "python", config)  # Use current dir
 
         # Assert
         assert result.test_type == "python"
@@ -211,7 +212,7 @@ class TestTestExecution:
         config = {"test_paths": ["src"]}
 
         # Act
-        result = execute_tests(Path("."), "rust", config) # Use current dir
+        result = execute_tests(Path("."), "rust", config)  # Use current dir
 
         # Assert
         assert result.test_type == "rust"
@@ -226,15 +227,19 @@ class TestTestExecution:
         """Test test execution timeout."""
         # Arrange
         mock_process = Mock()
-        mock_process.wait.side_effect = subprocess.TimeoutExpired("pytest", 0.1) # Use a small timeout for testing
+        mock_process.wait.side_effect = subprocess.TimeoutExpired(
+            "pytest", 0.1
+        )  # Use a small timeout for testing
         # Popen itself doesn't set returncode on timeout until process.kill() and another wait()
         # The code in ci.py handles this by setting exit_code to 124.
-        mock_process.kill = Mock() # Mock kill as it's called in the SUT
+        mock_process.kill = Mock()  # Mock kill as it's called in the SUT
         mock_popen.return_value = mock_process
         config = {"test_paths": ["tests"]}
 
         # Act
-        result = execute_tests(Path("."), "python", config, timeout=0.1) # Use current dir and small timeout
+        result = execute_tests(
+            Path("."), "python", config, timeout=0.1
+        )  # Use current dir and small timeout
 
         # Assert
         assert result.test_type == "python"

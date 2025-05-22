@@ -14,6 +14,7 @@ This module contains tests for:
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from khive.clients.rate_limiter import (
     AdaptiveRateLimiter,
     EndpointRateLimiter,
