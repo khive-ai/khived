@@ -1,0 +1,14 @@
+# khive init configuration
+ignore_missing_optional_tools = false
+
+# Stacks to disable even if auto-detected (e.g., \"python\", \"npm\", \"rust\")
+disable_auto_stacks = []
+
+# Steps to force enable (e.g., \"tools\", \"husky\", or stacks like \"python\")
+force_enable_steps = []
+
+# Custom steps (example)
+#[custom_steps.example_custom_build]
+#cmd = \"echo Hello from khive custom step\"
+#run_if = \"file_exists:pyproject.toml\" # Condition to run this step
+#cwd = \".\" # Working directory relative to project root
