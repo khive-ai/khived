@@ -84,28 +84,30 @@ $ pip install "khive[all]"
 ```
 
 The Reader Microservice supports a wide range of file formats:
+
 - **Documents**: PDF, DOCX, PPTX, XLSX
 - **Web**: HTML, HTM
 - **Text**: Markdown (MD), AsciiDoc (ADOC), CSV
 - **Images**: JPG, JPEG, PNG, TIFF, BMP (with OCR)
 
-For more information about the Reader Microservice, see the [Reader documentation](docs/reader/README.md).
+For more information about the Reader Microservice, see the
+[Reader documentation](docs/reader/README.md).
 
 ---
 
 ## Command Catalogue
 
-| Command         | What it does (TL;DR)                                                                       |
-| --------------- | ------------------------------------------------------------------------------------------ |
-| `khive init`    | Verifies toolchain, installs JS & Python deps, runs `cargo check`, wires Husky hooks.      |
-| `khive fmt`     | Opinionated multi-stack formatter (`ruff` + `black`, `cargo fmt`, `deno fmt`, `markdown`). |
-| `khive commit`  | Stages → (optional patch-select) → conventional commit → (optional) push.                  |
-| `khive pr`      | Pushes branch & opens/creates GitHub PR (uses `gh`).                                       |
-| `khive ci`      | Local CI gate - lints, tests, coverage, template checks. Mirrors GH Actions.               |
-| `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                 |
-| `khive new-doc` | Scaffolds markdown docs (ADR, RFC, IP…) from templates with front-matter placeholders.     |
+| Command         | What it does (TL;DR)                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `khive init`    | Verifies toolchain, installs JS & Python deps, runs `cargo check`, wires Husky hooks.       |
+| `khive fmt`     | Opinionated multi-stack formatter (`ruff` + `black`, `cargo fmt`, `deno fmt`, `markdown`).  |
+| `khive commit`  | Stages → (optional patch-select) → conventional commit → (optional) push.                   |
+| `khive pr`      | Pushes branch & opens/creates GitHub PR (uses `gh`).                                        |
+| `khive ci`      | Local CI gate - lints, tests, coverage, template checks. Mirrors GH Actions.                |
+| `khive clean`   | Deletes a finished branch locally & remotely - never nukes default branch.                  |
+| `khive new-doc` | Scaffolds markdown docs (ADR, RFC, IP…) from templates with front-matter placeholders.      |
 | `khive reader`  | Opens/reads arbitrary docs (PDF, DOCX, HTML, etc.) via `docling`; returns JSON over stdout. |
-| `khive info`    | Information service for web search (`info search`) and LLM consultation (`info consult`).  |
+| `khive info`    | Information service for web search (`info search`) and LLM consultation (`info consult`).   |
 
 Run `khive <command> --help` for full flag reference.
 

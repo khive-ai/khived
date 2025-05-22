@@ -35,6 +35,7 @@ dev = [
 [project.optional-dependencies]
 reader = [
     "docling>=2.31.0",
+    "prometheus-client>=0.20.0", # Added for reader observability
 ]
 mcp = [
     "fastmcp>=2.3.3",
@@ -56,6 +57,7 @@ all = [
     "datamodel-code-generator>=0.30.1",
     "openai>=1.70.0",
     "fastmcp>=2.3.3",
+    "prometheus-client>=0.20.0", # Added for reader observability
 ]
 
 [tool.pytest.ini_options]
