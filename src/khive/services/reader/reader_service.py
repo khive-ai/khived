@@ -88,10 +88,12 @@ class ReaderServiceGroup(Service):
 
         # Load existing index or create a new one
         self.documents_index = self._load_index()
-        
+
         # For compatibility with CLI's caching mechanism that expects this attribute
         # This is distinct from documents_index and cache_dir used for service's own persistence.
-        self.documents: dict[str, tuple[str, int]] = {} # Stores (temp_file_path, doc_length)
+        self.documents: dict[
+            str, tuple[str, int]
+        ] = {}  # Stores (temp_file_path, doc_length)
 
     async def handle_request(self, request: ReaderRequest) -> ReaderResponse:
         if request.action == ReaderAction.OPEN:

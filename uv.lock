@@ -1372,7 +1372,6 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pydapter" },
     { name = "pyyaml" },
-    { name = "sentence-transformers" },
     { name = "tiktoken" },
 ]
 
@@ -1404,6 +1403,7 @@ reader = [
     { name = "openai" },
     { name = "pypdf2" },
     { name = "python-docx" },
+    { name = "sentence-transformers" },
 ]
 schema = [
     { name = "datamodel-code-generator" },
@@ -1454,8 +1454,9 @@ requires-dist = [
     { name = "python-docx", marker = "extra == 'all'", specifier = ">=1.0.0" },
     { name = "python-docx", marker = "extra == 'reader'", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
-    { name = "sentence-transformers", specifier = ">=4.1.0" },
     { name = "sentence-transformers", marker = "extra == 'all'", specifier = ">=2.2.0" },
+    { name = "sentence-transformers", marker = "extra == 'all'", specifier = ">=4.1.0" },
+    { name = "sentence-transformers", marker = "extra == 'reader'", specifier = ">=4.1.0" },
     { name = "tiktoken", specifier = ">=0.9.0" },
 ]
 provides-extras = ["reader", "mcp", "schema", "ollama", "openai", "all"]

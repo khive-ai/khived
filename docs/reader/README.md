@@ -1,25 +1,33 @@
 # Khive Reader Microservice
 
-The Khive Reader Microservice is a powerful document and web content processing service that enables seamless extraction and manipulation of text from various file formats and web resources. It serves as a bridge between raw content and structured text that can be easily consumed by applications, AI agents, and other services.
+The Khive Reader Microservice is a powerful document and web content processing
+service that enables seamless extraction and manipulation of text from various
+file formats and web resources. It serves as a bridge between raw content and
+structured text that can be easily consumed by applications, AI agents, and
+other services.
 
 ## Overview
 
 The Reader Microservice provides a unified interface for:
 
-- Opening and converting various document formats (PDF, DOCX, HTML, etc.) to plain text
+- Opening and converting various document formats (PDF, DOCX, HTML, etc.) to
+  plain text
 - Extracting text from web URLs
 - Reading specific portions of documents by character offsets
 - Listing directory contents with filtering options
 - Caching processed documents for efficient repeated access
 
-This service is designed to be used both as a standalone CLI tool and as a programmatic API within Python applications.
+This service is designed to be used both as a standalone CLI tool and as a
+programmatic API within Python applications.
 
 ## Key Features
 
-- **Multi-format Support**: Process PDFs, Word documents, PowerPoint, Excel, HTML, Markdown, images (with OCR), and more
+- **Multi-format Support**: Process PDFs, Word documents, PowerPoint, Excel,
+  HTML, Markdown, images (with OCR), and more
 - **URL Processing**: Extract content directly from web URLs
 - **Efficient Partial Reading**: Read only the portions of documents you need
-- **Directory Exploration**: List files with filtering by type and recursive options
+- **Directory Exploration**: List files with filtering by type and recursive
+  options
 - **Persistent Caching**: Cache processed documents for quick subsequent access
 - **Token Estimation**: Get approximate token counts for processed text
 - **JSON-based Interface**: Clean, structured responses for easy integration
@@ -38,6 +46,7 @@ uv pip install "khive[reader]"
 ```
 
 This will install all necessary dependencies, including:
+
 - `docling`: For document conversion
 - `tiktoken`: For token counting
 - `aiofiles`: For asynchronous file operations
@@ -69,7 +78,8 @@ For more detailed information, see:
 
 ## Supported File Formats
 
-The Reader Microservice supports a wide range of file formats through the `docling` library:
+The Reader Microservice supports a wide range of file formats through the
+`docling` library:
 
 - **Documents**: PDF, DOCX, PPTX, XLSX
 - **Web**: HTML, HTM

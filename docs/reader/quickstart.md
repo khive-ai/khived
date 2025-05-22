@@ -1,6 +1,8 @@
 # Khive Reader Microservice: Quickstart Guide
 
-This guide will help you get started with the Khive Reader Microservice, a powerful tool for extracting and processing text from various document formats and web resources.
+This guide will help you get started with the Khive Reader Microservice, a
+powerful tool for extracting and processing text from various document formats
+and web resources.
 
 ## Installation
 
@@ -17,6 +19,7 @@ uv pip install "khive[reader]"
 ## Basic Usage
 
 The Reader Microservice provides three main actions:
+
 - `open`: Convert a file or URL to text and cache it
 - `read`: Read a portion of a previously opened document
 - `list_dir`: List directory contents and treat the listing as a document
@@ -33,7 +36,8 @@ khive reader open --path_or_url path/to/document.pdf
 khive reader open --path_or_url https://example.com/document.pdf
 ```
 
-The command returns a JSON response with a `doc_id` that you'll use to read the document:
+The command returns a JSON response with a `doc_id` that you'll use to read the
+document:
 
 ```json
 {
@@ -175,6 +179,9 @@ Always check the `success` field in the response to handle errors appropriately.
 
 ## Next Steps
 
-- Explore the [architecture documentation](architecture.md) to understand how the Reader Microservice works
-- Check out the [example notebook](examples/basic_usage.ipynb) for more usage examples
-- Read the [full CLI documentation](../commands/khive_reader.md) for detailed command reference
+- Explore the [architecture documentation](architecture.md) to understand how
+  the Reader Microservice works
+- Check out the [example notebook](examples/basic_usage.ipynb) for more usage
+  examples
+- Read the [full CLI documentation](../commands/khive_reader.md) for detailed
+  command reference

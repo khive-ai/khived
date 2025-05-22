@@ -185,3 +185,4 @@ khive/third_party/openai_models.py
 .khive/dev/
 .khive/mcps/
 .khive/prompts/
+.khive/reader_cache/
