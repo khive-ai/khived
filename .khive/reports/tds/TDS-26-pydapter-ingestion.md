@@ -84,10 +84,13 @@ Issue #25) outlined components like `ObjectStorageClient` and
 
 A new critical requirement mandates the use of the `pydapter` library for data
 persistence and interactions. `Pydapter` (as understood from provided context in
-Issue #26 comments and available `pydapter` source code (e.g., [`pydapter.async_core.AsyncAdaptable`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py#L92), [`pydapter.protocols.event.@as_event`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63)) is an asynchronous
-library featuring an adapter pattern, deep integration with Pydantic models
-(via the `AsyncAdaptable` mixin), and an event model driven by the `@as_event` decorator.
-This TDS refactors the ingestion architecture to align with `pydapter`.
+Issue #26 comments and available `pydapter` source code (e.g.,
+[`pydapter.async_core.AsyncAdaptable`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py#L92),
+[`pydapter.protocols.event.@as_event`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63))
+is an asynchronous library featuring an adapter pattern, deep integration with
+Pydantic models (via the `AsyncAdaptable` mixin), and an event model driven by
+the `@as_event` decorator. This TDS refactors the ingestion architecture to
+align with `pydapter`.
 
 Relevant Issues:
 
@@ -119,7 +122,8 @@ Relevant Issues:
 - **Mandatory `pydapter` Usage:** All data persistence and related interactions
   must use `pydapter`.
 - **Pydantic Models:** `Document` and `DocumentChunk` (Issue #24) are Pydantic
-  models and must be integrated with `pydapter` by inheriting from `pydapter.async_core.AsyncAdaptable`.
+  models and must be integrated with `pydapter` by inheriting from
+  `pydapter.async_core.AsyncAdaptable`.
 - **Asynchronous Nature:** The entire ingestion pipeline must be asynchronous.
 - **Compatibility:** The solution must be compatible with chosen database (e.g.,
   PostgreSQL for metadata, Qdrant for vectors) and local object storage (e.g.,
@@ -181,10 +185,13 @@ graph TD
   Docker, or direct filesystem access if `pydapter` supports this robustly for
   binary objects). Handles upload/download of raw documents and extracted text.
 - **`DocumentMetadataAdapter` (Postgres)**: A `pydapter` adapter (e.g.,
-  [`pydapter.extras.async_postgres_.AsyncPostgresAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py#L17)) for managing `Document` metadata in a relational
-  database.
-- **`DocumentChunkAdapter` (Qdrant/VectorDB)**: A `pydapter` adapter (specifically [`pydapter.extras.async_qdrant_.AsyncQdrantAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py#L23)) for storing and searching
-  `DocumentChunk` objects, including their vector embeddings.
+  [`pydapter.extras.async_postgres_.AsyncPostgresAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py#L17))
+  for managing `Document` metadata in a relational database.
+- **`DocumentChunkAdapter` (Qdrant/VectorDB)**: A `pydapter` adapter
+  (specifically
+  [`pydapter.extras.async_qdrant_.AsyncQdrantAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py#L23))
+  for storing and searching `DocumentChunk` objects, including their vector
+  embeddings.
 - **Downstream Processes (Issue #27)**: Text Extraction, Chunking, Embedding
   services/processes that are triggered after initial ingestion and interact
   with `pydapter` adapters to read/write data.
@@ -192,7 +199,10 @@ graph TD
 ### 2.2 Dependencies
 
 - **`pydapter` library**: Core dependency for data persistence and interaction.
-  (see [`pydapter.protocols.event`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py), [`pydapter.extras.async_qdrant_`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py), [`pydapter.extras.async_postgres_`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py)).
+  (see
+  [`pydapter.protocols.event`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py),
+  [`pydapter.extras.async_qdrant_`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py),
+  [`pydapter.extras.async_postgres_`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py)).
 - **Pydantic**: For data modeling.
 - **Database Drivers**: e.g., `asyncpg` for PostgreSQL, Qdrant client library.
 - **MinIO Client Library / Filesystem Libraries**: e.g., `minio-py` (if
@@ -228,8 +238,13 @@ sequenceDiagram
     DMA-->>-DIS: updated_document_record
 ```
 
-_Note: `pydapter`'s [`@as_event` decorator](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63) can be used on methods (e.g., a service method that calls an adapter's `to_obj`)
-to automatically capture the operation as an `Event` (which can be logged as a `Log` object) and trigger further actions, potentially by persisting this `Log` object using another adapter. This facilitates decoupling `DIS` from `DownstreamProcessing`._
+_Note: `pydapter`'s
+[`@as_event` decorator](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63)
+can be used on methods (e.g., a service method that calls an adapter's `to_obj`)
+to automatically capture the operation as an `Event` (which can be logged as a
+`Log` object) and trigger further actions, potentially by persisting this `Log`
+object using another adapter. This facilitates decoupling `DIS` from
+`DownstreamProcessing`._
 
 ## 3. Interface Definitions
 
@@ -278,7 +293,7 @@ class DocumentIngestionService:
         # and potentially trigger downstream processes based on this specific event.
         # For example, if event_log_adapter is configured:
         # @as_event(adapter=self.event_log_adapter.__class__ if self.event_log_adapter else None, adapt=bool(self.event_log_adapter), event_type="DocumentMetadataStored")
-        
+
         # For AsyncPostgresAdapter, to_obj expects the model instance and table name.
         # The Pydantic model 'Document' should have its __table_name__ or similar defined,
         # or table name passed in kw.
@@ -311,15 +326,15 @@ class DocumentIngestionService:
             metadata=user_metadata or {},
             status="UPLOADED"
         )
-        
+
         # 3. Store document metadata & trigger event (implicitly or explicitly)
         # If _store_document_metadata is decorated with @as_event and configured to adapt,
         # it will persist an Event/Log object.
         persisted_doc = await self._store_document_metadata(doc)
-        
+
         # Downstream processing would be triggered by listeners to the persisted event,
         # or by an explicit message queue if not using @as_event for direct triggering.
-        
+
         return persisted_doc
     # Potentially methods to handle updates/status from downstream processes
     # async def update_document_processing_status(self, document_id: str, status: str, details: Dict) -> Document:
@@ -334,13 +349,17 @@ class DocumentIngestionService:
 
 ### 3.3 Pydapter Adapter Interfaces (Conceptual)
 
-Adapters will conform to the [`pydapter.async_core.AsyncAdapter` protocol](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py#L21).
+Adapters will conform to the
+[`pydapter.async_core.AsyncAdapter` protocol](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py#L21).
 
-**`DocumentMetadataAdapter` (for `Document` model, using `AsyncPostgresAdapter`):**
-   The `AsyncPostgresAdapter` (which inherits from `AsyncSQLAdapter`) will be used.
-   - `to_obj(document_model, table="documents", ...)`: Saves the `Document` model.
-   - `from_obj(Document, {"table": "documents", "selectors": {"id": "..."}}, ...)`: Retrieves `Document`.
-   (Actual method signatures are `to_obj(subj, /, **kw)` and `from_obj(subj_cls, obj, /, **kw)`)
+**`DocumentMetadataAdapter` (for `Document` model, using
+`AsyncPostgresAdapter`):** The `AsyncPostgresAdapter` (which inherits from
+`AsyncSQLAdapter`) will be used.
+
+- `to_obj(document_model, table="documents", ...)`: Saves the `Document` model.
+- `from_obj(Document, {"table": "documents", "selectors": {"id": "..."}}, ...)`:
+  Retrieves `Document`. (Actual method signatures are `to_obj(subj, /, **kw)`
+  and `from_obj(subj_cls, obj, /, **kw)`)
 
 - `save(document: Document) -> Document`
 - `get_by_id(document_id: str) -> Optional[Document]`
@@ -348,15 +367,25 @@ Adapters will conform to the [`pydapter.async_core.AsyncAdapter` protocol](https
 - `delete(document_id: str) -> bool`
 - `list_documents(...) -> List[Document]`
 
-**`DocumentChunkAdapter` (for `DocumentChunk` model, using `AsyncQdrantAdapter`):**
-   The [`pydapter.extras.async_qdrant_.AsyncQdrantAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py#L23) will be used.
-   - `to_obj(chunks_list, collection="document_chunks", vector_field="embedding", id_field="id", ...)`: Saves `DocumentChunk` models.
-     **Note:** The default `AsyncQdrantAdapter.to_obj` recreates the collection. This needs to be handled by either:
-       a) Ensuring the collection is created once externally before ingestion starts.
-       b) Modifying/extending the adapter or using Qdrant client directly for upsert without recreate if `pydapter` doesn't offer a flag.
-       c) The `to_obj` method in the notebook example does not show `recreate_collection`, it directly upserts. The source code of `AsyncQdrantAdapter` shows `recreate_collection`. This discrepancy needs to be clarified by the implementer. For this TDS, we assume the collection exists or is managed to allow additive upserts.
-   - `from_obj(DocumentChunk, {"collection": "document_chunks", "query_vector": ..., "top_k": ...}, ...)`: Searches chunks.
-   (Actual method signatures are `to_obj(subj, /, **kw)` and `from_obj(subj_cls, obj, /, **kw)`)
+**`DocumentChunkAdapter` (for `DocumentChunk` model, using
+`AsyncQdrantAdapter`):** The
+[`pydapter.extras.async_qdrant_.AsyncQdrantAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py#L23)
+will be used.
+
+- `to_obj(chunks_list, collection="document_chunks", vector_field="embedding", id_field="id", ...)`:
+  Saves `DocumentChunk` models. **Note:** The default
+  `AsyncQdrantAdapter.to_obj` recreates the collection. This needs to be handled
+  by either: a) Ensuring the collection is created once externally before
+  ingestion starts. b) Modifying/extending the adapter or using Qdrant client
+  directly for upsert without recreate if `pydapter` doesn't offer a flag. c)
+  The `to_obj` method in the notebook example does not show
+  `recreate_collection`, it directly upserts. The source code of
+  `AsyncQdrantAdapter` shows `recreate_collection`. This discrepancy needs to be
+  clarified by the implementer. For this TDS, we assume the collection exists or
+  is managed to allow additive upserts.
+- `from_obj(DocumentChunk, {"collection": "document_chunks", "query_vector": ..., "top_k": ...}, ...)`:
+  Searches chunks. (Actual method signatures are `to_obj(subj, /, **kw)` and
+  `from_obj(subj_cls, obj, /, **kw)`)
 
 - `save_batch(chunks: List[DocumentChunk]) -> List[DocumentChunk]`
 - `get_by_id(chunk_id: str) -> Optional[DocumentChunk]`
@@ -367,7 +396,10 @@ Adapters will conform to the [`pydapter.async_core.AsyncAdapter` protocol](https
 **`DocumentObjectAdapter` (Local Object Storage / MinIO-Docker):** This might be
 a more specialized adapter if `pydapter` doesn't have a generic object storage
 one. It could target a local MinIO instance (running in Docker) or potentially
-direct filesystem operations. As `pydapter` source does not show a readily available adapter for this, a **custom `AsyncAdapter` will likely need to be developed** for this purpose, potentially using `aiofiles` for filesystem operations or `minio-py` for a local MinIO Docker instance.
+direct filesystem operations. As `pydapter` source does not show a readily
+available adapter for this, a **custom `AsyncAdapter` will likely need to be
+developed** for this purpose, potentially using `aiofiles` for filesystem
+operations or `minio-py` for a local MinIO Docker instance.
 
 - `upload_file(file_path: str, destination_key: str, content_type: Optional[str] = None) -> str`
   (returns URI/key)
@@ -381,7 +413,9 @@ direct filesystem operations. As `pydapter` source does not show a readily avail
 
 Data models (`Document`, `DocumentChunk`) are defined as Pydantic models (Issue
 #24). They will need to be made compatible with `pydapter`, likely by inheriting
-from [`pydapter.async_core.AsyncAdaptable`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py#L92) mixin. This allows them to use `adapt_to_async` and `adapt_from_async` methods.
+from
+[`pydapter.async_core.AsyncAdaptable`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py#L92)
+mixin. This allows them to use `adapt_to_async` and `adapt_from_async` methods.
 
 ### 4.1 `pydapter`-compatible Pydantic Models
 
@@ -445,8 +479,20 @@ The Pydantic models above serve as the primary domain models.
 Database schemas for PostgreSQL (for `Document` metadata) and Qdrant (for
 `DocumentChunk` with vectors) will be implicitly defined by the `pydapter`
 adapters and the Pydantic models.
-- **PostgreSQL:** `pydapter` includes a migrations system, likely leveraging Alembic (see [`pydapter.migrations.sql.alembic_adapter.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/sql/alembic_adapter.py)). Table schema for `Document` will be defined and managed through this. The `pydapter.model_adapters.postgres_model.PostgresModelAdapter` handles Pydantic-to-SQLAlchemy model conversion, including types like `JSONB` for `Document.metadata`.
-- **Qdrant:** Collection (`document_chunks`) creation and configuration (vector size, distance metric) must be handled. The `AsyncQdrantAdapter.to_obj` method, as seen in source, attempts to `recreate_collection`. This behavior needs careful management in a production setup to avoid data loss. It's recommended to ensure the collection exists with the correct configuration before the ingestion service starts or modify adapter usage to only upsert.
+
+- **PostgreSQL:** `pydapter` includes a migrations system, likely leveraging
+  Alembic (see
+  [`pydapter.migrations.sql.alembic_adapter.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/sql/alembic_adapter.py)).
+  Table schema for `Document` will be defined and managed through this. The
+  `pydapter.model_adapters.postgres_model.PostgresModelAdapter` handles
+  Pydantic-to-SQLAlchemy model conversion, including types like `JSONB` for
+  `Document.metadata`.
+- **Qdrant:** Collection (`document_chunks`) creation and configuration (vector
+  size, distance metric) must be handled. The `AsyncQdrantAdapter.to_obj`
+  method, as seen in source, attempts to `recreate_collection`. This behavior
+  needs careful management in a production setup to avoid data loss. It's
+  recommended to ensure the collection exists with the correct configuration
+  before the ingestion service starts or modify adapter usage to only upsert.
 
 - **PostgreSQL (`Document` table):** Columns corresponding to `Document` model
   fields.
@@ -466,23 +512,29 @@ adapters and the Pydantic models.
    back `storage_uri`. b. Constructs a `Document` Pydantic model instance with
    `source_uri`, `storage_uri`, `mime_type`, user `metadata`, and initial
    `status` (e.g., "UPLOADED"). c. Uses
-   `DocumentMetadataAdapter.to_obj(document_model, table="documents")` to persist the `Document`
-   record in PostgreSQL.
-   d. **Event Triggering using `pydapter @as_event`**:
-      A service method responsible for calling `DocumentMetadataAdapter.to_obj` (or the `to_obj` call itself if the adapter method could be decorated, though less likely for generic adapters) can be decorated with [`@as_event`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63).
-      Example:
-      ```python
-      # In DocumentIngestionService or a dedicated event-sourcing part
-      # @as_event(adapter=self.event_log_adapter_class, adapt=True, event_type="DocumentMetadataStored")
-      # async def _persist_doc_and_log_event(self, doc: Document):
-      #    await self.metadata_adapter.to_obj(doc, table="documents") # Or use doc.adapt_to_async
-      #    return {"document_id": doc.id, "status": "METADATA_STORED"}
-      ```
-      When `_persist_doc_and_log_event` is called, `pydapter` will:
-      i. Execute the function.
-      ii. Create an `Event` object capturing its request and response.
-      iii. If `adapt=True` and an `adapter` (e.g., for an SQL event log table) is provided to `@as_event`, it will convert the `Event` to a `Log` object (see [`pydapter.protocols.event.Event.to_log`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L38)) and persist it using the specified `event_log_adapter`.
-      This `Log` object contains details like `event_type`, `content` (request/response of the decorated function), `status`, `duration`, etc.
+   `DocumentMetadataAdapter.to_obj(document_model, table="documents")` to
+   persist the `Document` record in PostgreSQL. d. **Event Triggering using
+   `pydapter @as_event`**: A service method responsible for calling
+   `DocumentMetadataAdapter.to_obj` (or the `to_obj` call itself if the adapter
+   method could be decorated, though less likely for generic adapters) can be
+   decorated with
+   [`@as_event`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63).
+   Example:
+   ```python
+   # In DocumentIngestionService or a dedicated event-sourcing part
+   # @as_event(adapter=self.event_log_adapter_class, adapt=True, event_type="DocumentMetadataStored")
+   # async def _persist_doc_and_log_event(self, doc: Document):
+   #    await self.metadata_adapter.to_obj(doc, table="documents") # Or use doc.adapt_to_async
+   #    return {"document_id": doc.id, "status": "METADATA_STORED"}
+   ```
+   When `_persist_doc_and_log_event` is called, `pydapter` will: i. Execute the
+   function. ii. Create an `Event` object capturing its request and response.
+   iii. If `adapt=True` and an `adapter` (e.g., for an SQL event log table) is
+   provided to `@as_event`, it will convert the `Event` to a `Log` object (see
+   [`pydapter.protocols.event.Event.to_log`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L38))
+   and persist it using the specified `event_log_adapter`. This `Log` object
+   contains details like `event_type`, `content` (request/response of the
+   decorated function), `status`, `duration`, etc.
 4. Downstream Processing (Issue #27 - Text Extraction, Chunking, Embedding): a.
    A listener/worker picks up the `DocumentCreatedEvent` (or queue message). b.
    **Text Extraction:** i. Uses `DocumentObjectAdapter` to download the raw
@@ -495,9 +547,16 @@ adapters and the Pydantic models.
    models, linking them to `document_id`. d. **Embedding:** i. Generates vector
    embeddings for each `DocumentChunk.text`. ii. Updates `DocumentChunk` models
    with their embeddings. e. Uses
-   `DocumentChunkAdapter.to_obj(list_of_chunks, collection="document_chunks", vector_field="embedding", id_field="id")` to store all chunks and
-   their embeddings in Qdrant. (Note: `AsyncQdrantAdapter.to_obj` takes `Sequence[T]`, so a list of chunks is appropriate).
-   f. Uses `DocumentMetadataAdapter.to_obj(updated_document_model, table="documents", update_existing=True)` (assuming `AsyncSQLAdapter` supports an `update_existing` or similar flag for upsert/update, or a separate update method) to set `Document.status` to "COMPLETED". If not, a specific update method via `from_obj` with selectors and then `to_obj` or a dedicated update method in `AsyncSQLAdapter` would be needed.
+   `DocumentChunkAdapter.to_obj(list_of_chunks, collection="document_chunks", vector_field="embedding", id_field="id")`
+   to store all chunks and their embeddings in Qdrant. (Note:
+   `AsyncQdrantAdapter.to_obj` takes `Sequence[T]`, so a list of chunks is
+   appropriate). f. Uses
+   `DocumentMetadataAdapter.to_obj(updated_document_model, table="documents", update_existing=True)`
+   (assuming `AsyncSQLAdapter` supports an `update_existing` or similar flag for
+   upsert/update, or a separate update method) to set `Document.status` to
+   "COMPLETED". If not, a specific update method via `from_obj` with selectors
+   and then `to_obj` or a dedicated update method in `AsyncSQLAdapter` would be
+   needed.
 5. `DocumentIngestionService.ingest_document` returns the initial `Document`
    model (or an ID/status).
 
@@ -506,15 +565,16 @@ adapters and the Pydantic models.
 1. A search service receives a query.
 2. Query is embedded to get `query_embedding`.
 3. Search service uses
-   `DocumentChunkAdapter.from_obj(DocumentChunk, {"collection": "document_chunks", "query_vector": query_embedding, "top_k": N})` to find
-   relevant chunks from Qdrant.
+   `DocumentChunkAdapter.from_obj(DocumentChunk, {"collection": "document_chunks", "query_vector": query_embedding, "top_k": N})`
+   to find relevant chunks from Qdrant.
 4. Results are processed and returned.
 
 ### 5.2 Error Handling
 
 - **Adapter Errors:** `pydapter` adapters should raise specific exceptions for
   database/storage connection issues, query failures, object not found, etc.
-  (see [`pydapter.exceptions`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/exceptions.py)).
+  (see
+  [`pydapter.exceptions`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/exceptions.py)).
 - **`DocumentIngestionService`**: Will catch exceptions from adapters and
   internal logic.
   - Transient errors (e.g., network issues) might be handled with retries
@@ -604,8 +664,9 @@ from pydapter.extras.async_qdrant_ import AsyncQdrantAdapter
   allocation to Docker). Local MinIO (Docker) also scales based on allocated
   resources. Direct filesystem storage scales with disk space.
 - **`pydapter` Performance:** Assumed to be efficient. Performance
-  characteristics of specific adapters need to be understood.
-  (see [`pydapter.extras.async_qdrant_.AsyncQdrantAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py), [`pydapter.extras.async_sql_.AsyncSQLAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_sql_.py)).
+  characteristics of specific adapters need to be understood. (see
+  [`pydapter.extras.async_qdrant_.AsyncQdrantAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py),
+  [`pydapter.extras.async_sql_.AsyncSQLAdapter`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_sql_.py)).
 - **Batch Operations:** Utilize batch operations provided by `pydapter` adapters
   (e.g., `save_batch` for chunks) where possible.
 
@@ -718,7 +779,8 @@ settings, .env files).
   1. **Early Spike/PoC:** The Implementer should conduct an early
      proof-of-concept with `pydapter` and the target databases/storage to
      validate core assumptions as soon as the actual `pydapter` documentation is
-     fully reviewed (e.g., by studying its source code at `https://github.com/khive-ai/pydapter`).
+     fully reviewed (e.g., by studying its source code at
+     `https://github.com/khive-ai/pydapter`).
   2. **Flexible Adapter Design:** Design custom adapters (if needed) with a
      clear interface, allowing for easier replacement or modification if
      `pydapter`'s native support is different.
@@ -729,8 +791,9 @@ settings, .env files).
 
 - **Description:** If `pydapter` does not provide out-of-the-box adapters for
   all needed local systems (especially for local MinIO Docker interaction or
-  robust filesystem object storage, as these are not explicitly provided by `pydapter`), developing
-  robust, async custom adapters can be complex and time-consuming.
+  robust filesystem object storage, as these are not explicitly provided by
+  `pydapter`), developing robust, async custom adapters can be complex and
+  time-consuming.
 - **Mitigation:**
   1. **Prioritize Native Adapters:** Thoroughly investigate if `pydapter` or its
      ecosystem offers existing solutions before committing to custom
@@ -764,13 +827,20 @@ settings, .env files).
    generic adapter suitable for local object storage (like a Dockerized MinIO
    instance via its S3-compatible API, or direct filesystem object management)?
    If not, what is the recommended pattern for integrating such local storage
-   (e.g., custom adapter development guidelines)? The `pydapter` source does not show a built-in adapter for this.
+   (e.g., custom adapter development guidelines)? The `pydapter` source does not
+   show a built-in adapter for this.
 2. **`pydapter` Event Model Details:** What are the specific mechanisms and
    guarantees of `pydapter`'s event model (e.g., `@as_event`)? How are events
    published, subscribed to, and what are the delivery semantics (at-least-once,
-   at-most-once)? The [`@as_event` decorator](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63) allows persisting an event `Log` via another adapter; delivery semantics would depend on that secondary adapter and any message bus if used.
+   at-most-once)? The
+   [`@as_event` decorator](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py#L63)
+   allows persisting an event `Log` via another adapter; delivery semantics
+   would depend on that secondary adapter and any message bus if used.
 3. **`pydapter` Migration Handling:** Does `pydapter` include a database
-   migration system (e.g., via [`pydapter.migrations.sql.alembic_adapter.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/sql/alembic_adapter.py) for SQL databases like PostgreSQL)? Or is schema management expected to be handled externally (manual for Qdrant collections is likely)?
+   migration system (e.g., via
+   [`pydapter.migrations.sql.alembic_adapter.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/sql/alembic_adapter.py)
+   for SQL databases like PostgreSQL)? Or is schema management expected to be
+   handled externally (manual for Qdrant collections is likely)?
 4. **`pydapter` Transaction/Unit of Work:** How does `pydapter` handle
    transactions or units of work across multiple adapter operations, if at all?
    This is important for ensuring consistency, e.g., when saving a `Document`
@@ -790,13 +860,20 @@ settings, .env files).
 ### Appendix B: Research References
 
 - `pydapter` Source Code (assumed GitHub location for citation purposes):
-  - Core Async: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py)
-  - Event Protocol: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py)
-  - Async Qdrant Adapter: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py)
-  - Async Postgres Adapter: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py)
-  - Async SQL Adapter: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_sql_.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_sql_.py)
-  - Postgres Model Adapter: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/model_adapters/postgres_model.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/model_adapters/postgres_model.py)
-  - Migrations: [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/)
+  - Core Async:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/async_core.py)
+  - Event Protocol:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/protocols/event.py)
+  - Async Qdrant Adapter:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_qdrant_.py)
+  - Async Postgres Adapter:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_postgres_.py)
+  - Async SQL Adapter:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_sql_.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/extras/async_sql_.py)
+  - Postgres Model Adapter:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/model_adapters/postgres_model.py`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/model_adapters/postgres_model.py)
+  - Migrations:
+    [`https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/`](https://github.com/khive-ai/pydapter/blob/main/src/pydapter/migrations/)
 - Khive Issue #26: "Implement `khive reader ingest` command"
 - Khive Issue #25: "Design `DocumentRepository`"
 - Khive Issue #24: "Define `Document` and `DocumentChunk` Pydantic Models"

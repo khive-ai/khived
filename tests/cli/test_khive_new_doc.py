@@ -9,6 +9,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+# from khive.cli.khive_cli import cli as khive_cli_group  # Import the main CLI group - Not used by current tests
 from khive.cli.khive_new_doc import (
     NewDocConfig,
     Template,
@@ -358,8 +360,12 @@ def test_create_document_file_exists(tmp_path, mock_template):
     )
 
     # Assert
-    assert result["status"] == "failure"
-    assert "File already exists" in result["message"]
+    # Assert
+    assert result["status"] == "error"  # Updated from "failure"
+    assert (
+        result["message"]
+        == "Output file '.khive/reports/tests/TEST-test-id.md' already exists. Use --force to overwrite."
+    )
     assert "Original content" in output_path.read_text()
 
 
@@ -560,12 +566,841 @@ def test_cli_template_not_found(
     # Return None for find_template to trigger the error path
     mock_find.return_value = None
 
-    # Mock die_doc to avoid SystemExit
-    mock_die_doc.side_effect = lambda msg, *args, **kwargs: None
+    # Mock die_doc to raise SystemExit, so we can catch it
+    mock_die_doc.side_effect = SystemExit(1)
 
-    # Act
-    main()
+    # Act & Assert
+    with pytest.raises(SystemExit) as excinfo:
+        main()
 
-    # Assert
+    assert excinfo.value.code == 1
     mock_die_doc.assert_called_once()
+    # The actual message check is now implicitly handled by die_doc being called correctly before exit.
+    # We can check the arguments passed to die_doc if needed, but the primary check is that it was called
+    # and led to an exit.
     assert "Template 'NONEXISTENT' not found" in mock_die_doc.call_args[0][0]
+    # Ensure create_document was not called
+    mock_create.assert_not_called()
+
+
+# --- New Tests for Enhanced Error Handling (CLI Invocation Style) ---
+def test_cli_new_doc_file_exists_error_no_force(tmp_path, mocker, capsys):
+    """Test CLI error when output file exists and --force is not used."""
+    output_dir = tmp_path / ".khive" / "reports" / "ip"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    existing_file = output_dir / "IP-cliexists.md"
+    existing_file.write_text("Original CLI content")
+
+    # Mock template discovery and rendering to isolate file existence check
+    mock_template_instance = Template(
+        path=Path("dummy_template.md"),
+        doc_type="IP",
+        title="Dummy IP Template",
+        output_subdir="ip",
+        filename_prefix="IP",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.substitute_placeholders",
+        return_value="rendered_content",
+    )
+
+    # Patch sys.argv
+    mocker.patch(
+        "sys.argv",
+        ["khive-new-doc", "IP", "cliexists", "--project-root", str(tmp_path)],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    assert (
+        "Output file '.khive/reports/ip/IP-cliexists.md' already exists. Use --force to overwrite."
+        in captured.err
+    )
+    assert existing_file.read_text() == "Original CLI content"
+    assert existing_file.read_text() == "Original CLI content"
+
+
+def test_cli_new_doc_file_exists_error_no_force_json(tmp_path, mocker, capsys):
+    """Test CLI JSON error when output file exists and --force is not used."""
+    output_dir = tmp_path / ".khive" / "reports" / "ip"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    existing_file = output_dir / "IP-cliexistsjson.md"
+    existing_file.write_text("Original CLI JSON content")
+
+    mock_template_instance = Template(
+        path=Path("dummy_template.md"),
+        doc_type="IP",
+        title="Dummy IP Template",
+        output_subdir="ip",
+        filename_prefix="IP",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.substitute_placeholders",
+        return_value="rendered_content",
+    )
+
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "IP",
+            "cliexistsjson",
+            "--project-root",
+            str(tmp_path),
+            "--json-output",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    json_output = json.loads(captured.out)
+    assert json_output["status"] == "error"
+    assert (
+        "Output file '.khive/reports/ip/IP-cliexistsjson.md' already exists. Use --force to overwrite."
+        in json_output["message"]
+    )
+    assert existing_file.read_text() == "Original CLI JSON content"
+
+
+def test_cli_new_doc_template_not_found_error(tmp_path, mocker, capsys):
+    """Test CLI error when template is not found (no templates discovered)."""
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates", return_value=[]
+    )  # No templates found
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "NonExistentType",
+            "test-id",
+            "--project-root",
+            str(tmp_path),
+        ],
+    )
+
+    # Mock die_doc to check its call without exiting the test runner prematurely
+    mock_die = mocker.patch("khive.cli.khive_new_doc.die_doc")
+    mock_die.side_effect = SystemExit(1)  # Simulate exit
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    # die_doc is called before find_template if discover_templates returns empty
+    mock_die.assert_called_once()
+    assert "No templates found. Cannot create document." in mock_die.call_args[0][0]
+
+
+def test_cli_new_doc_specific_template_not_found_error(tmp_path, mocker, capsys):
+    """Test CLI error when a specific template is not found among existing ones."""
+    mock_template_instance = Template(
+        path=Path("actual_template.md"),
+        doc_type="Actual",
+        title="Actual Template",
+        output_subdir="actual",
+        filename_prefix="ACT",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=None
+    )  # Specific template not found
+
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "NonExistentType",
+            "test-id",
+            "--project-root",
+            str(tmp_path),
+        ],
+    )
+    mock_die = mocker.patch("khive.cli.khive_new_doc.die_doc")
+    mock_die.side_effect = SystemExit(1)
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    mock_die.assert_called_once()
+    assert "Template 'NonExistentType' not found." in mock_die.call_args[0][0]
+    assert "Available doc_types: Actual" in mock_die.call_args[0][0]
+
+
+def test_cli_new_doc_template_not_found_error_json(tmp_path, mocker, capsys):
+    """Test CLI JSON error when template is not found."""
+    mocker.patch("khive.cli.khive_new_doc.discover_templates", return_value=[])
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "NonExistentType",
+            "test-id",
+            "--project-root",
+            str(tmp_path),
+            "--json-output",
+        ],
+    )
+
+    mock_die = mocker.patch("khive.cli.khive_new_doc.die_doc")
+
+    # Let die_doc print to stdout for JSON capture, then raise SystemExit
+    def die_side_effect(msg, json_output_flag, json_data=None):
+        if json_output_flag:
+            base_data = {"status": "failure", "message": msg}  # die_doc uses "failure"
+            if json_data:
+                base_data.update(json_data)
+            print(json.dumps(base_data, indent=2))
+        raise SystemExit(1)
+
+    mock_die.side_effect = die_side_effect
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    json_output = json.loads(captured.out)
+    assert json_output["status"] == "failure"  # die_doc uses "failure"
+    assert "No templates found. Cannot create document." in json_output["message"]
+
+
+def test_cli_new_doc_dest_not_writable_error(tmp_path, mocker, capsys):
+    """Test CLI error when destination is not writable."""
+    mock_template_instance = Template(
+        path=Path("dummy_template.md"),
+        doc_type="IP",
+        title="Dummy Template",
+        output_subdir="ip",
+        filename_prefix="IP",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.substitute_placeholders",
+        return_value="rendered_content",
+    )
+    mocker.patch(
+        "pathlib.Path.mkdir", side_effect=PermissionError("Test permission denied")
+    )
+
+    non_writable_dest_base = tmp_path / "locked_reports"
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "IP",
+            "testperm",
+            "--project-root",
+            str(tmp_path),
+            "--dest",
+            str(non_writable_dest_base),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    assert "Permission denied: Cannot create directory or write file" in captured.err
+    assert "Test permission denied" in captured.err
+
+
+def test_cli_new_doc_dest_not_writable_error_json(tmp_path, mocker, capsys):
+    """Test CLI JSON error when destination is not writable."""
+    mock_template_instance = Template(
+        path=Path("dummy_template.md"),
+        doc_type="IP",
+        title="Dummy Template",
+        output_subdir="ip",
+        filename_prefix="IP",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.substitute_placeholders",
+        return_value="rendered_content",
+    )
+    mocker.patch(
+        "pathlib.Path.mkdir", side_effect=PermissionError("Test permission denied JSON")
+    )
+
+    non_writable_dest_base = tmp_path / "locked_reports_json"
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "IP",
+            "testpermjson",
+            "--project-root",
+            str(tmp_path),
+            "--dest",
+            str(non_writable_dest_base),
+            "--json-output",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    json_output = json.loads(captured.out)
+    assert json_output["status"] == "error"
+    assert (
+        "Permission denied: Cannot create directory or write file"
+        in json_output["message"]
+    )
+    assert "Test permission denied JSON" in json_output["message"]
+
+
+def test_cli_new_doc_path_conflict_error(tmp_path, mocker, capsys):
+    """Test CLI error when a path component is a file."""
+    mock_template_instance = Template(
+        path=Path("dummy_template.md"),
+        doc_type="IP",
+        title="Dummy Template",
+        output_subdir="ip",
+        filename_prefix="IP",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.substitute_placeholders",
+        return_value="rendered_content",
+    )
+
+    conflict_base = tmp_path / "reports_is_a_file.txt"
+    conflict_base.write_text("I am a file, not a directory.")
+    # Mock mkdir to raise FileExistsError when trying to create a dir where a file exists
+    mocker.patch(
+        "pathlib.Path.mkdir",
+        side_effect=FileExistsError(
+            f"[Errno 17] File exists: '{conflict_base / 'ip'}'"
+        ),
+    )
+
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "IP",
+            "testconflict",
+            "--project-root",
+            str(tmp_path),
+            "--dest",
+            str(conflict_base),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    assert "Path conflict: A component of the destination path" in captured.err
+    assert str(conflict_base / "ip") in captured.err
+
+
+def test_cli_new_doc_path_conflict_error_json(tmp_path, mocker, capsys):
+    """Test CLI JSON error when a path component is a file."""
+    mock_template_instance = Template(
+        path=Path("dummy_template.md"),
+        doc_type="IP",
+        title="Dummy Template",
+        output_subdir="ip",
+        filename_prefix="IP",
+        meta={},
+        body_template="content",
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.discover_templates",
+        return_value=[mock_template_instance],
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+    )
+    mocker.patch(
+        "khive.cli.khive_new_doc.substitute_placeholders",
+        return_value="rendered_content",
+    )
+
+    conflict_base = tmp_path / "reports_is_a_file_json.txt"
+    conflict_base.write_text("I am a file, not a directory.")
+    mocker.patch(
+        "pathlib.Path.mkdir",
+        side_effect=FileExistsError(
+            f"[Errno 17] File exists: '{conflict_base / 'ip'}'"
+        ),
+    )
+
+    mocker.patch(
+        "sys.argv",
+        [
+            "khive-new-doc",
+            "IP",
+            "testconflictjson",
+            "--project-root",
+            str(tmp_path),
+            "--dest",
+            str(conflict_base),
+            "--json-output",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code != 0
+    captured = capsys.readouterr()
+    json_output = json.loads(captured.out)
+    assert json_output["status"] == "error"
+    assert (
+        "Path conflict: A component of the destination path" in json_output["message"]
+    )
+    assert str(conflict_base / "ip") in json_output["message"]
+
+
+# --- New Tests for Enhanced Error Handling ---
+
+# The tests below use CliRunner but there may be issues with the integration between
+# khive_new_doc.py and the CLI group. Let's leave them as reference but we'll rely on
+# the direct tests above using sys.argv and main() which are more reliable.
+
+# --- CLI Group Integration Tests (Using CliRunner) ---
+"""
+# Commenting out CliRunner tests as sys.argv + main() is the preferred approach for these standalone script tests.
+# These are kept for reference in case direct Click group testing becomes necessary later.
+
+# def test_cli_new_doc_file_exists_error_no_force_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI error when output file exists and --force is not used, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     output_dir = tmp_path / ".khive" / "reports" / "ip"
+#     output_dir.mkdir(parents=True, exist_ok=True)
+#     existing_file = output_dir / "IP-cliexists.md"
+#     existing_file.write_text("Original CLI content")
+
+#     # Mock template discovery and rendering to isolate file existence check
+#     mock_template_instance = Template(
+#         path=Path("dummy_template.md"),
+#         doc_type="IP",
+#         title="Dummy IP Template",
+#         output_subdir="ip",
+#         filename_prefix="IP",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.substitute_placeholders",
+#         return_value="rendered_content",
+#     )
+
+#     # result = runner.invoke(
+#     #     khive_cli_group, ["new-doc", "IP", "cliexists", "--project-root", str(tmp_path)]
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # assert (
+#     #     "Output file 'IP-cliexists.md' already exists. Use --force to overwrite."
+#     #     in result.stderr
+#     # )
+#     # assert existing_file.read_text() == "Original CLI content"
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_file_exists_error_no_force_json_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI JSON error when output file exists and --force is not used, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     output_dir = tmp_path / ".khive" / "reports" / "ip"
+#     output_dir.mkdir(parents=True, exist_ok=True)
+#     existing_file = output_dir / "IP-cliexistsjson.md"
+#     existing_file.write_text("Original CLI JSON content")
+
+#     mock_template_instance = Template(
+#         path=Path("dummy_template.md"),
+#         doc_type="IP",
+#         title="Dummy IP Template",
+#         output_subdir="ip",
+#         filename_prefix="IP",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.substitute_placeholders",
+#         return_value="rendered_content",
+#     )
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     [
+#     #         "new-doc",
+#     #         "IP",
+#     #         "cliexistsjson",
+#     #         "--project-root",
+#     #         str(tmp_path),
+#     #         "--json-output",
+#     #     ],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # json_output = json.loads(result.stdout)
+#     # assert json_output["status"] == "error"
+#     # assert (
+#     #     "Output file 'IP-cliexistsjson.md' already exists. Use --force to overwrite."
+#     #     in json_output["message"]
+#     # )
+#     # assert existing_file.read_text() == "Original CLI JSON content"
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_template_not_found_error_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI error when template is not found, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates", return_value=[]
+#     )  # No templates found
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     ["new-doc", "NonExistentType", "test-id", "--project-root", str(tmp_path)],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # # This error is now caught by die_doc earlier in the main() flow
+#     # assert "No templates found. Cannot create document." in result.stderr
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_template_not_found_specific_error_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI error when a specific template is not found among existing ones, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mock_template_instance = Template(
+#         path=Path("actual_template.md"),
+#         doc_type="Actual",
+#         title="Actual Template",
+#         output_subdir="actual",
+#         filename_prefix="ACT",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     # find_template will return None
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     ["new-doc", "NonExistentType", "test-id", "--project-root", str(tmp_path)],
+#     # )
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # assert "Template 'NonExistentType' not found." in result.stderr
+#     # assert (
+#     #     "Available doc_types: Actual" in result.stderr
+#     # )  # Check if suggestions are present
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_template_not_found_error_json_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI JSON error when template is not found, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mocker.patch("khive.cli.khive_new_doc.discover_templates", return_value=[])
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     [
+#     #         "new-doc",
+#     #         "NonExistentType",
+#     #         "test-id",
+#     #         "--project-root",
+#     #         str(tmp_path),
+#     #         "--json-output",
+#     #     ],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # json_output = json.loads(result.stdout)
+#     # assert json_output["status"] == "failure"  # die_doc uses "failure"
+#     # assert "No templates found. Cannot create document." in json_output["message"]
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_dest_not_writable_error_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI error when destination is not writable, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mock_template_instance = Template(
+#         path=Path("dummy_template.md"),
+#         doc_type="IP",
+#         title="Dummy Template",
+#         output_subdir="ip",
+#         filename_prefix="IP",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.substitute_placeholders",
+#         return_value="rendered_content",
+#     )
+
+#     # Mock Path.mkdir to simulate PermissionError
+#     mocker.patch(
+#         "pathlib.Path.mkdir", side_effect=PermissionError("Test permission denied")
+#     )
+
+#     non_writable_dest_base = tmp_path / "locked_reports"
+#     # We don't actually create non_writable_dest_base, mkdir mock will handle it
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     [
+#     #         "new-doc",
+#     #         "IP",
+#     #         "testperm",
+#     #         "--project-root",
+#     #         str(tmp_path),
+#     #         "--dest",
+#     #         str(non_writable_dest_base),
+#     #     ],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # assert "Permission denied: Cannot create directory or write file" in result.stderr
+#     # assert "Test permission denied" in result.stderr
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_dest_not_writable_error_json_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI JSON error when destination is not writable, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mock_template_instance = Template(
+#         path=Path("dummy_template.md"),
+#         doc_type="IP",
+#         title="Dummy Template",
+#         output_subdir="ip",
+#         filename_prefix="IP",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.substitute_placeholders",
+#         return_value="rendered_content",
+#     )
+#     mocker.patch(
+#         "pathlib.Path.mkdir", side_effect=PermissionError("Test permission denied JSON")
+#     )
+
+#     non_writable_dest_base = tmp_path / "locked_reports_json"
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     [
+#     #         "new-doc",
+#     #         "IP",
+#     #         "testpermjson",
+#     #         "--project-root",
+#     #         str(tmp_path),
+#     #         "--dest",
+#     #         str(non_writable_dest_base),
+#     #         "--json-output",
+#     #     ],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # json_output = json.loads(result.stdout)
+#     # assert json_output["status"] == "error"
+#     # assert (
+#     #     "Permission denied: Cannot create directory or write file"
+#     #     in json_output["message"]
+#     # )
+#     # assert "Test permission denied JSON" in json_output["message"]
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_path_conflict_error_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI error when a path component is a file, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mock_template_instance = Template(
+#         path=Path("dummy_template.md"),
+#         doc_type="IP",
+#         title="Dummy Template",
+#         output_subdir="ip",
+#         filename_prefix="IP",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.substitute_placeholders",
+#         return_value="rendered_content",
+#     )
+
+#     # Create a file where a directory is expected
+#     conflict_base = tmp_path / "reports_is_a_file.txt"
+#     conflict_base.write_text("I am a file, not a directory.")
+
+#     # Attempt to create a doc where 'reports_is_a_file.txt' would be a parent dir
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     [
+#     #         "new-doc",
+#     #         "IP",
+#     #         "testconflict",
+#     #         "--project-root",
+#     #         str(tmp_path),
+#     #         "--dest",
+#     #         str(conflict_base),
+#     #     ],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # assert (
+#     #     "Path conflict: A component of the destination path" in result.stderr
+#     #     or "Invalid path: A component of the base destination path" in result.stderr
+#     # )  # Depending on where error is caught
+#     # assert (
+#     #     str(conflict_base / "ip") in result.stderr
+#     #     or str(conflict_base) in result.stderr
+#     # )
+#     pass # Test commented out
+
+
+# def test_cli_new_doc_path_conflict_error_json_cli_runner(tmp_path, mocker):
+#     \"\"\"Test CLI JSON error when a path component is a file, using CliRunner.\"\"\"
+#     runner = CliRunner()
+#     mock_template_instance = Template(
+#         path=Path("dummy_template.md"),
+#         doc_type="IP",
+#         title="Dummy Template",
+#         output_subdir="ip",
+#         filename_prefix="IP",
+#         meta={},
+#         body_template="content",
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.discover_templates",
+#         return_value=[mock_template_instance],
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.find_template", return_value=mock_template_instance
+#     )
+#     mocker.patch(
+#         "khive.cli.khive_new_doc.substitute_placeholders",
+#         return_value="rendered_content",
+#     )
+
+#     conflict_base = tmp_path / "reports_is_a_file_json.txt"
+#     conflict_base.write_text("I am a file, not a directory.")
+
+#     # result = runner.invoke(
+#     #     khive_cli_group,
+#     #     [
+#     #         "new-doc",
+#     #         "IP",
+#     #         "testconflictjson",
+#     #         "--project-root",
+#     #         str(tmp_path),
+#     #         "--dest",
+#     #         str(conflict_base),
+#     #         "--json-output",
+#     #     ],
+#     # )
+
+#     # assert result.exit_code != 0, f"Output: {result.output}"
+#     # json_output = json.loads(result.stdout)
+#     # assert json_output["status"] == "error"
+#     # assert (
+#     #     "Path conflict: A component of the destination path" in json_output["message"]
+#     #     or "Invalid path: A component of the base destination path"
+#     #     in json_output["message"]
+#     # )
+#     # assert (
+#     #     str(conflict_base / "ip") in json_output["message"]
+#     #     or str(conflict_base) in json_output["message"]
+#     # )
+#     pass # Test commented out
+"""
