@@ -36,7 +36,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 # --- Project Root and Config Path ---
 try:
@@ -203,11 +203,11 @@ class MCPClient:
 
     def __init__(self, server_config: MCPServerConfig):
         self.server_config = server_config
-        self.process: Optional[asyncio.subprocess.Process] = None
+        self.process: asyncio.subprocess.Process | None = None
         self.message_id = 0
         self.connected = False
-        self.server_info: Dict[str, Any] = {}
-        self.tools: list[Dict[str, Any]] = []
+        self.server_info: dict[str, Any] = {}
+        self.tools: list[dict[str, Any]] = []
 
     async def connect(self) -> bool:
         """Connect to the MCP server and perform initialization handshake."""
@@ -279,7 +279,7 @@ class MCPClient:
             self.tools = tools_response["result"]["tools"]
             log_msg_mcp(f"Found {len(self.tools)} tools")
 
-    async def _send_request(self, method: str, params: Optional[Dict] = None) -> Dict:
+    async def _send_request(self, method: str, params: dict | None = None) -> dict:
         """Send a JSON-RPC request and wait for response."""
         if not self.process or not self.process.stdin:
             raise Exception("Not connected to MCP server")
@@ -314,7 +314,7 @@ class MCPClient:
         except json.JSONDecodeError as e:
             raise Exception(f"Invalid JSON response: {e}")
 
-    async def _send_notification(self, method: str, params: Optional[Dict] = None):
+    async def _send_notification(self, method: str, params: dict | None = None):
         """Send a JSON-RPC notification (no response expected)."""
         if not self.process or not self.process.stdin:
             raise Exception("Not connected to MCP server")
@@ -330,8 +330,8 @@ class MCPClient:
         await self.process.stdin.drain()
 
     async def call_tool(
-        self, tool_name: str, arguments: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
         """Call a specific tool on the MCP server."""
         if not self.connected:
             raise Exception("Not connected to MCP server")
@@ -358,7 +358,7 @@ class MCPClient:
 
         return response.get("result", {})
 
-    async def list_tools(self) -> list[Dict[str, Any]]:
+    async def list_tools(self) -> list[dict[str, Any]]:
         """Get list of available tools."""
         return self.tools
 
@@ -385,7 +385,7 @@ class MCPClient:
 
 
 # --- Global MCP client registry ---
-_mcp_clients: Dict[str, MCPClient] = {}
+_mcp_clients: dict[str, MCPClient] = {}
 
 
 async def get_mcp_client(server_config: MCPServerConfig) -> MCPClient:
@@ -573,7 +573,7 @@ def parse_tool_arguments(args: argparse.Namespace) -> dict[str, Any]:
 
 
 async def cmd_call_tool(
-    config: MCPConfig, server_name: str, tool_name: str, arguments: Dict[str, Any]
+    config: MCPConfig, server_name: str, tool_name: str, arguments: dict[str, Any]
 ) -> dict[str, Any]:
     """Call a tool on a specific server."""
     if server_name not in config.servers:
@@ -752,7 +752,7 @@ def cli_entry_mcp() -> None:
 
         # Show additional details for specific commands
         if args.command == "list" and "servers" in result:
-            print(f"\nConfigured MCP Servers:")
+            print("\nConfigured MCP Servers:")
             for server in result["servers"]:
                 status_color = {
                     "connected": ANSI["G"],
@@ -779,7 +779,7 @@ def cli_entry_mcp() -> None:
                     print(f"    Parameters: {', '.join(params)}")
 
         elif args.command == "call" and "result" in result:
-            print(f"\nTool Result:")
+            print("\nTool Result:")
             if "content" in result["result"]:
                 for content in result["result"]["content"]:
                     if content.get("type") == "text":
@@ -789,7 +789,7 @@ def cli_entry_mcp() -> None:
 
             # Show the parsed arguments if verbose
             if verbose_mode and "arguments" in result:
-                print(f"\nParsed Arguments:")
+                print("\nParsed Arguments:")
                 print(json.dumps(result["arguments"], indent=2))
 
     # Exit with appropriate code
