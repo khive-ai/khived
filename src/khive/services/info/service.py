@@ -80,7 +80,6 @@ if settings.KHIVE_AUTO_EMBED_LOG and settings.OPENAI_API_KEY is not None:
     }
 
 if settings.KHIVE_AUTO_STORE_EVENT and settings.KHIVE_QDRANT_URL is not None:
-
     from pydapter.extras.async_qdrant_ import AsyncQdrantAdapter
 
     qdrant_url = settings.KHIVE_QDRANT_URL
@@ -128,7 +127,6 @@ def openrouter_chat():
 
 
 class InfoServiceGroup(Service):
-
     def __init__(self):
         """
         Initialize the InfoService with lazy-loaded endpoints.
@@ -315,5 +313,5 @@ class InfoServiceGroup(Service):
             return InfoResponse(
                 success=False,
                 action_performed=InfoAction.CONSULT,
-                error=f"Error processing responses: {str(e)}",
+                error=f"Error processing responses: {e!s}",
             )

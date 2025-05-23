@@ -1,3 +1,10 @@
+from pydapter.protocols.utils import is_package_installed
+
+if not is_package_installed("fastmcp"):
+    raise ImportError(
+        "fastmcp is not installed. Please install it with `pip install fastmcp`."
+    )
+
 import json
 
 from fastmcp import FastMCP
@@ -18,7 +25,7 @@ and consultation with SOTA LLMs. For pure search, it can use EXA or Perplexity
 as search providers. Perplexity gives you a digested answer to your question,
 while EXA provides a list of search results. You can also ask questions to
 SOTA models from the Openai GPT, Google Gemini and Anthropic Claude. You can
-also provide options for their behavior. These models can be configured with 
+also provide options for their behavior. These models can be configured with
 system prompt, temperature, built-in tools and other parameters.
 """
 
@@ -71,9 +78,10 @@ async def search(
     if provider_params and isinstance(provider_params, str):
         provider_params = json.loads(provider_params)
     if provider == "exa":
-        provider_params = ExaSearchRequest.model_validate(
-            {"query": query, **provider_params}
-        )
+        provider_params = ExaSearchRequest.model_validate({
+            "query": query,
+            **provider_params,
+        })
     if provider == "perplexity":
         system = (
             provider_params.get("system_prompt")
@@ -83,9 +91,10 @@ async def search(
             {"role": "system", "content": system},
             {"role": "user", "content": query},
         ]
-        provider_params = PerplexityChatRequest.model_validate(
-            {"messages": messages, **provider_params}
-        )
+        provider_params = PerplexityChatRequest.model_validate({
+            "messages": messages,
+            **provider_params,
+        })
 
     request = InfoRequest(
         action=InfoAction.SEARCH,
