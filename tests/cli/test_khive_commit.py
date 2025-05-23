@@ -285,14 +285,14 @@ def test_conventional_commit_regex_validation():
     ]
 
     for msg in valid_messages:
-        assert (
-            config.conventional_commit_regex.match(msg) is not None
-        ), f"Should match: {msg}"
+        assert config.conventional_commit_regex.match(msg) is not None, (
+            f"Should match: {msg}"
+        )
 
     for msg in invalid_messages:
-        assert (
-            config.conventional_commit_regex.match(msg) is None
-        ), f"Should not match: {msg}"
+        assert config.conventional_commit_regex.match(msg) is None, (
+            f"Should not match: {msg}"
+        )
 
 
 # Unit Tests for Git Operations
@@ -1066,7 +1066,7 @@ def test_cli_push_flag_logic(mocker: MagicMock):
         elif "--no-push" in argv_suffix:
             argparse_push_value = False
 
-        assert (
-            called_args.push == argparse_push_value
-        ), f"Scenario: {argv_suffix}, cfg_default_push={cfg_default_push}"
+        assert called_args.push == argparse_push_value, (
+            f"Scenario: {argv_suffix}, cfg_default_push={cfg_default_push}"
+        )
         assert called_config.default_push == cfg_default_push

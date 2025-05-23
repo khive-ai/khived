@@ -152,7 +152,7 @@ khive reader list_dir --directory ./src --recursive --file_types .py
 khive info search --provider exa --query "Latest developments in rust programming language"
 
 # consult multiple LLMs
-khive info consult --question "Compare Python vs Rust for system programming" --models openai/gpt-o4-mini,anthropic/claude-3.7-sonnet
+khive info consult --question "Compare Python vs Rust for system programming" --models openai/gpt-o4-mini,anthropic/claude-sonnet-4
 ```
 
 ---
