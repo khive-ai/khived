@@ -269,7 +269,7 @@ Configured MCP Servers:
     Command: python
     Operations: 2
 
-# Tools output  
+# Tools output
 ✓ Found 5 tools on filesystem
 
 Available Tools on filesystem:
