@@ -9,8 +9,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from khive.connections.providers.exa_ import ExaSearchRequest
-from khive.connections.providers.perplexity_ import PerplexityChatRequest
+from khive.services.info.providers.exa_models import ExaSearchRequest
+from khive.services.info.providers.pplx_models import PerplexityChatRequest
 
 
 class InfoAction(str, Enum):
@@ -44,7 +44,7 @@ class ConsultModel(str, Enum):
 
     GPT_O4_MINI = "openai/gpt-o4-mini"
     GEMINI_2_5_PRO = "google/gemini-2.5-pro-preview"
-    CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
+    CLAUDE_SONNET_4 = "anthropic/claude-sonnet-4"
 
 
 class InfoSearchParams(BaseModel):
@@ -58,11 +58,11 @@ class InfoConsultParams(BaseModel):
     system_prompt: str | None = Field(
         None, description="Optional system prompt to guide the LLM's behavior."
     )
-    question: str = Field(
+    query: str = Field(
         ..., description="The specific question or topic to consult the LLM(s) about."
     )
-    models: list[ConsultModel] = Field(
-        default=[ConsultModel.GPT_O4_MINI],
+    models: list[str] = Field(
+        default=["anthropic/claude-sonnet-4"],
         description="A list of one or more LLMs to consult.",
     )
 
