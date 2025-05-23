@@ -17,10 +17,12 @@ from khive.services.reader.parts import (
     ReaderReadParams,
     ReaderRequest,
     ReaderResponse,
+    ReaderListDirResponseContent,
 )
-from khive.services.reader.utils import calculate_text_tokens
+from khive.services.reader.utils import calculate_text_tokens, dir_to_files
 from khive.types import Service
 from khive.utils import is_package_installed
+
 
 _HAS_DOCLING = is_package_installed("docling")
 
@@ -107,34 +109,71 @@ class ReaderServiceGroup(Service):
             error="Unknown action type, must be one of: open, read, list_dir",
         )
 
+    def _open_with_docling(self, path_or_url):
+        result = self.converter.convert(path_or_url)
+        text = result.document.export_to_markdown()
+        return str(text) if not isinstance(text, str) else text
+
+    def _get_doc(self, doc_id):
+        if doc_id not in self.documents_index["ids"]:
+            if doc_id not in self.documents_index["mapping"]:
+                return None
+            doc_id = self.documents_index["mapping"][doc_id]
+        return self.documents_index["ids"][doc_id]
+
+    async def _save_to_temp(self, text, doc_id, path_or_url) -> ReaderResponse:
+        # Defensive: ensure text is a string
+        if not isinstance(text, str):
+            raise TypeError("Converted document must be string markdown")
+
+        # Create a file in the cache directory
+        file_path = self.cache_dir / f"{doc_id}.txt"
+
+        try:
+            # Write to file asynchronously
+            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
+                await f.write(text)
+
+            doc_len = len(text)
+            num_tokens = calculate_text_tokens(text)
+
+            self.documents["ids"][doc_id] = {
+                "length": doc_len,
+                "num_tokens": num_tokens,
+                "path": str(file_path),
+            }
+            self.documents["mapping"][path_or_url] = doc_id
+
+            # Save the updated index asynchronously
+            await self._save_index_async()
+
+            return ReaderResponse(
+                success=True,
+                content=ReaderOpenResponseContent(
+                    doc_info=DocumentInfo(
+                        doc_id=doc_id,
+                        length=doc_len,
+                        num_tokens=num_tokens,
+                    )
+                ),
+            )
+        except Exception as ex:
+            return ReaderResponse(
+                success=False,
+                error=f"Failed to save document: {ex!s}",
+                content=ReaderOpenResponseContent(doc_info=None),
+            )
+
     async def _open_doc(self, params: ReaderOpenParams) -> ReaderResponse:
-        # Check if it's a URL
-        is_url = params.path_or_url.startswith(("http://", "https://", "ftp://"))
-
-        # Check if it's a local file with a supported extension
-        is_supported_file = False
-        if not is_url:
-            path = Path(params.path_or_url)
-            if path.exists() and path.is_file():
-                extension = path.suffix.lower()
-                is_supported_file = extension in DOCLING_SUPPORTED_FORMATS
-
-        # If it's not a URL and not a supported file, return an error
-        if not is_url and not is_supported_file:
+        if not _compatible_with_docling(params.path_or_url):
             return ReaderResponse(
                 success=False,
                 error=f"Unsupported file format: {params.path_or_url}. Docling supports: {', '.join(DOCLING_SUPPORTED_FORMATS)}",
                 content=ReaderOpenResponseContent(doc_info=None),
             )
-
+            
         try:
-            result = self.converter.convert(params.path_or_url)
-            text = result.document.export_to_markdown()
-
-            # Ensure text is a string - defensive in case export_to_markdown returns something unexpected
-            if not isinstance(text, str):
-                text = str(text)
-
+            text = self._open_with_docling(params.path_or_url)
         except Exception as e:
             return ReaderResponse(
                 success=False,
@@ -142,16 +181,66 @@ class ReaderServiceGroup(Service):
                 content=ReaderOpenResponseContent(doc_info=None),
             )
 
-        doc_id = f"DOC_{abs(hash(params.path_or_url))}"
-        return await self._save_to_temp(text, doc_id)
+        # reduce hash to 6 digits, but allow growth so don't get stuck in infinite loop
+        # if nearly all 6 figits hash_ is already in use (unlikely)
+        hash_ = int(str(abs(hash(params.path_or_url)))[:6])
+        while f"DOC_{hash_}" in self.documents_index["ids"]:
+            hash_ += 256
+
+        return await self._save_to_temp(
+            text=text,
+            doc_id=f"DOC_{hash_}",
+            path_or_url=params.path_or_url,
+        )
+
+    async def _list_dir(self, params: ReaderListDirParams) -> ReaderResponse:
+        files_list = dir_to_files(
+            params.directory,
+            recursive=params.recursive,
+            file_types=params.file_types,
+            ignore_errors=True,
+        )
+        if files_list is None:
+            return ReaderResponse(
+                success=False,
+                error=f"Failed to list directory: {params.directory}",
+            )
+        if files_list == []:
+            return ReaderResponse(
+                success=False,
+                error=f"No files found in directory: {params.directory} for provided file types: {params.file_types or 'all'}",
+            )
+
+        # Convert to string representation for storage
+        files_str = "\n".join([str(f) for f in files_list])
+        
+        hash_ = int(str(abs(hash(params.directory)))[:6])
+        while f"DIR_{hash_}" in self.documents_index["ids"]:
+            hash_ += 256
+
+        await self._save_to_temp(
+            text=files_str,
+            doc_id=f"DIR_{hash_}",
+            path_or_url=params.directory,
+        )
+        # Return the files directly in the response
+        return ReaderResponse(
+            success=True,
+            content=ReaderListDirResponseContent(
+                files=[str(f) for f in files_list]
+            ),
+        )
 
     async def _read_doc(self, params: ReaderReadParams) -> ReaderResponse:
-        if params.doc_id not in self.documents_index:
-            return ReaderResponse(success=False, error="doc_id not found in cache")
-
-        doc_info = self.documents_index[params.doc_id]
-        file_path = self.cache_dir / f"{params.doc_id}.txt"
-        length = doc_info["length"]
+        doc = self._get_doc(params.doc_id)
+        if doc is None:
+            return ReaderResponse(
+                success=False,
+                error=f"Document with ID {params.doc_id} not found.",
+            )
+        
+        file_path = self.cache_dir / f"{doc['doc_id']}.txt"
+        length = doc["length"]
 
         # clamp offsets
         s = max(0, params.start_offset if params.start_offset is not None else 0)
@@ -195,80 +284,6 @@ class ReaderServiceGroup(Service):
         except Exception as ex:
             return ReaderResponse(success=False, error=f"Read error: {ex!s}")
 
-    async def _list_dir(self, params: ReaderListDirParams) -> ReaderResponse:
-        from .parts import ReaderListDirResponseContent
-        from .utils import dir_to_files
-
-        try:
-            files_list = dir_to_files(
-                params.directory,
-                recursive=params.recursive,
-                file_types=params.file_types,
-            )
-
-            # Convert to string representation for storage
-            files_str = "\n".join([str(f) for f in files_list])
-            doc_id = f"DIR_{abs(hash(params.directory))}"
-
-            # Save to temp file for potential future reads
-            await self._save_to_temp(files_str, doc_id)
-
-            # Return the files directly in the response
-            return ReaderResponse(
-                success=True,
-                content=ReaderListDirResponseContent(
-                    files=[str(f) for f in files_list]
-                ),
-            )
-        except Exception as ex:
-            return ReaderResponse(
-                success=False,
-                error=f"List directory error: {ex!s}",
-            )
-
-    async def _save_to_temp(self, text, doc_id) -> ReaderResponse:
-        # Defensive: ensure text is a string
-        if not isinstance(text, str):
-            raise TypeError("Converted document must be string markdown")
-
-        # Create a file in the cache directory
-        file_path = self.cache_dir / f"{doc_id}.txt"
-
-        try:
-            # Write to file asynchronously
-            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
-                await f.write(text)
-
-            doc_len = len(text)
-            num_tokens = calculate_text_tokens(text)
-
-            # Update the index
-            self.documents_index[doc_id] = {
-                "length": doc_len,
-                "num_tokens": num_tokens,
-                "path": str(file_path),
-            }
-
-            # Save the updated index asynchronously
-            await self._save_index_async()
-
-            return ReaderResponse(
-                success=True,
-                content=ReaderOpenResponseContent(
-                    doc_info=DocumentInfo(
-                        doc_id=doc_id,
-                        length=doc_len,
-                        num_tokens=num_tokens,
-                    )
-                ),
-            )
-        except Exception as ex:
-            return ReaderResponse(
-                success=False,
-                error=f"Failed to save document: {ex!s}",
-                content=ReaderOpenResponseContent(doc_info=None),
-            )
-
     def _load_index(self) -> dict[str, dict[str, Any]]:
         """Load the document index from disk or create a new one if it doesn't exist."""
         if self.index_path.exists():
@@ -276,9 +291,14 @@ class ReaderServiceGroup(Service):
                 with open(self.index_path, encoding="utf-8") as f:
                     return json.load(f)
             except Exception:
-                # If there's an error loading the index, start fresh
-                return {}
-        return {}
+                return {
+                    "ids": {},
+                    "mapping": {},
+                }
+        return {
+            "ids": {},
+            "mapping": {},
+        }
 
     async def _save_index_async(self) -> None:
         """Save the document index to disk asynchronously."""
@@ -287,3 +307,17 @@ class ReaderServiceGroup(Service):
                 await f.write(json.dumps(self.documents_index, indent=2))
         except Exception as ex:
             print(f"Warning: Failed to save document index asynchronously: {ex!s}")
+
+
+def _compatible_with_docling(path_or_url: str) -> bool:
+    is_supported_file = False
+    is_url = path_or_url.startswith(("http://", "https://", "ftp://"))
+    if not is_url:
+        path = Path(path_or_url)
+        if path.exists() and path.is_file():
+            extension = path.suffix.lower()
+            is_supported_file = extension in DOCLING_SUPPORTED_FORMATS
+
+    if not is_url and not is_supported_file:
+        return False
+    return True

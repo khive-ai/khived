@@ -14,14 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from khive.clients.api_client import AsyncAPIClient
-from khive.clients.errors import (
-    CircuitBreakerOpenError,
-    ServerError,
-)
-from khive.clients.resilience import (
-    CircuitBreaker,
-    RetryConfig,
-)
+from khive.clients.errors import CircuitBreakerOpenError, ServerError
+from khive.clients.resilience import CircuitBreaker, RetryConfig
 from khive.connections.endpoint import Endpoint
 from khive.connections.endpoint_config import EndpointConfig
 

@@ -18,6 +18,12 @@ def match_endpoint(
             from .providers.oai_ import OpenaiResponseEndpoint
 
             return OpenaiResponseEndpoint()
+
+        if "embed" in endpoint:
+            from .providers.oai_ import OpenaiEmbedEndpoint
+
+            return OpenaiEmbedEndpoint()
+
     if provider == "openrouter" and "chat" in endpoint:
         from .providers.oai_ import OpenrouterChatEndpoint
 
