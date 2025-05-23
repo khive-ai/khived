@@ -275,14 +275,6 @@ khive init
 khive
 ```
 
-If it doesn't immediately make your life better, we'll eat our keyboards.
-
-## 📚 Learn More
-
-- **[Documentation](https://khive.dev)** - Comprehensive guides
-- **[Discord](https://discord.gg/khive)** - Join the hive mind
-- **[Examples](examples/)** - Real-world templates
-- **[Blog](https://khive.dev/blog)** - Deep dives and updates
 
 ## 📜 License
 
@@ -297,7 +289,6 @@ lives better.
 
 [⭐ Star us on GitHub](https://github.com/khive-ai/khive.d) •
 [📦 Install from PyPI](https://pypi.org/project/khive/) •
-[💬 Join Discord](https://discord.gg/khive)
 
 Made with ❤️ and probably too much ☕ by developers who were tired of the status
 quo.
