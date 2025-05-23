@@ -595,6 +595,280 @@ BUILTIN_STEPS: OrderedDictType[
     ("husky", step_husky),
 ])
 
+import os
+import stat
+
+
+async def check_and_run_custom_init_script(
+    config: InitConfig,
+) -> list[dict[str, Any]] | None:
+    """
+    Check for custom initialization script and execute it if found.
+    Returns the step results list if custom script was executed, None otherwise.
+    """
+    custom_script_path = config.khive_config_dir / "scripts" / "khive_init.sh"
+
+    if not custom_script_path.exists():
+        return None
+
+    # Verify the script is executable
+    if not os.access(custom_script_path, os.X_OK):
+        warn(
+            f"Custom init script {custom_script_path} exists but is not executable. "
+            f"Run: chmod +x {custom_script_path}",
+            console=not config.json_output,
+        )
+        return None
+
+    # Security check: ensure it's a regular file and not world-writable
+    script_stat = custom_script_path.stat()
+    if not stat.S_ISREG(script_stat.st_mode):
+        error_msg = f"Custom init script {custom_script_path} is not a regular file"
+        error(error_msg, console=not config.json_output)
+        return [
+            {
+                "name": "custom_init_script",
+                "status": "FAILED",
+                "message": error_msg,
+            }
+        ]
+
+    if script_stat.st_mode & stat.S_IWOTH:
+        warn(
+            f"Custom init script {custom_script_path} is world-writable, which may be a security risk",
+            console=not config.json_output,
+        )
+
+    info(
+        f"Using custom initialization script: {custom_script_path}",
+        console=not config.json_output,
+    )
+
+    # Detect what stacks/steps would normally be enabled
+    detected_stacks = []
+    if (config.project_root / "pyproject.toml").exists():
+        detected_stacks.append("python")
+    if (config.project_root / "package.json").exists():
+        detected_stacks.append("npm")
+    if (config.project_root / "Cargo.toml").exists():
+        detected_stacks.append("rust")
+
+    # Determine what steps would normally run
+    normal_steps = determine_steps_to_run(config)
+    enabled_builtin_steps = [
+        name for name, (step_type, _) in normal_steps.items() if step_type == "builtin"
+    ]
+    enabled_custom_steps = [
+        name for name, (step_type, _) in normal_steps.items() if step_type == "custom"
+    ]
+
+    # Prepare environment variables for the script
+    env = os.environ.copy()
+    env.update({
+        "KHIVE_PROJECT_ROOT": str(config.project_root),
+        "KHIVE_CONFIG_DIR": str(config.khive_config_dir),
+        "KHIVE_DRY_RUN": "1" if config.dry_run else "0",
+        "KHIVE_VERBOSE": "1" if config.verbose else "0",
+        "KHIVE_JSON_OUTPUT": "1" if config.json_output else "0",
+        "KHIVE_DETECTED_STACKS": ",".join(detected_stacks),
+        "KHIVE_DISABLED_STACKS": ",".join(config.disable_auto_stacks),
+        "KHIVE_FORCED_STEPS": ",".join(config.force_enable_steps),
+        "KHIVE_REQUESTED_STACK": config.stack or "",
+        "KHIVE_REQUESTED_EXTRA": config.extra or "",
+        "KHIVE_ENABLED_BUILTIN_STEPS": ",".join(enabled_builtin_steps),
+        "KHIVE_ENABLED_CUSTOM_STEPS": ",".join(enabled_custom_steps),
+        "KHIVE_EXPLICIT_STEPS": (
+            ",".join(config.steps_to_run_explicitly)
+            if config.steps_to_run_explicitly
+            else ""
+        ),
+    })
+
+    # Build command with original CLI arguments
+    cmd = [str(custom_script_path)]
+
+    # Pass through relevant CLI flags
+    if config.dry_run:
+        cmd.append("--dry-run")
+    if config.verbose:
+        cmd.append("--verbose")
+    if config.json_output:
+        cmd.append("--json-output")
+    if config.stack:
+        cmd.extend(["--stack", config.stack])
+    if config.extra:
+        cmd.extend(["--extra", config.extra])
+    if config.steps_to_run_explicitly:
+        for step in config.steps_to_run_explicitly:
+            cmd.extend(["--step", step])
+
+    log(f"Executing custom init script: {' '.join(cmd)}")
+    log(f"Working directory: {config.project_root}")
+    log(f"Detected stacks: {detected_stacks}")
+    log("Environment variables: KHIVE_*")
+    if config.verbose:
+        for key, value in env.items():
+            if key.startswith("KHIVE_"):
+                log(f"  {key}={value}")
+
+    if config.dry_run:
+        info(f"[DRY-RUN] Would execute: {' '.join(cmd)}", console=True)
+        return [
+            {
+                "name": "custom_init_script",
+                "status": "DRY_RUN",
+                "message": "Custom init script execution completed (dry run)",
+                "command": " ".join(cmd),
+                "detected_stacks": detected_stacks,
+                "enabled_steps": enabled_builtin_steps + enabled_custom_steps,
+            }
+        ]
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=config.project_root,
+            env=env,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(
+            proc.communicate(),
+            timeout=600,  # 10 minute timeout for init scripts
+        )
+
+        stdout = stdout_bytes.decode(errors="replace").strip()
+        stderr = stderr_bytes.decode(errors="replace").strip()
+
+        # If the script outputs JSON and we're in JSON mode, try to parse it
+        if config.json_output and stdout.strip():
+            try:
+                custom_result = json.loads(stdout.strip())
+                # Ensure it has the expected structure for init results
+                if isinstance(custom_result, dict) and "steps" in custom_result:
+                    # Add metadata about the custom script
+                    for step in custom_result["steps"]:
+                        if isinstance(step, dict):
+                            step["custom_script"] = str(custom_script_path)
+                    return custom_result["steps"]
+                elif isinstance(custom_result, list):
+                    # Array of step results
+                    for step in custom_result:
+                        if isinstance(step, dict):
+                            step["custom_script"] = str(custom_script_path)
+                    return custom_result
+            except json.JSONDecodeError:
+                # Fall through to handle as plain text
+                pass
+
+        # Handle non-JSON output or JSON parsing failure
+        if proc.returncode == 0:
+            # Script succeeded
+            if not config.json_output and stdout.strip():
+                print(stdout.strip())
+
+            result = {
+                "name": "custom_init_script",
+                "status": "OK",
+                "message": "Custom init script execution completed successfully",
+                "command": " ".join(cmd),
+                "custom_script": str(custom_script_path),
+                "detected_stacks": detected_stacks,
+                "enabled_steps": enabled_builtin_steps + enabled_custom_steps,
+            }
+
+            if config.json_output:
+                result["stdout"] = stdout.strip()
+                result["stderr"] = stderr.strip()
+
+            return [result]
+        else:
+            # Script failed - provide detailed error information
+            if not config.json_output:
+                error(
+                    f"Custom init script failed with exit code {proc.returncode}",
+                    console=True,
+                )
+
+                # Show the command that was executed
+                print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+                print(f"Working directory: {config.project_root}", file=sys.stderr)
+
+                # Always show stdout if there was any (shows progress before failure)
+                if stdout.strip():
+                    print("\n--- Script Output (stdout) ---", file=sys.stderr)
+                    print(stdout.strip(), file=sys.stderr)
+
+                # Always show stderr if there was any (shows the actual error)
+                if stderr.strip():
+                    print("\n--- Error Output (stderr) ---", file=sys.stderr)
+                    print(stderr.strip(), file=sys.stderr)
+                else:
+                    print("\n--- No error output captured ---", file=sys.stderr)
+                    print(
+                        "The script may have failed silently or the error was sent to a different stream.",
+                        file=sys.stderr,
+                    )
+
+            result = {
+                "name": "custom_init_script",
+                "status": "FAILED",
+                "message": f"Custom init script failed with exit code {proc.returncode}",
+                "command": " ".join(cmd),
+                "custom_script": str(custom_script_path),
+                "return_code": proc.returncode,
+                "detected_stacks": detected_stacks,
+                "enabled_steps": enabled_builtin_steps + enabled_custom_steps,
+            }
+
+            if config.json_output:
+                result["stdout"] = stdout.strip()
+                result["stderr"] = stderr.strip()
+
+            return [result]
+
+    except asyncio.TimeoutError:
+        error_msg = "Custom init script timed out after 10 minutes"
+        error(error_msg, console=not config.json_output)
+        if not config.json_output:
+            print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+            print(f"Working directory: {config.project_root}", file=sys.stderr)
+
+        return [
+            {
+                "name": "custom_init_script",
+                "status": "FAILED",
+                "message": error_msg,
+                "command": " ".join(cmd),
+                "custom_script": str(custom_script_path),
+                "timeout": True,
+                "detected_stacks": detected_stacks,
+                "enabled_steps": enabled_builtin_steps + enabled_custom_steps,
+            }
+        ]
+    except Exception as e:
+        error_msg = f"Failed to execute custom init script: {e}"
+        error(error_msg, console=not config.json_output)
+        if not config.json_output:
+            print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+            print(f"Working directory: {config.project_root}", file=sys.stderr)
+            print(f"Exception type: {type(e).__name__}", file=sys.stderr)
+
+        return [
+            {
+                "name": "custom_init_script",
+                "status": "FAILED",
+                "message": error_msg,
+                "command": " ".join(cmd),
+                "custom_script": str(custom_script_path),
+                "exception": str(e),
+                "exception_type": type(e).__name__,
+                "detected_stacks": detected_stacks,
+                "enabled_steps": enabled_builtin_steps + enabled_custom_steps,
+            }
+        ]
+
 
 # ────────── Orchestrator ──────────
 def determine_steps_to_run(config: InitConfig) -> OrderedDictType[str, tuple[str, Any]]:
@@ -688,7 +962,14 @@ def determine_steps_to_run(config: InitConfig) -> OrderedDictType[str, tuple[str
     return steps
 
 
+# Modify the _run function to check for custom script first
 async def _run(config: InitConfig) -> list[dict[str, Any]]:
+    # Check for custom init script first
+    custom_results = await check_and_run_custom_init_script(config)
+    if custom_results is not None:
+        return custom_results
+
+    # Original implementation continues here...
     all_results: list[dict[str, Any]] = []
 
     ordered_steps_to_process = determine_steps_to_run(config)
