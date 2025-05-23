@@ -230,8 +230,8 @@ ls .khive/prompts/roo_rules/
 
 ## 📚 Learn More
 
-- **[Golden Path](docs/golden-path.md)** - The methodology
-- **[Discord](https://discord.gg/khive)** - Join the community
+- **[Golden Path](src/khive/prompts/roo_rules/rules/003_golden_path.md)** - The methodology
+- **[Discord](https://discord.gg/JDj9ENhUE8)** - Join the community
 
 ## 📜 License
 
