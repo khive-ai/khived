@@ -23,12 +23,12 @@ from pydantic import HttpUrl, ValidationError
 # khive reader imports                                                        #
 # --------------------------------------------------------------------------- #
 try:
-    from khive.reader.services.ingestion_service import (
-        Document as IngestDocument,
-    )
+    from khive.reader.services.ingestion_service import Document as IngestDocument
+
+    # Placeholder
     from khive.reader.services.ingestion_service import (
         DocumentIngestionService,
-        InMemoryDocumentRepository,  # Placeholder
+        InMemoryDocumentRepository,
     )
     from khive.reader.services.ingestion_service import (
         DocumentStatus as IngestDocumentStatus,

@@ -15,7 +15,6 @@ ENDPOINT_CONFIG = EndpointConfig(
     base_url="https://api.perplexity.ai",
     endpoint="chat/completions",
     method="POST",
-    kwargs={"model": "sonar"},
     api_key=settings.PERPLEXITY_API_KEY,
     auth_type="bearer",
     content_type="application/json",
