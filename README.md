@@ -137,7 +137,7 @@ khive ci  # Runs your custom script automatically
 ### 🤝 **Git Integration That Feels Like Magic**
 
 ```bash
-# Smart commits with AI-powered conventional commit formatting
+# Smart commits with AI-powered conventional commit formatting (IN_DEV)
 khive commit "implemented caching layer"
 # Output: "feat(cache): implement Redis-based caching layer for API responses"
 
@@ -183,19 +183,6 @@ khive fmt   # Formats all Rust AND Python code
 khive ci    # Runs cargo test AND pytest in parallel
 ```
 
-### Custom Team Workflows
-
-```bash
-# .khive/scripts/khive_deploy.sh
-#!/bin/bash
-khive ci || exit 1
-khive fmt --check || exit 1
-kubectl apply -f k8s/
-echo "Deployed to production!"
-
-# Now anyone can:
-khive deploy  # Runs your custom deployment
-```
 
 ## 🎨 The Philosophy
 
@@ -229,12 +216,6 @@ Khive doesn't replace your tools - it orchestrates them:
 - **AI**: Any MCP server, OpenAI, Claude, local models
 - **Git**: GitHub CLI, conventional commits, PR automation
 
-## 📈 Who's Using Khive?
-
-- **Startups** love the instant productivity boost
-- **Enterprises** love the consistency and compliance
-- **Open source projects** love the zero-config onboarding
-- **That one developer** who maintains 47 different projects
 
 ## 🤝 Contributing Is Actually Fun
 
