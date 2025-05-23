@@ -1,127 +1,270 @@
 # khive init
 
-## Overview
+**Purpose**: Multi-stack project initialization with dependency management and
+environment setup.
 
-The `khive init` command bootstraps your development environment by detecting
-project types (Python, Node.js, Rust) and running appropriate initialization
-commands. It verifies required tools, installs dependencies, and sets up
-development environments automatically.
-
-## Usage
+## Synopsis
 
 ```bash
-khive init [options]
+khive init [--stack uv|pnpm|cargo] [--extra all|dev|prod] [--step step1,step2] [--dry-run] [--verbose] [--json-output]
 ```
 
-## Options
+## Key Features
 
-| Option                | Description                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| `--project-root PATH` | Path to the project root directory (default: current working directory)               |
-| `--json-output`       | Output results in JSON format                                                         |
-| `--dry-run`, `-n`     | Show what would be done without actually running commands                             |
-| `--step STEP`         | Run only specific step(s) by name. Can be repeated (e.g., `--step python --step npm`) |
-| `--verbose`, `-v`     | Enable verbose logging                                                                |
+- **Auto-detection**: Discovers Python, Node.js, and Rust projects
+- **Multi-stack setup**: Initializes uv, pnpm, cargo environments
+- **Custom scripts**: Executes `.khive/scripts/khive_init.sh` if present (takes
+  precedence)
+- **Tool validation**: Checks required and optional development tools
+- **Step orchestration**: Configurable execution order with dependencies
 
-## Configuration
+## Command Options
 
-`khive init` can be configured using a TOML file located at `.khive/init.toml`
-in your project root. All configuration options are optional and will use
-sensible defaults if not specified.
-
-### Configuration Options
-
-```toml
-# .khive/init.toml
-
-# Skip warnings for missing optional tools (default: false)
-ignore_missing_optional_tools = false
-
-# Stacks to disable even if auto-detected (e.g., "python", "npm", "rust")
-disable_auto_stacks = []
-
-# Steps to force enable (e.g., "tools", "husky", or stacks like "python")
-force_enable_steps = []
-
-# Custom steps
-[custom_steps.example_custom_build]
-cmd = "echo Hello from khive custom step"
-run_if = "file_exists:pyproject.toml" # Condition to run this step
-cwd = "." # Working directory relative to project root
-```
-
-### Configuration Precedence
-
-CLI arguments override configuration file settings. For example, if
-`dry_run = false` is set in the configuration file, but `--dry-run` is passed as
-a CLI argument, the command will run in dry-run mode.
-
-## Steps
-
-`khive init` automatically detects which steps to run based on your project
-structure:
-
-| Step     | Trigger                 | Action                                                                |
-| -------- | ----------------------- | --------------------------------------------------------------------- |
-| `tools`  | Always runs             | Verifies required and optional tools are installed                    |
-| `python` | `pyproject.toml` exists | Runs `uv sync` to install Python dependencies                         |
-| `npm`    | `package.json` exists   | Runs `pnpm install --frozen-lockfile` to install Node.js dependencies |
-| `rust`   | `Cargo.toml` exists     | Runs `cargo check --workspace` to verify Rust code                    |
-| `husky`  | `package.json` exists   | Sets up Husky git hooks if a `prepare` script exists                  |
-
-### Custom Steps
-
-You can define custom steps in the configuration file. Each custom step can
-have:
-
-- `cmd`: The command to run
-- `run_if`: A condition to determine if the step should run
-- `cwd`: The working directory relative to the project root
-
-#### Condition Types
-
-- `file_exists:path/to/file`: Runs the step if the specified file exists
-- `tool_exists:tool_name`: Runs the step if the specified tool is available in
-  PATH
-
-## Examples
-
-```bash
-# Run initialization with default settings
-khive init
-
-# Run in verbose mode to see detailed output
-khive init -v
-
-# Run only the Python initialization step
-khive init --step python
-
-# Show what would be done without making changes
-khive init --dry-run
-
-# Output results in JSON format (useful for scripting)
-khive init --json-output
-```
-
-## Error Handling
-
-`khive init` provides detailed error messages when things go wrong:
-
-- Missing required tools are reported with clear instructions
-- Subprocess failures include exit codes and error messages
-- Configuration errors are reported with helpful context
-
-If a step fails, execution will halt and report the error, unless it's the
-`tools` step which will continue with warnings for optional tools.
+| Option           | Type              | Default       | Description                            |
+| ---------------- | ----------------- | ------------- | -------------------------------------- |
+| `--stack`        | `uv\|pnpm\|cargo` | `auto-detect` | Specific stack to initialize           |
+| `--extra`        | `string`          | `none`        | Extra dependencies (stack-specific)    |
+| `--step`         | `string[]`        | `auto-detect` | Run specific steps only (repeatable)   |
+| `--dry-run`      | `flag`            | `false`       | Show planned actions without execution |
+| `--verbose`      | `flag`            | `false`       | Enable detailed output                 |
+| `--json-output`  | `flag`            | `false`       | Output structured JSON results         |
+| `--project-root` | `path`            | `cwd`         | Override project root directory        |
 
 ## Exit Codes
 
-- `0`: All steps completed successfully
-- `1`: One or more steps failed
+- `0`: Success
+- `1`: Initialization failed
+- `2`: Completed with warnings (optional)
 
-## Notes
+## Configuration
 
-- The `tools` step checks for required tools based on detected project types
-- Required tools include `uv` for Python, `pnpm` for Node.js, and
-  `cargo`/`rustc` for Rust
-- Optional tools include `gh` (GitHub CLI) and `jq` (JSON processor)
+### Primary Config (`.khive/init.toml`)
+
+```toml
+# Tool validation behavior
+ignore_missing_optional_tools = false
+
+# Disable auto-detected stacks
+disable_auto_stacks = ["python", "npm", "rust"]
+
+# Force enable specific steps
+force_enable_steps = ["tools", "husky"]
+
+# Custom initialization steps
+[custom_steps.setup_db]
+cmd = "docker-compose up -d postgres"
+run_if = "file_exists:docker-compose.yml"
+cwd = "."
+```
+
+### Custom Script Integration
+
+**File**: `.khive/scripts/khive_init.sh` **Requirements**: Executable
+(`chmod +x`)
+
+**Environment Variables** (passed to custom scripts):
+
+```bash
+KHIVE_PROJECT_ROOT          # Project root path
+KHIVE_CONFIG_DIR            # .khive directory path
+KHIVE_DRY_RUN               # "1" if dry-run, "0" otherwise
+KHIVE_VERBOSE               # "1" if verbose, "0" otherwise
+KHIVE_JSON_OUTPUT           # "1" if JSON output, "0" otherwise
+KHIVE_DETECTED_STACKS       # Comma-separated detected stacks
+KHIVE_DISABLED_STACKS       # Comma-separated disabled stacks
+KHIVE_FORCED_STEPS          # Comma-separated forced steps
+KHIVE_REQUESTED_STACK       # Specific stack from --stack
+KHIVE_REQUESTED_EXTRA       # Extra option from --extra
+KHIVE_ENABLED_BUILTIN_STEPS # Comma-separated enabled builtin steps
+KHIVE_ENABLED_CUSTOM_STEPS  # Comma-separated enabled custom steps
+KHIVE_EXPLICIT_STEPS        # Comma-separated explicit steps
+```
+
+## Output Formats
+
+### JSON Output (`--json-output`)
+
+```json
+{
+  "status": "success|failure|warning",
+  "steps": [
+    {
+      "name": "tools",
+      "status": "OK|FAILED|SKIPPED|WARNING|DRY_RUN",
+      "message": "Tool check completed. All configured tools present.",
+      "return_code": 0,
+      "command": "uv sync",
+      "stdout": "...",
+      "stderr": "..."
+    }
+  ]
+}
+```
+
+### Text Output (default)
+
+```
+⚙ TOOLS
+✔ Tool 'uv' found.
+✔ Tool 'pnpm' found.
+  -> OK: Tool check completed. All configured tools present.
+
+⚙ PYTHON
+▶ [python] $ uv sync (in /path/to/project)
+  -> OK: Command 'uv sync' successful.
+
+✔ khive init completed successfully.
+```
+
+## Built-in Steps
+
+### tools
+
+**Purpose**: Validate required and optional development tools **Required Tools**
+(based on detected stacks):
+
+- `uv`: Python environment/package management
+- `pnpm`: Node package management
+- `cargo`, `rustc`: Rust build tools
+
+**Optional Tools**:
+
+- `gh`: GitHub CLI
+- `jq`: JSON processor
+
+**Behavior**: Fails if required tools missing, warns for optional tools
+
+### python
+
+**Trigger**: `pyproject.toml` exists **Command**: `uv sync` **Requirements**:
+`uv` tool available **Extra Options**:
+
+- `all`: Include all optional dependency groups (`--all-extras`)
+- `<group>`: Include specific dependency group (`--extra <group>`)
+
+### npm
+
+**Trigger**: `package.json` exists **Command**: `pnpm install --frozen-lockfile`
+**Requirements**: `pnpm` tool available **Extra Options**:
+
+- `all`: Install all dependencies (`--production=false`)
+- `dev`: Install dev dependencies (`--dev`)
+- `prod`: Install production only (`--production`)
+
+### rust
+
+**Trigger**: `Cargo.toml` exists **Command**: `cargo check --workspace`
+**Requirements**: `cargo` tool available **Extra Options**:
+
+- `all`: Build with all features (`--all-features`)
+- `dev`: Check with dev profile (`--profile dev`)
+- `test`: Run tests (`cargo test`)
+- `<feature>`: Enable specific feature (`--features <feature>`)
+
+### husky
+
+**Trigger**: `package.json` with `prepare` script exists **Command**:
+`pnpm run prepare` **Requirements**: `pnpm` tool available **Purpose**: Set up
+Git hooks via Husky
+
+## Stack-Specific Initialization
+
+### Python Stack (`--stack uv`)
+
+```bash
+# Basic Python environment setup
+khive init --stack uv
+
+# Include all optional dependencies
+khive init --stack uv --extra all
+
+# Include specific dependency group
+khive init --stack uv --extra test
+```
+
+### Node.js Stack (`--stack pnpm`)
+
+```bash
+# Basic Node.js setup
+khive init --stack pnpm
+
+# Install all dependencies including dev
+khive init --stack pnpm --extra all
+
+# Production dependencies only
+khive init --stack pnpm --extra prod
+```
+
+### Rust Stack (`--stack cargo`)
+
+```bash
+# Basic Rust setup
+khive init --stack cargo
+
+# Build with all features
+khive init --stack cargo --extra all
+
+# Run tests during initialization
+khive init --stack cargo --extra test
+```
+
+## Usage Examples
+
+```bash
+# Auto-detect and initialize all stacks
+khive init
+
+# Initialize specific stack with extras
+khive init --stack uv --extra all
+
+# Run only specific steps
+khive init --step tools --step python
+
+# Dry run to see what would happen
+khive init --dry-run --verbose
+
+# JSON output for CI integration
+khive init --json-output
+
+# Custom script execution
+# (if .khive/scripts/khive_init.sh exists)
+khive init  # Automatically uses custom script
+```
+
+## Step Status Values
+
+- `OK`: Step completed successfully
+- `FAILED`: Step failed, halts execution
+- `SKIPPED`: Step not applicable or disabled
+- `WARNING`: Step completed with issues
+- `DRY_RUN`: Dry run mode, shows planned action
+
+## Custom Step Conditions
+
+### run_if Expressions
+
+- `file_exists:<path>`: Check if file exists
+- `tool_exists:<tool>`: Check if tool is in PATH
+
+### Example Custom Steps
+
+```toml
+[custom_steps.docker_setup]
+cmd = "docker-compose up -d"
+run_if = "file_exists:docker-compose.yml"
+cwd = "."
+
+[custom_steps.database_migrate]
+cmd = "npm run db:migrate"
+run_if = "tool_exists:npm"
+cwd = "backend"
+```
+
+## Integration Notes
+
+- **Tool Dependencies**: Auto-detects required tools based on project files
+- **Execution Order**: tools → python → npm → rust → husky → custom steps
+- **Failure Handling**: Stops on critical failures, continues on warnings
+- **Custom Scripts**: Take complete precedence over built-in initialization
+- **Configuration Priority**: CLI args override `.khive/init.toml`
+- **Security**: Custom scripts must be regular files and executable
