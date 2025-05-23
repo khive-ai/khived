@@ -1,164 +1,277 @@
-## Getting Started
+# Getting Started with Khive
+
+Khive is an extensible development environment that brings AI-native tooling,
+multi-stack formatting, and intelligent project initialization to your workflow.
+This guide will get you up and running in minutes.
+
+## Quick Start
 
 ### 1. Install Khive
 
-- set up virtual environment
-  ```
-  uv venv
-  source .venv/bin/activate
-  ```
+**Using uv (recommended):**
 
-- install khive
-  ```
-  uv pip install "khive[all]"
-  ```
+```bash
+# Create and activate virtual environment
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-- or add it to your development requirements
-  ```
-  uv add --dev "khive[all]"
-  ```
-
-### 2. Input Environment Variables (optional)
-
-- create a `.env` file in the root directory of your project
-- add the following environment variables to the `.env` file
-  ```
-  OPENROUTER_API_KEY=your_openrouter_api_key
-  PERPLEXITY_API_KEY=your_perplexity_api_key
-  EXA_API_KEY=your_exa_api_key
-  ```
-- you can get the API keys from the respective websites
-- all API keys are optional, but you will need them in order to use features
-  like `khive info search` and `khive info consult`
-
-### 3. Set up Roo
-
-#### 3.1 Set up Roo rules in your project
-
-run the following command to set up the Roo rules in your project.
-
-```
-khive roo
+# Install khive with all features
+uv pip install "khive[all]"
 ```
 
-This will create a `.khive` dictory in your project root directory, (consider
-adding it to your .gitignore). Then open
-`.khive/prompts/roo_rules/rules/000_project_info.md` and replace the project
-info,
+**Or add to your project:**
 
-```
-# project: {{project}}
-
-- repo owner: {{repo_owner}}
-- repo name: {{repo_name}}
+```bash
+uv add --dev "khive[all]"
 ```
 
-Then run `khive roo` again to update roo rules
+### 2. Initialize Your Project
 
-#### 3.2 Configure Roo
+Run khive in any project directory to set it up:
 
-you will need API keys for Roo to work. Khive works best with
-`claude-sonnet-3.7` models.
-
-Then open roo settings,
-
-- under `Auto-Apporve` section, add the following commands to allow auto
-  execution of the commands: `khive`, `uv`, `git`, `gh`, `cd`, `mkdir`, `ls`,
-  `cat`, `python`, `chmod +x`, ... and more as you need.
-- for auto approve, allow everything except `Mode` switching, khive do not
-  support mode switching features, they will confuse the khive dev team.
-- Under context, set file auto truncate threshold to 500-2000 lines to avoid
-  crashing the context window.
-- check detailed documentation on how to set up roo at https://docs.roocode.com/
-
-### 4. Set up MCP (optional)
-
-It is a good idea to set up a Github MCP server and provide to roo in case
-command line isn't working or available. You can add this into your
-`.roo/mcp.json` file. You will need to set up a Github personal access token
-with repo and workflow permissions. You can do this by going to your Github
-settings, then Developer settings, then Personal access tokens, and creating a
-new token.
-
-```json
-{
-  "mcpServers": {
-    "fetch": {
-      "command": "uvx",
-      "args": [
-        "mcp-server-fetch"
-      ],
-      "alwaysAllow": [
-        "fetch"
-      ],
-      "autoApprove": [
-        "fetch"
-      ]
-    },
-    "github": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "GITHUB_PERSONAL_ACCESS_TOKEN",
-        "ghcr.io/github/github-mcp-server"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_y4raJxxxxxxxxxxxxxxxxxxxxxxx"
-      },
-      "alwaysAllow": [
-        "add_issue_comment",
-        "create_branch",
-        "create_issue",
-        "create_or_update_file",
-        "create_pull_request",
-        "get_file_contents",
-        "get_issue",
-        "get_issue_comments",
-        "get_me",
-        "get_pull_request",
-        "get_pull_request_comments",
-        "get_pull_request_files",
-        "get_pull_request_reviews",
-        "get_pull_request_status",
-        "list_commits",
-        "list_issues",
-        "list_pull_requests",
-        "merge_pull_request",
-        "push_files",
-        "search_code",
-        "search_issues",
-        "search_repositories",
-        "search_users",
-        "update_issue",
-        "update_pull_request_branch",
-        "add_pull_request_review_comment",
-        "create_pull_request_review",
-        "list_branches",
-        "get_commit",
-        "add_pull_request_comment",
-        "update_pull_request"
-      ],
-      "disabled": true
-    }
-  }
-}
+```bash
+khive init
 ```
 
-### 5. Give it a spin
+This will:
 
-add some issues to your repo, then
+- Detect your project type (Python, Node.js, Rust)
+- Install required development tools
+- Set up Git hooks (if you have a package.json with Husky)
+- Create the `.khive` configuration directory
 
-open roo, and text `khive-orchestrator`:
+**Example output:**
 
 ```
-thoughtfully resolve all issues
+⚙ TOOLS
+✔ Tool 'uv' found.
+✔ Tool 'pnpm' found.
+
+⚙ PYTHON  
+▶ [python] $ uv sync
+  -> OK: Command 'uv sync' successful.
+
+✔ khive init completed successfully.
 ```
 
-and hit enter.
+### 3. Format Your Code
 
-### Conclusion
+Khive automatically detects and formats multiple languages:
 
-That's it! You are all set up to use Khive.
+```bash
+# Format all supported files
+khive fmt
+
+# Format specific stacks
+khive fmt --stack python,rust
+
+# Check formatting without changes
+khive fmt --check
+```
+
+**Supported formats:**
+
+- **Python**: Uses `ruff format`
+- **Rust**: Uses `cargo fmt`
+- **JavaScript/TypeScript**: Uses `deno fmt`
+- **Markdown**: Uses `deno fmt`
+
+### 4. Run Your Tests
+
+Khive discovers and runs tests across multiple stacks:
+
+```bash
+# Run all detected tests
+khive ci
+
+# Run specific stack tests
+khive ci --test-type python
+
+# See what would run without executing
+khive ci --dry-run
+```
+
+**Test discovery:**
+
+- **Python**: Finds `pytest`, discovers `tests/` directories
+- **Rust**: Runs `cargo test`, discovers `tests/` and `src/` tests
+
+### 5. Set up API Keys (Optional)
+
+For advanced features like AI search and consultation, create a `.env` file:
+
+```bash
+# .env
+OPENROUTER_API_KEY=your_openrouter_key
+PERPLEXITY_API_KEY=your_perplexity_key
+EXA_API_KEY=your_exa_key
+```
+
+Get API keys from:
+
+- [OpenRouter](https://openrouter.ai/) - For AI model access
+- [Perplexity](https://perplexity.ai/) - For AI-powered search
+- [Exa](https://exa.ai/) - For web search
+
+## Core Commands
+
+### `khive init`
+
+**Initialize your development environment**
+
+```bash
+khive init                    # Auto-detect and set up all stacks
+khive init --stack python    # Set up Python environment only
+khive init --extra all       # Include all optional dependencies
+```
+
+### `khive fmt`
+
+**Format your code consistently**
+
+```bash
+khive fmt                     # Format all files
+khive fmt --check            # Check without modifying
+khive fmt --stack python     # Format Python files only
+```
+
+### `khive ci`
+
+**Run your tests and checks**
+
+```bash
+khive ci                      # Run all tests
+khive ci --test-type rust     # Run Rust tests only
+khive ci --timeout 600       # Set custom timeout
+```
+
+### `khive mcp`
+
+**Manage AI-native tools (Advanced)**
+
+```bash
+khive mcp list               # List configured MCP servers
+khive mcp tools server       # Show available tools
+khive mcp call server tool --arg value  # Execute tools
+```
+
+## Customization
+
+### Custom Scripts
+
+Override any khive command with your own scripts:
+
+```bash
+# Create custom scripts directory
+mkdir -p .khive/scripts
+
+# Custom initialization
+cat > .khive/scripts/khive_init.sh << 'EOF'
+#!/bin/bash
+echo "Running custom initialization..."
+# Your custom setup logic here
+EOF
+
+chmod +x .khive/scripts/khive_init.sh
+```
+
+Now `khive init` will run your custom script instead of the built-in one.
+
+### Configuration
+
+Customize behavior with configuration files:
+
+```toml
+# .khive/init.toml
+ignore_missing_optional_tools = true
+disable_auto_stacks = ["rust"]
+force_enable_steps = ["tools", "python"]
+```
+
+```toml
+# pyproject.toml
+[tool."khive fmt"]
+enable = ["python", "docs"]
+
+[tool."khive fmt".stacks.python]
+exclude = ["*_generated.py", "legacy/**"]
+```
+
+## Common Workflows
+
+### New Python Project
+
+```bash
+# Initialize Python environment
+khive init --stack uv --extra all
+
+# Format code
+khive fmt
+
+# Run tests
+khive ci
+```
+
+### Multi-Language Project
+
+```bash
+# Set up all detected stacks
+khive init
+
+# Format everything
+khive fmt
+
+# Run all tests
+khive ci --json-output  # For CI integration
+```
+
+### Check Before Commit
+
+```bash
+# Validate formatting and tests
+khive fmt --check && khive ci
+```
+
+## What's Next?
+
+Once you're comfortable with the basics:
+
+1. **Explore MCP Integration** - Connect AI tools to your development workflow
+2. **Custom Scripts** - Create team-specific initialization and CI processes
+3. **AI Assistant Setup** - Integrate with Roo or other AI development
+   assistants
+4. **Team Configuration** - Share configurations across your development team
+
+## Getting Help
+
+- **Check command help**: `khive <command> --help`
+- **Verbose output**: Add `--verbose` to any command
+- **JSON output**: Add `--json-output` for machine-readable results
+- **Dry run**: Add `--dry-run` to see what would happen
+
+## Troubleshooting
+
+**Tool not found errors:**
+
+```bash
+# Install missing tools
+pip install ruff pytest      # For Python
+cargo install               # For Rust (if needed)
+npm install -g deno         # For JavaScript/TypeScript
+```
+
+**No tests discovered:**
+
+- Make sure test files follow naming conventions (`test_*.py`, `*_test.py`)
+- Check that test directories exist (`tests/`, `test/`)
+
+**Permission errors:**
+
+```bash
+# Make custom scripts executable
+chmod +x .khive/scripts/*.sh
+```
+
+That's it! You're now ready to use Khive for faster, more consistent
+development. The tool grows with your needs - start simple and add advanced
+features as your workflow evolves.
