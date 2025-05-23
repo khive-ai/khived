@@ -44,7 +44,7 @@ class ConsultModel(str, Enum):
 
     GPT_O4_MINI = "openai/gpt-o4-mini"
     GEMINI_2_5_PRO = "google/gemini-2.5-pro-preview"
-    CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
+    CLAUDE_SONNET_4 = "anthropic/claude-sonnet-4"
 
 
 class InfoSearchParams(BaseModel):
@@ -62,22 +62,13 @@ class InfoConsultParams(BaseModel):
         ..., description="The specific question or topic to consult the LLM(s) about."
     )
     models: list[ConsultModel] = Field(
-        default=[ConsultModel.GPT_O4_MINI],
         description="A list of one or more LLMs to consult.",
     )
 
     @field_validator("models", mode="before")
     def check_models(cls, v):
         v = [v] if not isinstance(v, list) else v
-        models = []
-        for m in v:
-            if isinstance(m, str):
-                models.append(ConsultModel(m))
-            elif isinstance(m, ConsultModel):
-                models.append(m)
-            else:
-                raise TypeError(f"Invalid model type: {m}")
-        return models
+        return v
 
 
 class InfoRequest(BaseModel):
