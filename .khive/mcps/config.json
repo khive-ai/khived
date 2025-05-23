@@ -11,6 +11,17 @@
       "autoApprove": [
         "fetch"
       ]
+    },
+    "khive_info": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with",
+        "fastmcp",
+        "fastmcp",
+        "run",
+        "/Users/lion/khived/mcps/khive_info.py"
+      ]
     }
   }
 }
