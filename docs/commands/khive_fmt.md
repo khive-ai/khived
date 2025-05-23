@@ -1,166 +1,174 @@
 # khive fmt
 
-## Overview
+**Purpose**: Opinionated multi-stack code formatter with custom script support.
 
-The `khive fmt` command is an opinionated multi-stack formatter that formats
-code across different language stacks (Python, Rust, Deno, Markdown). It
-provides a unified interface for running various formatters with sensible
-defaults, while allowing for customization via configuration files.
-
-## Features
-
-- Formats code across multiple stacks (Python, Rust, Deno, Markdown)
-- Supports selective formatting via `--stack` flag
-- Supports check-only mode via `--check` flag
-- Configurable via TOML
-- Handles missing formatters gracefully
-- Provides JSON output for scripting
-
-## Usage
+## Synopsis
 
 ```bash
-khive fmt [options]
+khive fmt [--stack python,rust,docs,deno] [--check] [--dry-run] [--verbose] [--json-output]
 ```
 
-## Options
+## Key Features
 
-| Option                | Description                                                       |
-| --------------------- | ----------------------------------------------------------------- |
-| `--stack STACKS`      | Comma-separated list of stacks to format (e.g., python,rust,docs) |
-| `--check`             | Check formatting without modifying files                          |
-| `--project-root PATH` | Project root directory (default: Git repository root)             |
-| `--json-output`       | Output results in JSON format                                     |
-| `--dry-run`, `-n`     | Show what would be done without actually running commands         |
-| `--verbose`, `-v`     | Enable verbose logging                                            |
+- **Multi-stack formatting**: Python (ruff), Rust (cargo), Deno/JS/TS, Markdown
+- **Custom scripts**: Executes `.khive/scripts/khive_fmt.sh` if present (takes
+  precedence)
+- **Selective formatting**: Filter by stack types
+- **Check mode**: Validate formatting without modifications
+- **Batch processing**: Handles large file sets efficiently
+
+## Command Options
+
+| Option           | Type     | Default | Description                                        |
+| ---------------- | -------- | ------- | -------------------------------------------------- |
+| `--stack`        | `string` | `all`   | Comma-separated stack list (python,rust,docs,deno) |
+| `--check`        | `flag`   | `false` | Check formatting without modifying files           |
+| `--dry-run`      | `flag`   | `false` | Show planned actions without execution             |
+| `--verbose`      | `flag`   | `false` | Enable detailed output                             |
+| `--json-output`  | `flag`   | `false` | Output structured JSON results                     |
+| `--project-root` | `path`   | `cwd`   | Override project root directory                    |
+
+## Exit Codes
+
+- `0`: Success or check passed
+- `1`: Formatting errors or check failed
 
 ## Configuration
 
-`khive fmt` can be configured using TOML in two locations:
-
-1. In `pyproject.toml` under the `[tool.khive fmt]` section
-2. In a dedicated `.khive/fmt.toml` file (which takes precedence)
-
-### Configuration Options
+### Primary Config (`pyproject.toml`)
 
 ```toml
-# In pyproject.toml or .khive/fmt.toml
-
-# Enable/disable stacks globally
+[tool."khive fmt"]
 enable = ["python", "rust", "docs", "deno"]
 
-# Stack-specific configurations
-[stacks.python]
+[tool."khive fmt".stacks.python]
 cmd = "ruff format {files}"
 check_cmd = "ruff format --check {files}"
 include = ["*.py"]
-exclude = ["*_generated.py"]
+exclude = ["*_generated.py", ".venv/**"]
 
-[stacks.rust]
+[tool."khive fmt".stacks.rust]
 cmd = "cargo fmt"
 check_cmd = "cargo fmt --check"
 include = ["*.rs"]
 exclude = []
-
-[stacks.docs]
-cmd = "deno fmt {files}"
-check_cmd = "deno fmt --check {files}"
-include = ["*.md", "*.markdown"]
-exclude = []
-
-[stacks.deno]
-cmd = "deno fmt {files}"
-check_cmd = "deno fmt --check {files}"
-include = ["*.ts", "*.js", "*.jsx", "*.tsx"]
-exclude = ["*_generated.*", "node_modules/**"]
 ```
 
-### Configuration Precedence
+### Override Config (`.khive/fmt.toml`)
 
-1. CLI arguments override configuration file settings
-2. `.khive/fmt.toml` overrides `pyproject.toml`
-3. Default configurations are used for any unspecified settings
+```toml
+enable = ["python", "rust"]  # Overrides pyproject.toml
 
-## Default Formatters
+[stacks.python]
+exclude = ["legacy/**", "*_generated.py"]
+```
 
-| Stack  | Default Formatter | Command               |
-| ------ | ----------------- | --------------------- |
-| Python | ruff              | `ruff format {files}` |
-| Rust   | cargo fmt         | `cargo fmt`           |
-| Docs   | deno fmt          | `deno fmt {files}`    |
-| Deno   | deno fmt          | `deno fmt {files}`    |
+### Custom Script Integration
 
-## Examples
+**File**: `.khive/scripts/khive_fmt.sh` **Requirements**: Executable
+(`chmod +x`)
+
+**Environment Variables** (passed to custom scripts):
 
 ```bash
-# Format all enabled stacks
-khive fmt
-
-# Format only Python and Rust code
-khive fmt --stack python,rust
-
-# Check formatting without modifying files
-khive fmt --check
-
-# Check formatting for specific stacks
-khive fmt --stack docs,deno --check
-
-# Verbose output with dry run
-khive fmt -v -n
-
-# Output results in JSON format
-khive fmt --json-output
+KHIVE_PROJECT_ROOT     # Project root path
+KHIVE_CONFIG_DIR       # .khive directory path
+KHIVE_DRY_RUN          # "1" if dry-run, "0" otherwise
+KHIVE_VERBOSE          # "1" if verbose, "0" otherwise
+KHIVE_CHECK_ONLY       # "1" if check mode, "0" otherwise
+KHIVE_JSON_OUTPUT      # "1" if JSON output, "0" otherwise
+KHIVE_SELECTED_STACKS  # Comma-separated selected stacks
+KHIVE_ENABLED_STACKS   # Comma-separated enabled stacks
 ```
 
-## JSON Output Format
+## Output Formats
 
-When using `--json-output`, the command returns a structured JSON object:
+### JSON Output (`--json-output`)
 
 ```json
 {
-  "status": "success",
+  "status": "success|failure|check_failed|skipped",
   "message": "Formatting completed successfully.",
   "stacks_processed": [
     {
       "stack_name": "python",
       "status": "success",
-      "message": "Successfully formatted 10 files for stack 'python'.",
-      "files_processed": 10
-    },
-    {
-      "stack_name": "rust",
-      "status": "success",
-      "message": "Successfully formatted 5 files for stack 'rust'.",
-      "files_processed": 5
+      "message": "Successfully formatted 15 files for stack 'python'.",
+      "files_processed": 15
     }
   ]
 }
 ```
 
-### Status Codes
+### Text Output (default)
 
-The JSON output includes status codes for each operation:
+```
+✔ Successfully formatted 15 files for stack 'python'.
+✔ Successfully formatted files for stack 'rust'.
+⚠ No files found for stack 'docs'.
+✔ khive fmt finished: Formatting completed successfully.
+```
 
-- **Overall Status**: `"success"`, `"failure"`, `"check_failed"`, `"skipped"`
-- **Stack Status**: `"success"`, `"error"`, `"check_failed"`, `"skipped"`
+## Stack Configurations
 
-## Error Handling
+### Python Stack
 
-`khive fmt` provides detailed error messages when things go wrong:
+**Trigger**: `*.py` files **Tool**: `ruff format` **Default Excludes**:
+`*_generated.py`, `.venv/**`, `venv/**`, `env/**`, `node_modules/**`
 
-- Missing formatters are reported with helpful messages
-- Formatting errors include the stderr output from the formatter
-- Configuration errors are reported with helpful context
+### Rust Stack
 
-## Exit Codes
+**Trigger**: `*.rs` files or `Cargo.toml` presence **Tool**: `cargo fmt`
+**Special**: Formats entire project, not individual files
 
-- `0`: Formatting completed successfully
-- `1`: Error occurred during formatting or check failed
+### Docs Stack
 
-## Notes
+**Trigger**: `*.md`, `*.markdown` files **Tool**: `deno fmt` **Default
+Excludes**: None
 
-- The command automatically detects the project root using Git
-- Formatters must be installed separately (ruff, cargo, deno)
-- The `{files}` placeholder in commands is replaced with the list of files to
-  format
-- Some formatters (like `cargo fmt`) don't accept file arguments and format the
-  whole project
+### Deno Stack
+
+**Trigger**: `*.ts`, `*.js`, `*.jsx`, `*.tsx` files **Tool**: `deno fmt`
+**Default Excludes**: `*_generated.*`, `node_modules/**`
+
+## Usage Examples
+
+```bash
+# Format all detected stacks
+khive fmt
+
+# Format only Python and Rust
+khive fmt --stack python,rust
+
+# Check formatting without changes
+khive fmt --check
+
+# Dry run with verbose output
+khive fmt --dry-run --verbose
+
+# JSON output for CI integration
+khive fmt --check --json-output
+
+# Custom script execution
+# (if .khive/scripts/khive_fmt.sh exists)
+khive fmt  # Automatically uses custom script
+```
+
+## Status Values
+
+- `success`: All files formatted successfully
+- `failure`: Formatting errors occurred
+- `check_failed`: Check mode found unformatted files
+- `skipped`: No files found or stack disabled
+- `error`: Tool not found or execution failed
+
+## Integration Notes
+
+- **Tool Dependencies**: Requires `ruff` for Python, `cargo` for Rust, `deno`
+  for JS/TS/Markdown
+- **File Discovery**: Uses glob patterns with exclude filtering
+- **Batch Processing**: Processes max 500 files per command to avoid system
+  limits
+- **Custom Scripts**: Take complete precedence over built-in formatters
+- **Configuration Hierarchy**: `.khive/fmt.toml` overrides `pyproject.toml`
+- **Security**: Custom scripts must be regular files and executable

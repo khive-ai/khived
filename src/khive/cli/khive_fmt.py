@@ -24,7 +24,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import stat
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -352,6 +354,223 @@ def find_files(
     return filtered_files
 
 
+def check_and_run_custom_script(
+    config: FmtConfig, args: argparse.Namespace
+) -> dict[str, Any] | None:
+    """
+    Check for custom formatting script and execute it if found.
+    Returns the result dict if custom script was executed, None otherwise.
+    """
+    custom_script_path = config.khive_config_dir / "scripts" / "khive_fmt.sh"
+
+    if not custom_script_path.exists():
+        return None
+
+    # Verify the script is executable
+    if not os.access(custom_script_path, os.X_OK):
+        warn_msg(
+            f"Custom script {custom_script_path} exists but is not executable. "
+            f"Run: chmod +x {custom_script_path}",
+            console=not config.json_output,
+        )
+        return None
+
+    # Security check: ensure it's a regular file and not world-writable
+    script_stat = custom_script_path.stat()
+    if not stat.S_ISREG(script_stat.st_mode):
+        error_msg(
+            f"Custom script {custom_script_path} is not a regular file",
+            console=not config.json_output,
+        )
+        return {
+            "status": "failure",
+            "message": "Custom script is not a regular file",
+            "stacks_processed": [],
+        }
+
+    if script_stat.st_mode & stat.S_IWOTH:
+        warn_msg(
+            f"Custom script {custom_script_path} is world-writable, which may be a security risk",
+            console=not config.json_output,
+        )
+
+    info_msg(
+        f"Using custom formatting script: {custom_script_path}",
+        console=not config.json_output,
+    )
+
+    # Prepare environment variables for the script
+    env = os.environ.copy()
+    env.update({
+        "KHIVE_PROJECT_ROOT": str(config.project_root),
+        "KHIVE_CONFIG_DIR": str(config.khive_config_dir),
+        "KHIVE_DRY_RUN": "1" if config.dry_run else "0",
+        "KHIVE_VERBOSE": "1" if config.verbose else "0",
+        "KHIVE_CHECK_ONLY": "1" if config.check_only else "0",
+        "KHIVE_JSON_OUTPUT": "1" if config.json_output else "0",
+        "KHIVE_SELECTED_STACKS": (
+            ",".join(config.selected_stacks) if config.selected_stacks else ""
+        ),
+        "KHIVE_ENABLED_STACKS": ",".join(config.enable),
+    })
+
+    # Build command with original CLI arguments
+    cmd = [str(custom_script_path)]
+
+    # Pass through relevant CLI flags
+    if config.check_only:
+        cmd.append("--check")
+    if config.dry_run:
+        cmd.append("--dry-run")
+    if config.verbose:
+        cmd.append("--verbose")
+    if config.json_output:
+        cmd.append("--json-output")
+    if config.selected_stacks:
+        cmd.extend(["--stack", ",".join(config.selected_stacks)])
+
+    log_msg(f"Executing custom script: {' '.join(cmd)}")
+    log_msg(f"Working directory: {config.project_root}")
+    log_msg("Environment variables: KHIVE_*")
+    if config.verbose:
+        for key, value in env.items():
+            if key.startswith("KHIVE_"):
+                log_msg(f"  {key}={value}")
+
+    if config.dry_run:
+        info_msg(f"[DRY-RUN] Would execute: {' '.join(cmd)}", console=True)
+        return {
+            "status": "success",
+            "message": "Custom script execution completed (dry run)",
+            "stacks_processed": [],
+            "custom_script": str(custom_script_path),
+            "custom_script_dry_run": True,
+            "command": " ".join(cmd),
+        }
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=config.project_root,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute timeout
+        )
+
+        # If the script outputs JSON and we're in JSON mode, try to parse it
+        if config.json_output and proc.stdout.strip():
+            try:
+                custom_result = json.loads(proc.stdout.strip())
+                # Ensure it has the expected structure
+                if isinstance(custom_result, dict) and "status" in custom_result:
+                    custom_result["custom_script"] = str(custom_script_path)
+                    return custom_result
+            except json.JSONDecodeError:
+                # Fall through to handle as plain text
+                pass
+
+        # Handle non-JSON output or JSON parsing failure
+        if proc.returncode == 0:
+            # Script succeeded
+            if not config.json_output and proc.stdout.strip():
+                print(proc.stdout.strip())
+
+            result = {
+                "status": "success",
+                "message": "Custom script execution completed successfully",
+                "stacks_processed": [],
+                "custom_script": str(custom_script_path),
+            }
+
+            if config.json_output:
+                result["custom_script_stdout"] = proc.stdout.strip()
+                result["custom_script_stderr"] = proc.stderr.strip()
+
+            return result
+        else:
+            # Script failed - provide detailed error information
+            if not config.json_output:
+                error_msg(
+                    f"Custom script failed with exit code {proc.returncode}",
+                    console=True,
+                )
+
+                # Show the command that was executed
+                print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+                print(f"Working directory: {config.project_root}", file=sys.stderr)
+
+                # Always show stdout if there was any (shows progress before failure)
+                if proc.stdout.strip():
+                    print("\n--- Script Output (stdout) ---", file=sys.stderr)
+                    print(proc.stdout.strip(), file=sys.stderr)
+
+                # Always show stderr if there was any (shows the actual error)
+                if proc.stderr.strip():
+                    print("\n--- Error Output (stderr) ---", file=sys.stderr)
+                    print(proc.stderr.strip(), file=sys.stderr)
+                else:
+                    print("\n--- No error output captured ---", file=sys.stderr)
+                    print(
+                        "The script may have failed silently or the error was sent to a different stream.",
+                        file=sys.stderr,
+                    )
+
+            result = {
+                "status": "failure",
+                "message": f"Custom script failed with exit code {proc.returncode}",
+                "stacks_processed": [],
+                "custom_script": str(custom_script_path),
+                "exit_code": proc.returncode,
+                "command": " ".join(cmd),
+                "working_directory": str(config.project_root),
+            }
+
+            if config.json_output:
+                result["custom_script_stdout"] = proc.stdout.strip()
+                result["custom_script_stderr"] = proc.stderr.strip()
+
+            return result
+
+    except subprocess.TimeoutExpired as e:
+        error_msg(
+            "Custom script timed out after 5 minutes", console=not config.json_output
+        )
+        if not config.json_output:
+            print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+            print(f"Working directory: {config.project_root}", file=sys.stderr)
+            if hasattr(e, "stdout") and e.stdout:
+                print("\n--- Partial Output Before Timeout ---", file=sys.stderr)
+                print(e.stdout.strip(), file=sys.stderr)
+
+        return {
+            "status": "failure",
+            "message": "Custom script timed out after 5 minutes",
+            "stacks_processed": [],
+            "custom_script": str(custom_script_path),
+            "command": " ".join(cmd),
+            "timeout": True,
+        }
+    except Exception as e:
+        error_msg(
+            f"Failed to execute custom script: {e}", console=not config.json_output
+        )
+        if not config.json_output:
+            print(f"Command: {' '.join(cmd)}", file=sys.stderr)
+            print(f"Working directory: {config.project_root}", file=sys.stderr)
+            print(f"Exception type: {type(e).__name__}", file=sys.stderr)
+
+        return {
+            "status": "failure",
+            "message": f"Failed to execute custom script: {e}",
+            "stacks_processed": [],
+            "custom_script": str(custom_script_path),
+            "command": " ".join(cmd),
+            "exception": str(e),
+            "exception_type": type(e).__name__,
+        }
+
+
 # --- Core Logic for Formatting ---
 def format_stack(stack: StackConfig, config: FmtConfig) -> dict[str, Any]:
     """Format files for a specific stack."""
@@ -657,8 +876,14 @@ def format_stack(stack: StackConfig, config: FmtConfig) -> dict[str, Any]:
     return result
 
 
-# --- Main Workflow ---
+# Modify the _main_fmt_flow function to check for custom script first
 def _main_fmt_flow(args: argparse.Namespace, config: FmtConfig) -> dict[str, Any]:
+    # Check for custom script first
+    custom_result = check_and_run_custom_script(config, args)
+    if custom_result is not None:
+        return custom_result
+
+    # Original implementation continues here...
     overall_results: dict[str, Any] = {
         "status": "success",
         "message": "Formatting completed.",

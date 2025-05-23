@@ -183,7 +183,6 @@ khive/third_party/openai_models.py
 .roomodes
 .roo
 .khive/dev/
-.khive/mcps/
 .khive/prompts/
 .khive/reader_cache/
 .khive/deep_research/

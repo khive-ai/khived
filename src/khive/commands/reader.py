@@ -4,13 +4,13 @@
 
 from __future__ import annotations
 
-from khive.cli.khive_reader import app as reader_typer_app
+from khive.cli.khive_reader import main
 
 
 def cli_entry() -> None:
     # The Typer app instance is callable.
     # Typer handles sys.argv internally when app() is called.
-    reader_typer_app()
+    main()
 
 
 if __name__ == "__main__":
