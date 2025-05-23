@@ -68,7 +68,7 @@ khive commit "add user authentication"
 
 # PR creation without leaving terminal?
 khive pr
-# ✨ Creates PR with AI-generated description from your commits
+# ✨ Creates PR with AI-generated description from your commits (IN_DEV)
 
 # Manage 47 feature branches?
 khive clean --all-merged
