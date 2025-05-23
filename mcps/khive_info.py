@@ -8,7 +8,6 @@ if not is_package_installed("fastmcp"):
 
 import lionfuncs as ln
 from fastmcp import FastMCP
-
 from khive.services.info.info_service import InfoServiceGroup
 from khive.services.info.parts import (
     ExaSearchRequest,
@@ -74,12 +73,10 @@ async def search(
     if provider_params and isinstance(provider_params, str):
         provider_params = ln.fuzzy_parse_json(provider_params)
     if provider == "exa":
-        provider_params = ExaSearchRequest.model_validate(
-            {
-                "query": query,
-                **provider_params,
-            }
-        )
+        provider_params = ExaSearchRequest.model_validate({
+            "query": query,
+            **provider_params,
+        })
     if provider == "perplexity":
         system = (
             provider_params.get("system_prompt")
@@ -89,12 +86,10 @@ async def search(
             {"role": "system", "content": system},
             {"role": "user", "content": query},
         ]
-        provider_params = PerplexityChatRequest.model_validate(
-            {
-                "messages": messages,
-                **provider_params,
-            }
-        )
+        provider_params = PerplexityChatRequest.model_validate({
+            "messages": messages,
+            **provider_params,
+        })
 
     request = InfoRequest(
         action=InfoAction.SEARCH,
