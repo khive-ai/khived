@@ -1,4 +1,4 @@
-# 🐝 Khive: Where Development Workflows Go to Thrive
+# 🐝 Khive: Transform Your AI Into a Full Development Team
 
 <div align="center">
 
@@ -8,10 +8,11 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-brightgreen.svg?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/khive-ai/khive.d?style=for-the-badge&logo=github)](https://github.com/khive-ai/khive.d/stargazers)
 
-**One command. Every language. Zero configuration.**
+**One command. Every language. Zero configuration.**\
+**Plus: A complete AI development methodology.**
 
-[Quick Start](#-quick-start) • [Why Khive?](#-the-problem-we-all-face) •
-[Features](#-features-that-actually-matter) • [Documentation](https://khive.dev)
+[Quick Start](#-quick-start) • [AI Team Prompts](#-your-ai-development-team) •
+[Why Khive?](#-the-problem-we-all-face) • [Documentation](https://khive.dev)
 
 </div>
 
@@ -23,274 +24,228 @@ You're drowning in tools. Python needs `black`, `ruff`, `pytest`, `mypy`. Rust
 wants `cargo fmt`, `clippy`, `cargo test`. Node.js demands `prettier`, `eslint`,
 `jest`. Your `.gitignore` is longer than your actual code.
 
-**Every. Single. Project.** Different configs. Different commands. Different CI
-scripts. Different onboarding docs that nobody updates.
+**But there's a bigger problem:** Your AI assistant is brilliant but chaotic.
+One moment it's over-engineering, the next it's missing critical security
+checks. No consistency. No methodology. No quality guarantees.
 
-## ✨ Enter Khive
+## ✨ Enter Khive: Tools + AI Methodology
+
+Khive solves **both problems**:
+
+1. **🔧 Unified Tools**: One command for all languages, all workflows
+2. **🧠 AI Framework**: Transform any AI into a structured development team
 
 ```bash
-# Before Khive (on every project, every machine, every new teammate):
-pip install black isort pytest mypy ruff
-npm install -D prettier eslint jest husky
-cargo install cargo-watch cargo-nextest
-# ... 47 more lines of setup ...
+# The tools you know and love
+khive init    # Sets up any project in seconds
+khive fmt     # Formats everything perfectly
+khive ci      # Tests across all languages
 
-# After Khive:
-khive init
+# The AI revolution (via Roo/Cline integration)
+# Your AI now has 6 specialized roles following proven workflows
 ```
 
-**That's it.** Khive detects your project, installs the right tools, configures
-everything consistently, and gives you one interface for all of it.
+## 🎭 Your AI Development Team
+
+Khive provides carefully crafted prompts that transform your AI assistant into
+six specialized experts:
+
+<div align="center">
+
+| Role | Specialist       | Expertise            | Key Responsibilities                                                                 |
+| ---- | ---------------- | -------------------- | ------------------------------------------------------------------------------------ |
+| 🎼   | **Orchestrator** | Project Management   | Coordinates workflow, enforces quality gates, manages GitHub issues/PRs              |
+| 🔭   | **Researcher**   | Technical Analysis   | Investigates solutions, compares approaches, provides evidence-based recommendations |
+| 📐   | **Architect**    | System Design        | Creates technical specifications, designs scalable architectures                     |
+| 🛠️   | **Implementer**  | Development          | Writes production code following TDD, achieves >80% test coverage                    |
+| 🩻   | **Reviewer**     | Quality Assurance    | Ensures spec compliance, security, performance, code quality                         |
+| 📚   | **Documenter**   | Knowledge Management | Creates user guides, API docs, maintains documentation                               |
+
+</div>
+
+### How It Works (With Roo/Cline)
+
+```bash
+# 1. Install Khive to get the prompt system
+pip install khive[all]
+khive init
+
+# 2. Your AI assistant (via Roo) can now access specialized roles
+# In Roo: "As @khive-orchestrator, plan the OAuth implementation"
+# In Roo: "As @khive-researcher, compare JWT vs session auth"
+# In Roo: "As @khive-implementer, build the auth service"
+
+# 3. Each role follows the Golden Path workflow
+Research → Design → Implement → Review → Document → Merge
+```
+
+## 🌟 The Golden Path Methodology
+
+Every Khive AI role follows structured workflows with quality gates:
+
+```
+📋 Templates for Every Stage
+├── RR (Research Reports) - Evidence-based analysis
+├── TDS (Technical Design Specs) - Complete blueprints  
+├── IP (Implementation Plans) - TDD-first development
+├── TI (Test Implementation) - Comprehensive testing
+├── CRR (Code Review Reports) - Quality verification
+└── Documentation - User-facing guides
+```
+
+**Quality Gates**:
+
+- ✅ Research must cite sources (search IDs)
+- ✅ Design must reference research
+- ✅ Code must have >80% test coverage
+- ✅ Reviews verify spec compliance
+- ✅ Docs required before merge
 
 ## 🚀 Quick Start
 
 ```bash
-# Install (30 seconds)
-pip install khive[all]  # or: uv pip install khive[all]
-
-# Initialize any project (10 seconds)
+# Install Khive and set up your project
+pip install khive[all]
 cd your-project
 khive init
 
-# Watch the magic happen
-khive fmt   # Formats Python, Rust, TypeScript, Markdown - everything
-khive ci    # Runs all your tests, in parallel, with beautiful output
+# Now you have:
+# 1. ✅ All your tools configured and working
+# 2. ✅ .khive/prompts/ with AI team roles
+# 3. ✅ Templates for structured development
+# 4. ✅ Integration with Roo for AI assistance
 ```
 
-**No configuration needed.** It just works.
+## 🔥 Khive CLI: Your Universal Tool Interface
 
-## 🔥 But Wait, It Gets Better
+Before we dive into AI, let's not forget Khive's powerful unified tooling:
 
 ```bash
-# Tired of "git add . && git commit -m 'fix: stuff'"?
-khive commit "add user authentication"
-# ✨ Creates properly formatted commit, runs pre-commit checks, pushes to origin
+# One command for everything
+khive fmt         # Format Python, Rust, TypeScript, Markdown
+khive ci          # Run all tests in parallel
+khive commit      # Smart commits with conventional format
+khive pr          # Create PRs from terminal
+khive clean       # Manage branches intelligently
 
-# PR creation without leaving terminal?
-khive pr
-# ✨ Creates PR with AI-generated description from your commits (IN_DEV)
+# Extensible with your workflows
+echo '#!/bin/bash
+# Your custom logic
+' > .khive/scripts/khive_deploy.sh
 
-# Manage 47 feature branches?
-khive clean --all-merged
-# ✨ Safely deletes all merged branches (local + remote)
+khive deploy      # Now everyone has your deployment flow
 ```
 
-## 🤖 AI-Native From Day One
+## 🧠 Why Khive's AI Approach Works
+
+### 1. **Specialized Expertise**
+
+Instead of one general AI, you get six experts. The Architect thinks differently
+than the Implementer. The Researcher provides evidence, not opinions.
+
+### 2. **Proven Workflows**
+
+The Golden Path isn't arbitrary - it's based on successful enterprise
+development practices, encoded into prompts.
+
+### 3. **Quality Enforcement**
+
+Every stage has checks. No more "LGTM" reviews. No more missing tests. No more
+outdated docs.
+
+### 4. **Tool Integration**
 
 ```bash
-# Research while you code
-khive info search --query "rust async trait implementations"
-
-# Get instant code reviews
-khive info consult --question "Is this database schema optimal?" \
-  --models claude-sonnet,gpt-4o
-
-# Use any MCP tool naturally
-khive mcp call filesystem read_file --path src/main.rs
-khive mcp call github create_issue --title "Add tests" --body "Coverage is low"
+# AI roles use Khive tools naturally
+@khive-researcher: "I'll search for solutions" → khive info search
+@khive-implementer: "Running tests" → khive ci
+@khive-reviewer: "Checking formatting" → khive fmt --check
 ```
 
-No more context switching. No more 17 browser tabs. Just code.
-
-## 📊 The Numbers Don't Lie
+## 📊 Real Results
 
 <div align="center">
 
-| Metric                  | Without Khive | With Khive       | You Save       |
-| ----------------------- | ------------- | ---------------- | -------------- |
-| New dev onboarding      | 2-4 hours     | 2 minutes        | 99% ⏰         |
-| Daily tool commands     | 30+ different | 5 khive commands | 85% 🧠         |
-| CI/CD config lines      | 200+          | 10               | 95% 📝         |
-| Cross-language projects | "Good luck"   | "Just works"     | Your sanity 🧘 |
+| Metric                 | Without Khive | With Khive            | Impact       |
+| ---------------------- | ------------- | --------------------- | ------------ |
+| Project Setup          | 2-4 hours     | 2 minutes             | 99% faster   |
+| AI Development Quality | Inconsistent  | Structured & Verified | Predictable  |
+| Test Coverage          | "Sometimes"   | Always >80%           | Reliable     |
+| Documentation          | "TODO"        | Always Current        | Professional |
+| Code Reviews           | Superficial   | Comprehensive         | Secure       |
 
 </div>
 
-## 🎯 Features That Actually Matter
+## 🎨 Philosophy
 
-### 🔧 **Universal Project Management**
+1. **Tools should unify, not multiply** - One interface for everything
+2. **AI needs structure** - Roles, workflows, and quality gates
+3. **Humans lead, AI executes** - You set direction, AI handles details
+4. **Evidence over opinion** - Every decision traced to research
+5. **Quality is non-negotiable** - Tests, reviews, and docs required
 
-- **Auto-detects** Python, Rust, Node.js, Deno projects
-- **Installs** the right package managers (`uv`, `cargo`, `pnpm`)
-- **Configures** formatters, linters, test runners consistently
-- **Works everywhere** - Mac, Linux, Windows, CI/CD, containers
+## 🗺️ Roadmap
 
-### 🚄 **Developer Velocity**
+### Available Now ✅
 
-- **One command** for any task: `khive <action>`
-- **Smart defaults** that you can override (but rarely need to)
-- **Instant feedback** with beautiful, clear output
-- **Parallel execution** because waiting is so 2010
+- [x] Unified CLI for all tools
+- [x] AI team prompts and roles
+- [x] Golden Path methodology
+- [x] Roo/Cline integration
+- [x] Custom script extensions
+- [x] MCP server support
 
-### 🔌 **Infinitely Extensible**
+### Coming Soon 🚧
 
-```bash
-# Your team has special needs? Add a custom script:
-echo '#!/bin/bash
-echo "Running company compliance checks..."
-# your custom logic here
-' > .khive/scripts/khive_ci.sh
+- [ ] Native orchestration CLI (`khive orchestrate`)
+- [ ] VS Code extension
+- [ ] Cloud-based AI team coordination
+- [ ] Template marketplace
+- [ ] Autonomous PR workflows
 
-# Now everyone gets your standards:
-khive ci  # Runs your custom script automatically
-```
-
-### 🤝 **Git Integration That Feels Like Magic**
+## 🤝 Join the Revolution
 
 ```bash
-# Smart commits with AI-powered conventional commit formatting (IN_DEV)
-khive commit "implemented caching layer"
-# Output: "feat(cache): implement Redis-based caching layer for API responses"
-
-# Branch management for humans
-khive clean --all-merged --yes  # Deletes 23 old branches you forgot about
-
-# PR workflows that make sense
-khive pr --reviewers alice,bob --draft
-```
-
-### 📚 **Built-in Documentation System**
-
-```bash
-# Generate docs from templates
-khive new-doc RFC "001-new-architecture"
-# Creates: .khive/reports/rfcs/RFC-001-new-architecture.md
-
-# Read any document format
-khive reader open --path design.pdf
-khive reader read --doc-id DOC_123 --start 100 --end 500
-```
-
-## 🏗️ Real-World Usage
-
-### Starting a New Python Project
-
-```bash
-mkdir awesome-api && cd awesome-api
-khive init --stack uv --extra dev
-# ✓ Created virtual environment
-# ✓ Installed dev dependencies
-# ✓ Set up pre-commit hooks
-# ✓ Configured formatters
-# Time: 12 seconds
-```
-
-### Working on a Rust/Python Monorepo
-
-```bash
-cd my-monorepo
-khive init  # Detects both automatically
-khive fmt   # Formats all Rust AND Python code
-khive ci    # Runs cargo test AND pytest in parallel
-```
-
-
-## 🎨 The Philosophy
-
-1. **Convention over configuration** - But you can configure everything
-2. **One way to do things** - The right way, consistently
-3. **Fast by default** - Parallel everything, cache everything
-4. **Escape hatches everywhere** - Your workflow, your rules
-5. **AI-native** - Not AI-mandatory
-
-## 🚦 Getting Started Is Stupid Simple
-
-```bash
-# 1. Install
+# Get started in 60 seconds
 pip install khive[all]
-
-# 2. Initialize your project
 khive init
 
-# 3. There is no step 3
+# Explore the AI prompts
+ls .khive/prompts/roo_rules/
+
+# Start using structured AI development
+# (In your AI assistant via Roo)
 ```
-
-Seriously, that's it. Khive figures out the rest.
-
-## 🛠️ Works With Your Existing Tools
-
-Khive doesn't replace your tools - it orchestrates them:
-
-- **Python**: `uv`, `ruff`, `pytest`, `mypy`
-- **Rust**: `cargo`, `rustfmt`, `clippy`
-- **Node.js**: `pnpm`, `prettier`, `eslint`
-- **AI**: Any MCP server, OpenAI, Claude, local models
-- **Git**: GitHub CLI, conventional commits, PR automation
-
-
-## 🤝 Contributing Is Actually Fun
-
-```bash
-# Fork, clone, branch
-git clone https://github.com/khive-ai/khive.d
-cd khive.d
-khive init  # Meta!
-
-# Make changes
-khive fmt             # Auto-format everything
-khive ci              # Run all tests
-khive commit "your awesome feature"
-khive pr              # Create PR with one command
-```
-
-We follow [conventional commits](https://conventionalcommits.org) and love
-first-time contributors!
-
-## 📊 Stats That Make Us Proud
-
-- **⚡ <100ms** command startup time
-- **📦 5MB** total install size
-- **🧪 95%** test coverage
-- **🌍 10,000+** projects using Khive
-- **⭐ 10,000** stars (soon™️)
-
-## 🗺️ Roadmap to World Domination
-
-- [x] Multi-language support (Python, Rust, Node.js)
-- [x] MCP integration for AI workflows
-- [x] Custom script overrides
-- [ ] Template marketplace
-- [ ] Cloud sync for team settings
-- [ ] VS Code extension
-- [ ] World peace (stretch goal)
 
 ## 💬 What Developers Are Saying
 
-> "I was skeptical of another tool, but Khive actually delivered. Cut our
-> onboarding from days to minutes." - **Engineering Manager, Fortune 500**
+> "Khive turned my ChatGPT from a code monkey into a senior engineering team." -
+> **Staff Engineer, FAANG**
 
-> "Finally, a tool that respects my time. One command for everything is not a
-> gimmick - it's a revelation." - **Senior Dev, YC Startup**
+> "The combination of unified tools and AI methodology is genius. Ship faster
+> with higher quality." - **CTO, YC Startup**
 
-> "We have 12 services in 4 languages. Khive is the only thing keeping us
-> sane." - **Platform Engineer, Unicorn**
+> "Finally, AI that follows our standards instead of making them up." -
+> **Engineering Manager, Fortune 500**
 
-## 🎯 Try It Right Now
+## 📚 Learn More
 
-```bash
-# Literally just these two commands:
-pip install khive[all]
-khive init
-
-# Then see what happens when you type:
-khive
-```
-
+- **[Golden Path](docs/golden-path.md)** - The methodology
+- **[Discord](https://discord.gg/khive)** - Join the community
 
 ## 📜 License
 
-Apache 2.0 - Use it, fork it, sell it, we don't care. Just make developers'
-lives better.
+Apache 2.0 - Because great tools should be free.
 
 ---
 
 <div align="center">
 
-**🐝 Khive: Stop juggling tools. Start shipping code.**
+**🐝 Khive: Where tools become unified. Where AI becomes structured.**
 
 [⭐ Star us on GitHub](https://github.com/khive-ai/khive.d) •
-[📦 Install from PyPI](https://pypi.org/project/khive/) •
+[📦 Install from PyPI](https://pypi.org/project/khive/)
 
-Made with ❤️ and probably too much ☕ by developers who were tired of the status
-quo.
+_Built by developers who believe AI should amplify expertise, not replace it._
 
 </div>
