@@ -483,7 +483,7 @@ def test_cli_consult_multiple_models(monkeypatch, mock_service_call):
         "--question",
         "Compare Python and Rust",
         "--models",
-        "openai/gpt-o4-mini,anthropic/claude-3.7-sonnet",
+        "openai/gpt-o4-mini,anthropic/claude-sonnet-4",
     ]
     mock_print, mock_exit = run_cli_with_args(monkeypatch, args, mock_service_call)
 
@@ -495,7 +495,7 @@ def test_cli_consult_multiple_models(monkeypatch, mock_service_call):
     assert request.params.question == "Compare Python and Rust"
     assert len(request.params.models) == 2
     assert "openai/gpt-o4-mini" in request.params.models
-    assert "anthropic/claude-3.7-sonnet" in request.params.models
+    assert "anthropic/claude-sonnet-4" in request.params.models
 
 
 def test_cli_consult_with_system_prompt(monkeypatch, mock_service_call):
