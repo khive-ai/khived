@@ -4,7 +4,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/khive.svg?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/khive/)
 [![Downloads](https://img.shields.io/pypi/dm/khive?style=for-the-badge&color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/khive/)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-brightgreen.svg?style=for-the-badge)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/khive-ai/khive.d?style=for-the-badge&logo=github)](https://github.com/khive-ai/khive.d/stargazers)
 
